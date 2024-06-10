@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
+require('./services/BootCheck').check()
 
 // Configure express app
 const app = express();

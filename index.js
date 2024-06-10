@@ -2,6 +2,15 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
 
+// Set up services
+require('./services/BootCheck').check()
+
+const Logger = require('./services/Logger')
+Logger.setup()
+
+const Emailer = require('./services/Emailer')
+Emailer.checkContext()
+
 // Configure express app
 const app = express();
 app.use(cors())
@@ -21,20 +30,23 @@ app.get("/", (req, res) => {
 
 // Register routers
 app.use("/misc", require("./routes/misc"));
+app.use("/orders", require("./routes/orders/preOrder"));
 
 // Start server
-app.listen(process.env.SERVER_PORT, () => {
-    console.log(`Server is running on port ${process.env.SERVER_PORT}`)
-})
+// app.listen(process.env.SERVER_PORT, () => {
+//     console.log(`Server is running on port ${process.env.SERVER_PORT}`)
+// })
 
 // Server initialisation with sequelize
-// const db = require("./models");
-// db.sequelize.sync({ alter: true })
-//     .then(() => {
-//         app.listen(process.env.SERVER_PORT, () => {
-//             console.log(`Server is running on port ${process.env.SERVER_PORT}`)
-//         })
-//     })
-//     .catch(err => {
-//         console.error(err)
-//     })
+const db = require("./models");
+db.sequelize.sync({ alter: true })
+    .then(() => {
+        console.log("SEQUELIZE: Database synchronised.")
+        console.log()
+        app.listen(process.env.SERVER_PORT, () => {
+            console.log(`Server is running on port ${process.env.SERVER_PORT}`)
+        })
+    })
+    .catch(err => {
+        console.error(err)
+    })

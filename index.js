@@ -23,18 +23,20 @@ app.get("/", (req, res) => {
 app.use("/misc", require("./routes/misc"));
 
 // Start server
-app.listen(process.env.SERVER_PORT, () => {
-    console.log(`Server is running on port ${process.env.SERVER_PORT}`)
-})
+// app.listen(process.env.SERVER_PORT, () => {
+//     console.log(`Server is running on port ${process.env.SERVER_PORT}`)
+// })
 
 // Server initialisation with sequelize
-// const db = require("./models");
-// db.sequelize.sync({ alter: true })
-//     .then(() => {
-//         app.listen(process.env.SERVER_PORT, () => {
-//             console.log(`Server is running on port ${process.env.SERVER_PORT}`)
-//         })
-//     })
-//     .catch(err => {
-//         console.error(err)
-//     })
+const db = require("./models");
+db.sequelize.sync({ alter: true })
+    .then(() => {
+        console.log("SEQUELIZE: Database synchronised.")
+        console.log()
+        app.listen(process.env.SERVER_PORT, () => {
+            console.log(`Server is running on port ${process.env.SERVER_PORT}`)
+        })
+    })
+    .catch(err => {
+        console.error(err)
+    })

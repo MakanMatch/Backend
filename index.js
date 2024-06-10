@@ -8,6 +8,9 @@ require('./services/BootCheck').check()
 const Logger = require('./services/Logger')
 Logger.setup()
 
+const Emailer = require('./services/Emailer')
+Emailer.checkContext()
+
 // Configure express app
 const app = express();
 app.use(cors())

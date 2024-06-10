@@ -30,6 +30,7 @@ app.get("/", (req, res) => {
 
 // Register routers
 app.use("/misc", require("./routes/misc"));
+app.use("/orders", require("./routes/orders/preOrder"));
 
 // Start server
 // app.listen(process.env.SERVER_PORT, () => {

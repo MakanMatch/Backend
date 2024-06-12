@@ -1,55 +1,93 @@
 const admin = require('firebase-admin');
 const serviceAccount = require('../serviceAccountKey.json');
+require('dotenv').config()
 
 class FireStorage {
+    static #bucket;
+    static #initialized;
+
     static initialize() {
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
-            storageBucket: 'gs://makanmatch.appspot.com'
+            storageBucket: process.env.STORAGE_BUCKET_URL
         });
+        FireStorage.#bucket = admin.storage().bucket();
+        FireStorage.#initialized = true;
     }
 
-    static async uploadFile(filePath, destinationPath=null) {
+    static async uploadFile(filePath, destinationPath = null) {
+        if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }
         if (!destinationPath) {
             destinationPath = filePath;
         }
-        const bucket = admin.storage().bucket();
-        await bucket.upload(filePath, {
-            destination: destinationPath
-        });
-        console.log('File uploaded successfully.');
+        try {
+            await this.#bucket.upload(filePath, {
+                destination: destinationPath
+            });
+            return true;
+        } catch (err) {
+            return `ERROR: ${err}`
+        }
     }
 
-    static async downloadFile(sourcePath, destinationPath=null) {
+    static async downloadFile(sourcePath, destinationPath = null) {
+        if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }
         if (!destinationPath) {
             destinationPath = sourcePath;
         }
-        const bucket = admin.storage().bucket();
-        await bucket.file(sourcePath).download({
-            destination: destinationPath
-        });
-        console.log('File downloaded successfully.');
+        try {
+            await this.#bucket.file(sourcePath).download({
+                destination: destinationPath
+            });
+            return true;
+        } catch (err) {
+            return `ERROR: ${err}`
+        }
     }
 
     static async deleteFile(filePath) {
-        const bucket = admin.storage().bucket();
-        await bucket.file(filePath).delete();
-        console.log('File deleted successfully.');
+        if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }
+        try {
+            await this.#bucket.file(filePath).delete();
+            return true;
+        } catch (err) {
+            return `ERROR: ${err}`
+        }
     }
 
     static async getMetadata(filePath) {
-        const bucket = admin.storage().bucket();
-        const [metadata] = await bucket.file(filePath).getMetadata();
-        console.log('File metadata:', metadata);
+        if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }
+        try {
+            const [metadata] = await this.#bucket.file(filePath).getMetadata();
+            return metadata;
+        } catch (err) {
+            return `ERROR: ${err}`
+        }
     }
 
     static async listFiles() {
-        const bucket = admin.storage().bucket();
-        const [files] = await bucket.getFiles();
-        console.log('Files:');
-        files.forEach(file => {
-            console.log(file.name);
-        });
+        if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }
+        try {
+            const [files] = await this.#bucket.getFiles();
+            const fileNames = files.map(file => file.name);
+            return fileNames;
+        } catch (err) {
+            return `ERROR: ${err}`
+        }
+    }
+
+    static async generateSignedUrl(filePath, expiration) {
+        if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }
+        try {
+            const file = this.#bucket.file(filePath);
+            const [url] = await file.getSignedUrl({
+                action: 'read',
+                expires: expiration
+            });
+            return url;
+        } catch (err) {
+            return `ERROR: ${err}`
+        }
     }
 }
 

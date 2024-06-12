@@ -5,3 +5,4 @@ config/config.json
 database.sqlite
 logs.txt
 serviceAccountKey.json
+FileStore/

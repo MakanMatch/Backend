@@ -3,8 +3,8 @@ const serviceAccount = require('../serviceAccountKey.json');
 require('dotenv').config()
 
 class FireStorage {
-    static #bucket;
-    static #initialized;
+    static #bucket = null;
+    static #initialized = false;
 
     static initialize() {
         admin.initializeApp({

@@ -2,7 +2,7 @@ const FireStorage = require('./FireStorage');
 const FileOps = require('./FileOps')
 const path = require('path');
 
-// Uses on-demand principle with a cache local file store layer. File caches expire after one hour.
+// Uses on-demand principle with a local file store for performance efficiency. Cloud remains the source of truth.
 class FileManager {
     static #initialized = false;
     static fileStorePath = path.join(__dirname, '../FileStore')

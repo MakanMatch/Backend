@@ -182,6 +182,28 @@ class FileManager {
         return true;
     }
 
+    static async exists(file) {
+        if (!this.checkPermission()) { return "ERROR: FileManager operation permission denied." }
+        if (!this.#initialized) { return 'ERROR: FileManager must be setup first.' }
+
+        const fileExists = await FireStorage.fileExistsAt(file)
+        if (typeof fileExists === 'string') {
+            return `ERROR: ${fileExists}`
+        }
+        if (!fileExists) {
+            // Remove from file store if file exists as file is not in cloud storage
+            if (this.#fileStoreContext[file] !== undefined) {
+                delete this.#fileStoreContext[file]
+                this.persistFileStoreContext();
+            }
+            if (FileOps.exists(path.join(this.fileStorePath, file))) {
+                FileOps.deleteFile(path.join(this.fileStorePath, file))
+            }
+        }
+
+        return fileExists;
+    }
+
     static async prepFile(file) {
         if (!this.checkPermission()) { return "ERROR: FileManager operation permission denied." }
         if (!this.#initialized) { return 'ERROR: FileManager must be setup first.' }
@@ -199,7 +221,7 @@ class FileManager {
             if (FileOps.exists(path.join(this.fileStorePath, file))) {
                 FileOps.deleteFile(path.join(this.fileStorePath, file))
             }
-            
+
             return "ERROR: File does not exist."
         }
 

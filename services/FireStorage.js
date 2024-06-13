@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const serviceAccount = require('../serviceAccountKey.json');
+var serviceAccount;
 require('dotenv').config()
 
 class FireStorage {
@@ -12,6 +12,7 @@ class FireStorage {
 
     static initialize() {
         if (!this.checkPermission()) { return "ERROR: FireStorage operation permission denied." }
+        try { serviceAccount = require('../serviceAccountKey.json') } catch (err) { throw new Error("FIRESTORAGE ERROR: serviceAccountKey.json not found.") }
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
             storageBucket: process.env.STORAGE_BUCKET_URL

@@ -230,7 +230,7 @@ class FileManager {
             return `ERROR: ${fileMetadata}`
         }
 
-        if (this.#fileStoreContext[file] === undefined || this.#fileStoreContext[file].updated != fileMetadata.updated) {
+        if (this.#fileStoreContext[file] === undefined || this.#fileStoreContext[file].updated != fileMetadata.updated || !FileOps.exists(path.join(this.fileStorePath, file))) {
             // Download file
             const fileDownload = await FireStorage.downloadFile(file, path.join(this.fileStorePath, file))
             if (fileDownload !== true) {
@@ -246,6 +246,75 @@ class FileManager {
                 forceExistence: false
             }
             this.persistFileStoreContext();
+        }
+
+        return `SUCCESS: File path: ${path.join(this.fileStorePath, file)}`;
+    }
+
+    static async saveFile(file) {
+        // To be run after a file is stored in the file store
+        // Uploads new file to cloud storage and updates file store context
+
+        if (!this.checkPermission()) { return "ERROR: FileManager operation permission denied." }
+        if (!this.#initialized) { return 'ERROR: FileManager must be setup first.' }
+
+        if (!FileOps.exists(path.join(this.fileStorePath, file))) {
+            return "ERROR: File does not exist in file store."
+        }
+
+        const fileUpload = await FireStorage.uploadFile(path.join(this.fileStorePath, file), file)
+        if (fileUpload !== true) {
+            return `ERROR: ${fileUpload}`
+        }
+
+        const fileMetadata = await FireStorage.getMetadata(file)
+        if (typeof fileMetadata === 'string') {
+            return `ERROR: ${fileMetadata}`
+        }
+
+        this.#fileStoreContext[file] = {
+            id: fileMetadata.id,
+            name: file,
+            contentType: fileMetadata.contentType,
+            updated: fileMetadata.updated,
+            updateMetadata: false,
+            forceExistence: false
+        }
+        this.persistFileStoreContext();
+
+        return true;
+    }
+
+    static async deleteFile(file) {
+        if (!this.checkPermission()) { return "ERROR: FileManager operation permission denied." }
+        if (!this.#initialized) { return 'ERROR: FileManager must be setup first.' }
+
+        // Check if file exists first
+        const fileExists = await FireStorage.fileExistsAt(file)
+        if (typeof fileExists === 'string') {
+            return `ERROR: ${fileExists}`
+        }
+        if (!fileExists) {
+            return "ERROR: File does not exist."
+        }
+
+        // Process file deletion and synchronize file store
+
+        // Delete file from cloud storage
+        const fileDelete = await FireStorage.deleteFile(file)
+        if (fileDelete !== true) {
+            return `ERROR: ${fileDelete}`
+        }
+
+        // Remove from file store context
+        if (this.#fileStoreContext[file] !== undefined) {
+            delete this.#fileStoreContext[file]
+            this.persistFileStoreContext();
+        }
+
+        // Remove from file store, if exists
+        if (FileOps.exists(path.join(this.fileStorePath, file))) {
+            FileOps.deleteFile(path.join(this.fileStorePath, file))
         }
 
         return true;

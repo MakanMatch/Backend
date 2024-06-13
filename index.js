@@ -6,6 +6,7 @@ const SEQUELIZE_ACTIVE = false;
 
 // Set up services
 require('./services/BootCheck').check()
+const FileOps = require('./services/FileOps')
 
 const Logger = require('./services/Logger')
 Logger.setup()

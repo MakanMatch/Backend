@@ -65,6 +65,17 @@ class FireStorage {
         }
     }
 
+    static async fileExistsAt(filePath) {
+        if (!this.checkPermission()) { return "ERROR: FireStorage operation permission denied." }
+        if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }
+        try {
+            const [fileExists] = await this.#bucket.file(filePath).exists();
+            return fileExists;
+        } catch (err) {
+            return `ERROR: ${err}`
+        }
+    }
+
     static async getMetadata(filePath) {
         if (!this.checkPermission()) { return "ERROR: FireStorage operation permission denied." }
         if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }

@@ -178,6 +178,54 @@ class FileManager {
         })
 
         console.log("FILEMANAGER: Setup complete.")
+        this.#initialized = true;
+        return true;
+    }
+
+    static async prepFile(file) {
+        if (!this.checkPermission()) { return "ERROR: FileManager operation permission denied." }
+        if (!this.#initialized) { return 'ERROR: FileManager must be setup first.' }
+
+        const fileExists = await FireStorage.fileExistsAt(file)
+        if (typeof fileExists === 'string') {
+            return `ERROR: ${fileExists}`
+        }
+        if (!fileExists) {
+            // Remove from file store if file exists as file is not in cloud storage
+            if (this.#fileStoreContext[file] !== undefined) {
+                delete this.#fileStoreContext[file]
+                this.persistFileStoreContext();
+            }
+            if (FileOps.exists(path.join(this.fileStorePath, file))) {
+                FileOps.deleteFile(path.join(this.fileStorePath, file))
+            }
+            
+            return "ERROR: File does not exist."
+        }
+
+        const fileMetadata = await FireStorage.getMetadata(file)
+        if (typeof fileMetadata === 'string') {
+            return `ERROR: ${fileMetadata}`
+        }
+
+        if (this.#fileStoreContext[file] === undefined || this.#fileStoreContext[file].updated != fileMetadata.updated) {
+            // Download file
+            const fileDownload = await FireStorage.downloadFile(file, path.join(this.fileStorePath, file))
+            if (fileDownload !== true) {
+                return `ERROR: ${fileDownload}`
+            }
+
+            this.#fileStoreContext[file] = {
+                id: fileMetadata.id,
+                name: file,
+                contentType: fileMetadata.contentType,
+                updated: fileMetadata.updated,
+                updateMetadata: false,
+                forceExistence: false
+            }
+            this.persistFileStoreContext();
+        }
+
         return true;
     }
 }

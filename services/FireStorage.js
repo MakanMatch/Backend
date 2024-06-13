@@ -6,16 +6,23 @@ class FireStorage {
     static #bucket = null;
     static #initialized = false;
 
+    static checkPermission() {
+        return process.env.FIRESTORAGE_ENABLED === "True"
+    }
+
     static initialize() {
+        if (!this.checkPermission()) { return "ERROR: FireStorage operation permission denied." }
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
             storageBucket: process.env.STORAGE_BUCKET_URL
         });
         FireStorage.#bucket = admin.storage().bucket();
         FireStorage.#initialized = true;
+        return true;
     }
 
     static async uploadFile(filePath, destinationPath = null) {
+        if (!this.checkPermission()) { return "ERROR: FireStorage operation permission denied." }
         if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }
         if (!destinationPath) {
             destinationPath = filePath;
@@ -31,6 +38,7 @@ class FireStorage {
     }
 
     static async downloadFile(sourcePath, destinationPath = null) {
+        if (!this.checkPermission()) { return "ERROR: FireStorage operation permission denied." }
         if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }
         if (!destinationPath) {
             destinationPath = sourcePath;
@@ -46,6 +54,7 @@ class FireStorage {
     }
 
     static async deleteFile(filePath) {
+        if (!this.checkPermission()) { return "ERROR: FireStorage operation permission denied." }
         if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }
         try {
             await this.#bucket.file(filePath).delete();
@@ -56,6 +65,7 @@ class FireStorage {
     }
 
     static async getMetadata(filePath) {
+        if (!this.checkPermission()) { return "ERROR: FireStorage operation permission denied." }
         if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }
         try {
             const [metadata] = await this.#bucket.file(filePath).getMetadata();
@@ -66,6 +76,7 @@ class FireStorage {
     }
 
     static async listFiles() {
+        if (!this.checkPermission()) { return "ERROR: FireStorage operation permission denied." }
         if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }
         try {
             const [files] = await this.#bucket.getFiles();
@@ -77,6 +88,7 @@ class FireStorage {
     }
 
     static async generateSignedUrl(filePath, expiration) {
+        if (!this.checkPermission()) { return "ERROR: FireStorage operation permission denied." }
         if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }
         try {
             const file = this.#bucket.file(filePath);

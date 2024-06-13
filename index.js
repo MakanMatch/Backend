@@ -12,12 +12,7 @@ const Emailer = require('./services/Emailer')
 Emailer.checkContext()
 
 const FileManager = require('./services/FileManager')
-FileManager.setup()
-
-// sleep for 5 seconds
-setTimeout(() => {
-    process.exit()
-}, 5000)
+FileManager.setup().catch(err => { Logger.logAndThrow(err) })
 
 // Configure express app
 const app = express();
@@ -46,15 +41,15 @@ app.use("/orders", require("./routes/orders/preOrder"));
 // })
 
 // Server initialisation with sequelize
-// const db = require("./models");
-// db.sequelize.sync({ alter: true })
-//     .then(() => {
-//         console.log("SEQUELIZE: Database synchronised.")
-//         console.log()
-//         app.listen(process.env.SERVER_PORT, () => {
-//             console.log(`Server is running on port ${process.env.SERVER_PORT}`)
-//         })
-//     })
-//     .catch(err => {
-//         console.error(err)
-//     })
+const db = require("./models");
+db.sequelize.sync({ alter: true })
+    .then(() => {
+        console.log("SEQUELIZE: Database synchronised.")
+        console.log()
+        app.listen(process.env.SERVER_PORT, () => {
+            console.log(`Server is running on port ${process.env.SERVER_PORT}`)
+        })
+    })
+    .catch(err => {
+        console.error(err)
+    })

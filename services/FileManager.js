@@ -19,7 +19,12 @@ class FileManager {
     //     "forceExistence": "boolean"
     // }
 
+    static checkPermission() {
+        return process.env.FILEMANAGER_ENABLED === "True"
+    }
+
     static loadFileStoreContext() {
+        if (!this.checkPermission()) { return "FILEMANAGER ERROR: FileManager operation permission denied." }
         if (FileOps.exists(this.fileStoreContextPath)) {
             this.#fileStoreContext = JSON.parse(FileOps.read(this.fileStoreContextPath))
             var changesMade = false;
@@ -93,11 +98,16 @@ class FileManager {
     }
 
     static async setup() {
-        FireStorage.initialize()
+        if (!this.checkPermission()) { throw new Error("FILEMANAGER ERROR: FileManager operation permission denied.") }
+
+        const fireStorageInit = FireStorage.initialize();
+        if (fireStorageInit !== true) {
+            throw new Error(`FILEMANAGER SETUP ERROR: Failed to initialize FireStorage; error: ${fireStorageInit}`)
+        }
         if (!FileOps.exists(this.fileStorePath)) {
             var response = FileOps.createFolder(this.fileStorePath)
             if (response !== true) {
-                throw new Error(`FILEMANAGER SETUP: Failed to setup file store directory; error: ${response}`)
+                throw new Error(`FILEMANAGER SETUP ERROR: Failed to setup file store directory; error: ${response}`)
             }
         }
 
@@ -107,7 +117,7 @@ class FileManager {
         // Fetch list of files from Firebase Cloud Storage
         const cloudFiles = await FireStorage.listFiles();
         if (typeof cloudFiles === 'string') {
-            throw new Error(`FILEMANAGER SETUP: Failed to retrieve list of files from cloud storage; error: ${cloudFiles}`)
+            throw new Error(`FILEMANAGER SETUP ERROR: Failed to retrieve list of files from cloud storage; error: ${cloudFiles}`)
         }
 
         // Compare file store context with cloud files
@@ -116,13 +126,13 @@ class FileManager {
                 // Force declare file in cloud storage
                 const fileUpload = await FireStorage.uploadFile(path.join(this.fileStorePath, this.#fileStoreContext[file].name), this.#fileStoreContext[file].name)
                 if (fileUpload !== true) {
-                    return `FILEMANAGER SETUP: Failed to upload file ${this.#fileStoreContext[file].name}; error: ${fileUpload}`
+                    throw new Error(`FILEMANAGER SETUP ERROR: Failed to upload file ${this.#fileStoreContext[file].name}; error: ${fileUpload}`)
                 }
 
                 // Fetch and update metadata
                 const metadata = await FireStorage.getMetadata(this.#fileStoreContext[file].name)
                 if (typeof metadata === 'string') {
-                    return `FILEMANAGER SETUP: Failed to retrieve metadata for file ${this.#fileStoreContext[file].name}; error: ${metadata}`
+                    throw new Error(`FILEMANAGER SETUP ERROR: Failed to retrieve metadata for file ${this.#fileStoreContext[file].name}; error: ${metadata}`)
                 }
 
                 this.#fileStoreContext[file].id = metadata.id
@@ -138,7 +148,7 @@ class FileManager {
                 // Carry out metadata-based processing
                 const metadata = await FireStorage.getMetadata(this.#fileStoreContext[file].name)
                 if (typeof metadata === 'string') {
-                    return `FILEMANAGER SETUP: Failed to retrieve metadata for file ${this.#fileStoreContext[file].name}; error: ${metadata}`
+                    throw new Error(`FILEMANAGER SETUP ERROR: Failed to retrieve metadata for file ${this.#fileStoreContext[file].name}; error: ${metadata}`)
                 }
 
                 // Re-download file if file is outdated
@@ -146,7 +156,7 @@ class FileManager {
                     // Re-download file and update metadata
                     const fileDownload = await FireStorage.downloadFile(this.#fileStoreContext[file].name, path.join(this.fileStorePath, this.#fileStoreContext[file].name))
                     if (fileDownload !== true) {
-                        return `FILEMANAGER SETUP: Failed to update file ${file.name}; error: ${fileDownload}`
+                        throw new Error(`FILEMANAGER SETUP ERROR: Failed to update file ${file.name}; error: ${fileDownload}`)
                     }
 
                     this.#fileStoreContext[file].id = metadata.id
@@ -167,6 +177,7 @@ class FileManager {
             this.persistFileStoreContext();
         })
 
+        console.log("FILEMANAGER: Setup complete.")
         return true;
     }
 }

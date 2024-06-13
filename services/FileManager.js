@@ -24,12 +24,21 @@ class FileManager {
             this.#fileStoreContext = JSON.parse(FileOps.read(this.fileStoreContextPath))
             var changesMade = false;
             Object.keys(this.#fileStoreContext).forEach(file => {
+                if (!FileOps.exists(path.join(this.fileStorePath, file))) {
+                    delete this.#fileStoreContext[file]
+                    changesMade = true;
+                    return;
+                }
+
                 // Check that all parameters exist, if not, set default values
                 if (this.#fileStoreContext[file].id == undefined) {
                     changesMade = true;
                     this.#fileStoreContext[file].id = ""
                 }
                 if (this.#fileStoreContext[file].name == undefined) {
+                    changesMade = true;
+                    this.#fileStoreContext[file].name = file
+                } else if (this.#fileStoreContext[file].name !== file) {
                     changesMade = true;
                     this.#fileStoreContext[file].name = file
                 }
@@ -51,6 +60,7 @@ class FileManager {
                 }
             })
             if (changesMade) { this.persistFileStoreContext(); }
+            this.cleanupNonmatchingFiles();
         } else {
             this.#fileStoreContext = {}
             const files = FileOps.getFilenames(this.fileStorePath)
@@ -71,6 +81,15 @@ class FileManager {
 
     static persistFileStoreContext() {
         FileOps.writeTo(this.fileStoreContextPath, JSON.stringify(this.#fileStoreContext))
+    }
+
+    static cleanupNonmatchingFiles() {
+        const files = FileOps.getFilenames(this.fileStorePath)
+        files.forEach(file => {
+            if (!Object.keys(this.#fileStoreContext).includes(file) && file !== 'context.json') {
+                FileOps.deleteFile(path.join(this.fileStorePath, file))
+            }
+        })
     }
 
     static async setup() {

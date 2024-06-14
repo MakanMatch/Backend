@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-services = {}
+var services = {}
 
 fs.readdirSync(__dirname)
     .filter(file => file.endsWith('.js') && file !== 'index.js')

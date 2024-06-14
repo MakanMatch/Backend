@@ -69,6 +69,11 @@ class Logger {
             return []
         }
     }
+
+    static logAndThrow(message) {
+        this.log(message)
+        throw message
+    }
 }
 
 module.exports = Logger;

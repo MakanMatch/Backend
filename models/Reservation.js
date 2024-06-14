@@ -2,25 +2,23 @@ module.exports = (sequelize, DataTypes) => {
     const Reservation = sequelize.define('Reservation', {
         guestID: {
             type: DataTypes.STRING,
-            allowNull: false,
-            primaryKey: true
+            allowNull: false
         },
         listingID: {
             type: DataTypes.STRING,
-            allowNull: false,
-            primaryKey: true
+            allowNull: false
         },
         datetime: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: false
         },
         portions: {
             type: DataTypes.INTEGER,
-            allowNull: false,
+            allowNull: false
         },
         totalPrice: {
             type: DataTypes.DOUBLE,
-            allowNull: false,
+            allowNull: false
         },
         markedPaid: {
             type: DataTypes.BOOLEAN,
@@ -35,6 +33,18 @@ module.exports = (sequelize, DataTypes) => {
     }, { tableName: 'reservations' });
 
     // Associations
+    Reservation.associate = (models) => {
+        // Reservation.belongsTo(models.Guest, {
+        //     foreignKey: "guestID",
+        //     as: "guest"
+        // });
+        // Reservation.belongsTo(models.FoodListing, {
+        //     foreignKey: "listingID",
+        //     as: "listing"
+        // });
+        Reservation.belongsTo(models.Guest, {foreignKey: 'guestID'})
+        Reservation.belongsTo(models.FoodListing, {foreignKey: 'listingID'})
+    }
 
     return Reservation;
 };

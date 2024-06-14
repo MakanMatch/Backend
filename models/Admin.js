@@ -19,13 +19,11 @@ module.exports = (sequelize, DataTypes) => {
         },
         contactNum: {
             type: DataTypes.STRING,
-            allowNull: true,
-            defaultValue: "Not Provided"
+            allowNull: true
         },
         address: {
             type: DataTypes.STRING,
-            allowNull: true,
-            defaultValue: "Not Provided"
+            allowNull: true
         },
         emailVerified: {
             type: DataTypes.BOOLEAN,

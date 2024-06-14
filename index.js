@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
 
-const SEQUELIZE_ACTIVE = false;
+const SEQUELIZE_ACTIVE = true;
 
 // Set up services
 require('./services/BootCheck').check()

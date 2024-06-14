@@ -19,13 +19,11 @@ module.exports = (sequelize, DataTypes) => {
         },
         contactNum: {
             type: DataTypes.STRING,
-            allowNull: true,
-            defaultValue: "Not Provided"
+            allowNull: true
         },
         address: {
             type: DataTypes.STRING,
-            allowNull: true,
-            defaultValue: "Not Provided"
+            allowNull: true
         },
         emailVerified: {
             type: DataTypes.BOOLEAN,
@@ -41,9 +39,16 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: 0
         },
-    }, { tableName: 'guests'})
+    }, { tableName: 'guests' })
 
     // Associations
+    Guest.associate = (models) => {
+        Guest.belongsToMany(models.FoodListing, {
+            through: 'Reservation',
+            foreignKey: 'guestID',
+            as: 'reservations'
+        })
+    }
 
     return Guest;
 }

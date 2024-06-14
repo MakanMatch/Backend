@@ -23,12 +23,12 @@ module.exports = (sequelize, DataTypes) => {
         },
         address: {
             type: DataTypes.STRING,
-            allowNull: true,
-            defaultValue: "Not Provided"
+            allowNull: false
         },
         emailVerified: {
             type: DataTypes.BOOLEAN,
-            allowNull: false
+            allowNull: false,
+            defaultValue: false
         },
         favCuisine: {
             type: DataTypes.STRING,

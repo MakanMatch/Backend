@@ -51,7 +51,7 @@ module.exports = (sequelize, DataTypes) => {
     // Associations
     FoodListing.associate = (models) => {
         FoodListing.belongsTo(models.Host, {
-            foreignKey: "hostID",
+            foreignKey: "userID",
             as: "host"
         })
         FoodListing.belongsToMany(models.Guest, {

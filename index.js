@@ -37,6 +37,7 @@ app.get("/", (req, res) => {
 // Register routers
 app.use("/misc", require("./routes/misc"));
 app.use("/orders", require("./routes/orders/preOrder"));
+app.use("/listings", require("./routes/listings/listings"));
 
 // Start server
 if (!SEQUELIZE_ACTIVE) {

@@ -34,14 +34,12 @@ app.get("/", (req, res) => {
     });
 })
 
-const reviewsRouter = require("./routes/reviews/reviews");
-
-app.use("/reviews", reviewsRouter);
-
 // Register routers
 app.use("/misc", require("./routes/misc"));
 app.use("/orders", require("./routes/orders/preOrder"));
 app.use("/reviews", require("./routes/reviews/reviews"));
+const reviewsRouter = require("./routes/reviews/reviews");
+app.use("/reviews", reviewsRouter);
 
 // Start server
 if (!SEQUELIZE_ACTIVE) {

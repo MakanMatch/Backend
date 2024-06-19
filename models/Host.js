@@ -54,12 +54,12 @@ module.exports = (sequelize, DataTypes) => {
     }, { tableName: 'hosts' })
 
     // Associations
-    Host.associate = (models) => {
-        Host.hasMany(models.FoodListing, {
-            foreignKey: "hostID",
-            onDelete: "cascade"
-        })
-    }
+    // Host.associate = (models) => {
+    //     Host.hasMany(models.FoodListing, {
+    //         foreignKey: "hostID",
+    //         onDelete: "cascade"
+    //     })
+    // }
 
     return Host;
 }

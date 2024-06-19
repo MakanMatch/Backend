@@ -42,13 +42,13 @@ module.exports = (sequelize, DataTypes) => {
     }, { tableName: 'guests' })
 
     // Associations
-    Guest.associate = (models) => {
-        Guest.belongsToMany(models.FoodListing, {
-            through: 'Reservation',
-            foreignKey: 'guestID',
-            as: 'reservations'
-        })
-    }
+    // Guest.associate = (models) => {
+    //     Guest.belongsToMany(models.FoodListing, {
+    //         through: 'Reservation',
+    //         foreignKey: 'guestID',
+    //         as: 'reservations'
+    //     })
+    // }
 
     return Guest;
 }

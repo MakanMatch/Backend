@@ -1,8 +1,12 @@
 const express = require('express');
 const cors = require('cors');
+const { v4: uuidv4 } = require('uuid')
+const { FoodListing } = require('./models')
 require('dotenv').config()
 
-const SEQUELIZE_ACTIVE = false;
+const SEQUELIZE_ACTIVE = true;
+
+const DUMMY_LISTING_ID = null;
 
 // Set up services
 require('./services/BootCheck').check()
@@ -42,6 +46,25 @@ app.use("/misc", require("./routes/misc"));
 app.use(checkHeaders) // Middleware to check Content-Type and API key headers
 app.use("/", require("./routes/orders/reservation"));
 
+async function onDBSynchronise() {
+    const newListing = await FoodListing.create({
+        listingID: uuidv4(),
+        title: "Chili Crab for Dinner",
+        images: "",
+        shortDescription: "Making chili crab for dinner again! Come join!",
+        longDescription: "Seeing that chili crab last time was a hit, cooking some again! Bought fresh groceries from the market today for it too. Come join me for dinner!",
+        portionPrice: "5.00",
+        approxAddress: "Near Tampines West Community Centre, Singapore",
+        address: "Block 67, Tampines Avenue 10, Singapore 520678",
+        totalSlots: "5",
+        datetime: new Date().toISOString(),
+        published: false
+    })
+
+    DUMMY_LISTING_ID = newListing.listingID
+    console.log(`Created dummy listing with ID: ${newListing.listingID}`)
+}
+
 // Start server
 if (!SEQUELIZE_ACTIVE) {
     app.listen(process.env.SERVER_PORT, () => {
@@ -52,6 +75,8 @@ if (!SEQUELIZE_ACTIVE) {
     const db = require("./models");
     db.sequelize.sync({ alter: true })
         .then(() => {
+            // Create sample FoodListing
+            onDBSynchronise()
             console.log("SEQUELIZE: Database synchronised.")
             console.log()
             app.listen(process.env.SERVER_PORT, () => {
@@ -59,6 +84,7 @@ if (!SEQUELIZE_ACTIVE) {
             })
         })
         .catch(err => {
-            console.error(err)
+            console.log(err)
+            console.log(`MAIN: Failed to setup sequelize. Terminating boot.`)
         })
 }

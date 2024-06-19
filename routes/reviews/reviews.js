@@ -2,18 +2,13 @@ const express = require('express');
 const router = express.Router();
 
 router.get("/", (req, res) => {
-    console.log("GET /reviews - Reviews route hit");
-    res.send("Reviews!!");
+    console.log("GET /reviews/ - Reviews List route hit");
+    res.send("All Reviews List!!");
 });
 
-router.get("/all", (req, res) => {
-    console.log("GET /reviews/all - All reviews route hit");
-    res.send("All reviews!");
-});
-
-router.post("/add", (req, res) => {
-    console.log("POST /reviews/add - Add review route hit");
-    res.send("Add review!");
+router.get("/host/:name", (req, res) => {
+    console.log(`GET /reviews/host/${req.params.name} - Reviews by host route hit`);
+    res.send(`All Reviews by Host: ${req.params.name}`);
 });
 
 router.route("/:id")
@@ -28,6 +23,6 @@ router.route("/:id")
 .delete((req, res) => {
     console.log(`DELETE /reviews/${req.params.id} - Delete review route hit`);
     res.send(`Delete Review ID ${req.params.id}`)
-})
+});
 
 module.exports = router;

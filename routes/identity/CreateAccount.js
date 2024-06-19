@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Guest } = require('../../models');
 const Universal = require('../../services/Universal');
+const Encryption = require('../../services/Encryption');
 require('dotenv').config();
 
 router.post("/", async (req, res) => {
@@ -10,6 +11,15 @@ router.post("/", async (req, res) => {
     console.log(data)
 
     try {
+        // Check username
+        let usernameExists = await Guest.findOne({
+            where: { username: data.username }
+        });
+        if (usernameExists) {
+            res.status(400).json({ message: "Username already exists." });
+            return;
+        }
+
         // Check email
         let guest = await Guest.findOne({
             where: { email: data.email }
@@ -26,7 +36,7 @@ router.post("/", async (req, res) => {
         data.userID = userID;
 
         // Hash password
-        // data.password = await bcrypt.hash(data.password, 10);
+        data.password = await Encryption.hash(data.password);
 
         // Create guest
         let result = await Guest.create(data);

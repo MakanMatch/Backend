@@ -1,6 +1,8 @@
 const { v4: uuidv4 } = require('uuid');
 
 class Universal {
+    static data = {};
+    
     static generateUniqueID(customLength=0, notIn=[]) {
         if (customLength == 0) {
             return uuidv4();

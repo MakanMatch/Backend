@@ -6,9 +6,8 @@ require('dotenv').config()
 
 const SEQUELIZE_ACTIVE = true;
 
-const DUMMY_LISTING_ID = null;
-
 // Set up services
+const Universal = require('./services/Universal')
 require('./services/BootCheck').check()
 const FileOps = require('./services/FileOps')
 
@@ -47,21 +46,24 @@ app.use(checkHeaders) // Middleware to check Content-Type and API key headers
 app.use("/", require("./routes/orders/reservation"));
 
 async function onDBSynchronise() {
+    const currentDatetime = new Date()
+    const datetime = new Date(currentDatetime.getTime() + 24 * 60 * 60 * 1000).toISOString();
+
     const newListing = await FoodListing.create({
         listingID: uuidv4(),
         title: "Chili Crab for Dinner",
-        images: "",
+        images: "sample1.jpeg|sample2.jpg",
         shortDescription: "Making chili crab for dinner again! Come join!",
         longDescription: "Seeing that chili crab last time was a hit, cooking some again! Bought fresh groceries from the market today for it too. Come join me for dinner!",
         portionPrice: "5.00",
         approxAddress: "Near Tampines West Community Centre, Singapore",
         address: "Block 67, Tampines Avenue 10, Singapore 520678",
         totalSlots: "5",
-        datetime: new Date().toISOString(),
+        datetime: datetime,
         published: false
     })
 
-    DUMMY_LISTING_ID = newListing.listingID
+    Universal.data["DUMMY_LISTING_ID"] = newListing.listingID
     console.log(`Created dummy listing with ID: ${newListing.listingID}`)
 }
 

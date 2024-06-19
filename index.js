@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
 
-const SEQUELIZE_ACTIVE = true;
+const SEQUELIZE_ACTIVE = false;
 
 // Set up services
 require('./services/BootCheck').check()
@@ -14,7 +14,8 @@ Logger.setup()
 const Emailer = require('./services/Emailer')
 Emailer.checkContext()
 
-const FileManager = require('./services/FileManager')
+const FileManager = require('./services/FileManager');
+const checkHeaders = require('./middleware/headersCheck');
 FileManager.setup().catch(err => { Logger.logAndThrow(err) })
 
 // Configure express app
@@ -36,7 +37,10 @@ app.get("/", (req, res) => {
 
 // Register routers
 app.use("/misc", require("./routes/misc"));
-app.use("/orders", require("./routes/orders/preOrder"));
+
+// API routes
+app.use(checkHeaders) // Middleware to check Content-Type and API key headers
+app.use("/", require("./routes/orders/reservation"));
 
 // Start server
 if (!SEQUELIZE_ACTIVE) {

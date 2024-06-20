@@ -5,7 +5,6 @@ const multer = require('multer');
 const FileManager = require("../../services/FileManager");
 const path = require('path');
 const FoodListing = require("../../models").FoodListing;
-const Guest = require("../../models").Guest;
 const Host = require("../../models").Host;
 require("../../services/Universal").generateUniqueID;
 const { v4: uuidv4 } = require('uuid');
@@ -68,7 +67,7 @@ router.post("/createHost", async (req, res) => {
 router.get("/hostInfo", async (req, res) => {
   try {
     // GET host info before displaying listing's host name
-    const hostInfo = await Host.findByPk("2bb0df69-6264-409b-a008-d09f7a08dd53"); // hardcoded for now
+    const hostInfo = await Host.findByPk("272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4"); // hardcoded for now
     res.json(hostInfo);
   } catch (error) {
     console.error("Error fetching host info:", error);
@@ -101,9 +100,9 @@ router.post("/addListing", async (req, res) => {
   } = req.body;
 
   const listingID = generateUniqueID(10);
-  const approxAddress = "Sengkang, Singapore" // hardcoded for now
-  const address = "123 Fake Street, Singapore 123456" // hardcoded for now
-  const hostID = "2bb0df69-6264-409b-a008-d09f7a08dd53" // hardcoded for now
+  const approxAddress = "Yishun, Singapore" // hardcoded for now
+  const address = "1 North Point Dr, #01-164/165 Northpoint City, Singapore 768019" // hardcoded for now
+  const hostID = "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4" // hardcoded for now
   const published = true;
 
   try {

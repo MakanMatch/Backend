@@ -122,7 +122,7 @@ router.post("/addListing", async (req, res) => {
       hostID,
     });
 
-    res.json({ message: "Food listing created successfully!", newFoodListing });
+    res.json({ message: "Food listing created successfully!", ID: listingID});
   } catch (error) {
     console.error("Error creating food listing:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -142,11 +142,32 @@ router.post("/addImage", async (req, res) => {
         res.status(400).json({ error: "No file was selected to upload" });
       } else {
         await FileManager.saveFile(req.file.filename);
-        res.json({ message: "File uploaded successfully", filename: req.file.filename });
+        publicUrl = `https://firebasestorage.googleapis.com/v0/b/makanmatch.appspot.com/o/${req.file.filename}?alt=media`
+        res.json({ message: "File uploaded successfully", url: publicUrl });
       }
     });
   } catch (error) {
     console.error("Error occured while adding image to food listing:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.put("/updateListingImageUrl", async (req, res) => {
+  const { listingID, url } = req.body;
+
+  try {
+    const updatedListing = await FoodListing.update(
+      { images: url },
+      { where: { listingID } }
+    );
+
+    if (updatedListing == 1) {
+      res.json({ message: "Image URL updated successfully!", updatedListing });
+    } else {
+      res.status(404).json({ error: "Food listing not found" });
+    }
+  } catch (error) {
+    console.error("Error updating image URL:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

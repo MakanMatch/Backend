@@ -1,44 +1,11 @@
 const express = require("express");
 const multer = require('multer');
 const router = express.Router();
-const path = require('path');
 const FoodListing = require("../../models").FoodListing;
 const Host = require("../../models").Host;
-const { v4: uuidv4 } = require('uuid');
 const Universal = require("../../services/Universal");
 const FileManager = require("../../services/FileManager");
-const Logger = require("../../services/Logger");
-
-const storage = multer.diskStorage({
-  destination: (req, file, callback) => {
-      callback(null, path.join(__dirname, '../../FileStore'))
-  },
-  filename: (req, file, callback) => {
-      callback(null, uuidv4() + path.extname(file.originalname))
-  }
-})
-
-const fileFilter = function (req, file, cb) {
-  const allowedMIMETypes = /jpeg|jpg|png|svg\+xml/;
-  const allowedExtensions = /jpeg|jpg|png|svg/;
-  
-  const mimetype = allowedMIMETypes.test(file.mimetype);
-  const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
-  
-  if (mimetype && extname) {
-    cb(null, true);
-    Logger.log(`File ${file.originalname} uploaded successfully`);
-  } else {
-    cb(new Error('Only .jpeg, .jpg, .png, and .svg files are allowed'), false);
-  }
-};
-
-const storeFile = multer({
-  storage: storage,
-  limits: { fileSize: 1024 * 1024 * 10 },
-  fileFilter: fileFilter
-})
-.single('images')
+const ListingsStoreFile = require("../../middleware/ListingsStoreFile");
 
 router.post("/createHost", async (req, res) => {
   // POST a new host before creating a food listing
@@ -146,7 +113,7 @@ router.post("/addListing", async (req, res) => {
 
 router.post("/addImage", async (req, res) => {
   try {
-    storeFile(req, res, async (err) => {
+    ListingsStoreFile(req, res, async (err) => {
       if (err instanceof multer.MulterError) {
         console.error("Multer error:", err);
         res.status(400).json({ error: "File upload error" });

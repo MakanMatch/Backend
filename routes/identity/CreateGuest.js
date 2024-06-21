@@ -39,7 +39,12 @@ router.post("/", async (req, res) => {
         data.password = await Encryption.hash(data.password);
 
         // Create guest
-        let result = await Guest.create(data);
+        let result = await Guest.create({
+            userID: data.userID,
+            username: data.username,
+            email: data.email,
+            password: data.password,
+        });
         res.json({
             message: `Email ${result.email} was registered successfully.`
         });

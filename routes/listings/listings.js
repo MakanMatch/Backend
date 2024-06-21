@@ -18,9 +18,28 @@ const storage = multer.diskStorage({
   }
 })
 
+const fileFilter = function (req, file, cb) {
+  const allowedMIMETypes = /jpeg|jpg|png|svg\+xml/;
+  const allowedExtensions = /jpeg|jpg|png|svg/;
+  
+  console.log("File MIME type:", file.mimetype);
+  const mimetype = allowedMIMETypes.test(file.mimetype);
+  const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
+  
+  console.log("Mimetype match:", mimetype);
+  console.log("Extname match:", extname);
+  
+  if (mimetype && extname) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only .jpeg, .jpg, .png, and .svg files are allowed'), false);
+  }
+};
+
 const storeFile = multer({
   storage: storage,
-  limits: { fileSize: 1024 * 1024 * 10 }
+  limits: { fileSize: 1024 * 1024 * 10 },
+  fileFilter: fileFilter
 })
 .single('images')
 

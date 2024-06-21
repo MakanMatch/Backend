@@ -1,13 +1,13 @@
 const express = require("express");
-const { generateUniqueID } = require("../../services/Universal");
-const router = express.Router();
 const multer = require('multer');
-const FileManager = require("../../services/FileManager");
+const router = express.Router();
 const path = require('path');
 const FoodListing = require("../../models").FoodListing;
 const Host = require("../../models").Host;
-require("../../services/Universal").generateUniqueID;
 const { v4: uuidv4 } = require('uuid');
+const Universal = require("../../services/Universal");
+const FileManager = require("../../services/FileManager");
+const Logger = require("../../services/Logger");
 
 const storage = multer.diskStorage({
   destination: (req, file, callback) => {
@@ -22,15 +22,12 @@ const fileFilter = function (req, file, cb) {
   const allowedMIMETypes = /jpeg|jpg|png|svg\+xml/;
   const allowedExtensions = /jpeg|jpg|png|svg/;
   
-  console.log("File MIME type:", file.mimetype);
   const mimetype = allowedMIMETypes.test(file.mimetype);
   const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
   
-  console.log("Mimetype match:", mimetype);
-  console.log("Extname match:", extname);
-  
   if (mimetype && extname) {
     cb(null, true);
+    Logger.log(`File ${file.originalname} uploaded successfully`);
   } else {
     cb(new Error('Only .jpeg, .jpg, .png, and .svg files are allowed'), false);
   }
@@ -118,7 +115,7 @@ router.post("/addListing", async (req, res) => {
     datetime,
   } = req.body;
 
-  const listingID = generateUniqueID(10);
+  const listingID = Universal.generateUniqueID(10);
   const approxAddress = "Yishun, Singapore" // hardcoded for now
   const address = "1 North Point Dr, #01-164/165 Northpoint City, Singapore 768019" // hardcoded for now
   const hostID = "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4" // hardcoded for now

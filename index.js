@@ -37,8 +37,10 @@ app.get("/", (req, res) => {
 // Register routers
 app.use("/misc", require("./routes/misc"));
 app.use("/orders", require("./routes/orders/preOrder"));
-app.use("/createGuestAccount", require('./routes/identity/CreateGuest'));
-app.use("/createHostAccount", require('./routes/identity/CreateHost'));
+// app.use("/createGuestAccount", require('./routes/identity/CreateAccount/guest'));
+// app.use("/createHostAccount", require('./routes/identity/CreateAccount/host'));
+const createAccountRoute = require('./routes/identity/CreateAccount');
+app.use("/CreateAccount", createAccountRoute);
 app.use("/loginAccount", require('./routes/identity/LoginAccount'));
 
 // Start server

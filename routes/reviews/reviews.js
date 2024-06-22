@@ -1,37 +1,26 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const FileManager = require('../../services/FileManager');
+const upload = require('../../middleware/upload');
 
 //Global dictionary to store reviews (tempororily saved in memory, implement to database later)
 const reviews = {};
 let nextReviewId = 1;
 
-const storage = multer.diskStorage({
-    destination: (req, file, callback) => {
-        callback(null, path.join(__dirname, '../../FileStore'))
-    },
-    filename: (req, file, callback) => {
-        callback(null, uuidv4() + path.extname(file.originalname))
-    }
-})
-
-const upload = multer({
-    storage: storage
-});
-
 router.route("/")
     .get((req, res) => {
-        console.log("GET /reviews/ - Reviews List route hit");
         res.json(Object.values(reviews));
     })
     .post((req, res) => {
         const { sender, receiver, foodRating, hygieneRating, comments, images, dateCreated } = req.body;
+        if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
+            res.status(400).send("Missing required fields");
+            return;
+        }
         const reviewId = nextReviewId++;
 
-        console.log("POST /reviews/ - Submit new review route hit");
         console.log("Review ID:", reviewId);
         console.log("Review Data:", req.body);
 
@@ -71,7 +60,6 @@ router.post('/upload-images', upload.array('images'), async (req, res) => {
     }
 });
 router.get("/host/:name", (req, res) => {
-    console.log(`GET /reviews/host/${req.params.name} - Reviews by host route hit`);
     const hostReviews = Object.values(reviews).filter(review => review.receiver === req.params.name);
     res.json(hostReviews);
 });
@@ -79,7 +67,6 @@ router.get("/host/:name", (req, res) => {
 
 router.route("/:id")
     .get((req, res) => {
-        console.log(`GET /reviews/${req.params.id} - Review detail route hit`);
         const review = reviews[req.params.id];
         if (review) {
             res.json(review);
@@ -88,7 +75,6 @@ router.route("/:id")
         }
     })
     .put((req, res) => {
-        console.log(`PUT /reviews/${req.params.id} - Update review route hit`);
         const { sender, receiver, foodRating, hygieneRating, comments, images, dateCreated } = req.body;
         if (reviews[req.params.id]) {
             reviews[req.params.id] = {
@@ -107,8 +93,7 @@ router.route("/:id")
         }
     })
     .delete((req, res) => {
-        console.log(`DELETE /reviews/${req.params.id} - Delete review route hit`);
-        if (reviews[req.params.id]) {
+            if (reviews[req.params.id]) {
             delete reviews[req.params.id];
             res.send(`Review with ID ${req.params.id} deleted`);
         } else {

@@ -105,6 +105,7 @@ router.post("/addListing", async (req, res) => {
     const address = "1 North Point Dr, #01-164/165 Northpoint City, Singapore 768019" // hardcoded for now
     const hostID = "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4" // hardcoded for now
     const published = true;
+    const formattedDatetime = datetime + ":00Z"
     try {
       await FoodListing.create({
         listingID,
@@ -116,7 +117,7 @@ router.post("/addListing", async (req, res) => {
         approxAddress,
         address,
         totalSlots,
-        datetime,
+        datetime: formattedDatetime,
         published,
         hostID,
       });

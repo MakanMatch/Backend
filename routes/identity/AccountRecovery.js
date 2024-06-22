@@ -42,12 +42,12 @@ router.post("/ResetKey", async (req, res) => {
             return;
         }
 
-        const resetKey = Universal.generateUniqueID();
+        const resetKey = Universal.generateUniqueID(6);
         console.log(resetKey);
 
         // Save resetKey and expiration to user record
         user.resetKey = resetKey;
-        user.resetKeyExpiration = Date.now() + 3600000; // 15 mins expiration
+        user.resetKeyExpiration = Date.now() + 900000; // 15 mins expiration
         await user.save();
 
         // Send email with reset key using the Emailer service

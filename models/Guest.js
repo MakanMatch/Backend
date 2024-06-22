@@ -44,7 +44,7 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: true
         },
         resetKeyExpiration: {
-            type: DataTypes.DATE,
+            type: DataTypes.STRING,
             allowNull: true
         }
     }, { tableName: 'guests' })

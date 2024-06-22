@@ -48,10 +48,10 @@ router.post('/upload-images', upload.array('images'), async (req, res) => {
             if (saveResult !== true) {
                 throw new Error(saveResult);
             }
-            fileUrls.push(`/FileStore/${file.filename}`);
+            fileUrls.push(`/FileStore/${saveResult.substring("SUCCESS: File path: ".length)}`)
         }
 
-        res.status(201).json({ urls: fileUrls });
+        res.status(201).send('Images successfully uploaded');
         console.log('Images uploaded:', fileUrls);
     } catch (error) {
         console.error('Failed to upload images:', error);
@@ -65,7 +65,7 @@ router.get("/host/:name", (req, res) => {
 });
 
 
-router.route("/:id")
+router.route("/reviews/:id")
     .get((req, res) => {
         const review = reviews[req.params.id];
         if (review) {
@@ -76,6 +76,10 @@ router.route("/:id")
     })
     .put((req, res) => {
         const { sender, receiver, foodRating, hygieneRating, comments, images, dateCreated } = req.body;
+        if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
+            res.status(400).send("Missing required fields");
+            return;
+        }   
         if (reviews[req.params.id]) {
             reviews[req.params.id] = {
                 id: req.params.id,

@@ -39,6 +39,14 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: 0
         },
+        resetKey: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        resetKeyExpiration: {
+            type: DataTypes.DATE,
+            allowNull: true
+        }
     }, { tableName: 'guests' })
 
     // Associations

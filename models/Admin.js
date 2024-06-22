@@ -33,6 +33,14 @@ module.exports = (sequelize, DataTypes) => {
         role: {
             type: DataTypes.STRING,
             allowNull: false
+        },
+        resetKey: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        resetKeyExpiration: {
+            type: DataTypes.DATE,
+            allowNull: true
         }
     }, { tableName: 'admins' });
 

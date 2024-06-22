@@ -37,11 +37,11 @@ app.get("/", (req, res) => {
 // Register routers
 app.use("/misc", require("./routes/misc"));
 app.use("/orders", require("./routes/orders/preOrder"));
-// app.use("/createGuestAccount", require('./routes/identity/CreateAccount/guest'));
-// app.use("/createHostAccount", require('./routes/identity/CreateAccount/host'));
 const createAccountRoute = require('./routes/identity/CreateAccount');
 app.use("/CreateAccount", createAccountRoute);
-app.use("/loginAccount", require('./routes/identity/LoginAccount'));
+app.use("/LoginAccount", require('./routes/identity/LoginAccount'));
+const accountRecoveryRoute = require('./routes/identity/AccountRecovery');
+app.use("/AccountRecovery", accountRecoveryRoute);
 
 // Start server
 if (!SEQUELIZE_ACTIVE) {

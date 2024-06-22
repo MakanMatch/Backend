@@ -3,6 +3,7 @@ const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
 const Universal = require('../../services/Universal');
 const Encryption = require('../../services/Encryption');
+const sendVerificationEmail = require('../../services/Emailer'); 
 require('dotenv').config();
 
 // Function to check if the username is unique across all tables
@@ -29,7 +30,7 @@ async function isUniqueContactNum(contactNum) {
 }
 
 router.post("/guest", async (req, res) => {
-    console.log("received");
+    console.log("received at CreateAccount");
     let data = req.body;
     console.log(data);
 
@@ -62,8 +63,13 @@ router.post("/guest", async (req, res) => {
             email: data.email,
             password: data.password,
         });
+
+        // Send verification email
+        // await sendVerificationEmail(data.email);
+
+        // Redirect to EmailVerification page
         res.json({
-            message: `Email ${result.email} was registered successfully.`
+            redirectUrl: `/EmailVerification?email=${data.email}`
         });
     }
     catch (err) {
@@ -72,6 +78,7 @@ router.post("/guest", async (req, res) => {
     }
 });
 
+// Endpoint to send verification email after host account creation
 router.post("/host", async (req, res) => {
     console.log("received");
     let data = req.body;
@@ -120,8 +127,13 @@ router.post("/host", async (req, res) => {
             contactNum: parseInt(data.contactNum),
             address: data.address
         });
+
+        // Send verification email
+        // await sendVerificationEmail(data.email);
+
+        // Redirect to EmailVerification page
         res.json({
-            message: `Email ${result.email} was registered successfully.`
+            redirectUrl: `/EmailVerification?email=${data.email}`
         });
     }
     catch (err) {

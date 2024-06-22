@@ -5,7 +5,7 @@ const Encryption = require('../../services/Encryption');
 require('dotenv').config();
 
 router.post("/", async (req, res) => {
-  console.log("received");
+  console.log("received at LoginAccount");
   let data = req.body;
   console.log(data);
 

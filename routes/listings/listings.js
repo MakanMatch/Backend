@@ -49,7 +49,7 @@ router.post("/createHost", async (req, res) => {
         res.status(404).json({ error: "Failed to create host" });
         return;
       } else {
-        res.json({ message: "Host created successfully!", newHost });
+        res.status(200).json({ message: "Host created successfully!", newHost });
       }
     } catch (error) {
       console.error("Error creating host:", error);
@@ -63,7 +63,7 @@ router.get("/hostInfo", async (req, res) => {
     // GET host info before displaying listing's host name
     const hostInfo = await Host.findByPk("272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4"); // hardcoded for now
     if (hostInfo) {
-      res.json(hostInfo);
+      res.status(200).json(hostInfo);
     } else {
       res.status(404).json({ error: "Host not found" });
     }
@@ -77,7 +77,7 @@ router.get("/", async (req, res) => {
   // GET all food listings
   try {
     const foodListings = await FoodListing.findAll();
-    res.json(foodListings);
+    res.status(200).json(foodListings);
   } catch (error) {
     console.error("Error retrieving food listings:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -123,7 +123,7 @@ router.post("/addListing", async (req, res) => {
       });
       const verifyListing = await FoodListing.findByPk(listingID);
       if (verifyListing) {
-        res.json({ message: "Food listing created successfully!", listingID });
+        res.status(200).json({ message: "Food listing created successfully!", listingID });
       } else {
         res.status(404).json({ error: "Failed to create food listing" });
       }
@@ -158,7 +158,7 @@ router.post("/addImage", async (req, res) => {
           } else {
             await FileManager.saveFile(req.file.filename);
             publicUrl = `https://firebasestorage.googleapis.com/v0/b/makanmatch.appspot.com/o/${req.file.filename}?alt=media`
-            res.json({ message: "File uploaded successfully", url: publicUrl });
+            res.status(200).json({ message: "File uploaded successfully", url: publicUrl });
           }
         });
       } catch (error) {
@@ -193,7 +193,7 @@ router.put("/updateListingImageUrl", async (req, res) => {
         { where: { listingID } }
       );
       if (updatedListing == 1) {
-        res.json({ message: "Image URL updated successfully!", url });
+        res.status(200).json({ message: "Image URL updated successfully!", url });
       } else {
         res.status(404).json({ error: "Food listing not found" });
       }

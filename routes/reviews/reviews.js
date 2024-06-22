@@ -7,6 +7,7 @@ const FileManager = require('../../services/FileManager');
 
 //Global dictionary to store reviews (tempororily saved in memory, implement to database later)
 const reviews = {};
+let nextReviewId = 1;
 
 const storage = multer.diskStorage({
     destination: (req, file, callback) => {
@@ -28,9 +29,10 @@ router.route("/")
     })
     .post((req, res) => {
         const { sender, receiver, foodRating, hygieneRating, comments, images, dateCreated } = req.body;
-        const reviewId = uuidv4();
+        const reviewId = nextReviewId++;
 
         console.log("POST /reviews/ - Submit new review route hit");
+        console.log("Review ID:", reviewId);
         console.log("Review Data:", req.body);
 
         // typically save the review data to a database, but for now store it in memory

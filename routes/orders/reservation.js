@@ -15,7 +15,7 @@ router.get("/listingDetails", async (req, res) => {
     res.json(listing)
 })
 
-router.get("/img/:name", async (req, res) => {
+router.get("/getListingImage/:name", async (req, res) => {
     const imageName = req.params.name
     const filePrep = await FileManager.prepFile(imageName)
     if (filePrep.startsWith("ERROR") || !filePrep.startsWith("SUCCESS")) {
@@ -41,7 +41,7 @@ router.post("/uploadListingImage", async (req, res) => {
             res.status(404).send("ERROR: Listing not found.")
             return
         }
-        
+
         if (err) {
             res.status(400).json(err)
             return
@@ -65,6 +65,32 @@ router.post("/uploadListingImage", async (req, res) => {
             return
         }
     })
+})
+
+router.post("/updateListing", async (req, res) => {
+    if (!req.body.listingID) {
+        res.status(400).send("ERROR: Listing ID not provided.")
+        return
+    }
+
+    const listingID = req.body.listingID
+    const listing = await FoodListing.findByPk(listingID)
+    if (!listing) {
+        res.status(404).send("ERROR: Listing not found.")
+        return
+    }
+
+    console.log(req.body)
+
+    try {
+        listing.update(req.body)
+        await listing.save()
+        res.send("SUCCESS: Listing updated successfully.")
+        return
+    } catch (err) {
+        res.status(400).send("ERROR: Failed to update listing.")
+        return
+    }
 })
 
 module.exports = router;

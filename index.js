@@ -59,7 +59,7 @@ async function onDBSynchronise() {
         const newListing = await FoodListing.create({
             listingID: uuidv4(),
             title: "Chili Crab for Dinner",
-            images: "sample1.jpeg|sample2.jpg",
+            images: "sample3.jpg",
             shortDescription: "Making chili crab for dinner again! Come join!",
             longDescription: "Seeing that chili crab last time was a hit, cooking some again! Bought fresh groceries from the market today for it too. Come join me for dinner!",
             portionPrice: "5.00",

@@ -50,6 +50,14 @@ module.exports = (sequelize, DataTypes) => {
         paymentImage: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        resetKey: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        resetKeyExpiration: {
+            type: DataTypes.STRING,
+            allowNull: true
         }
     }, { tableName: 'hosts' })
 

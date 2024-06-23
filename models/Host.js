@@ -50,16 +50,24 @@ module.exports = (sequelize, DataTypes) => {
         paymentImage: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        resetKey: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        resetKeyExpiration: {
+            type: DataTypes.STRING,
+            allowNull: true
         }
     }, { tableName: 'hosts' })
 
     // Associations
-    Host.associate = (models) => {
-        Host.hasMany(models.FoodListing, {
-            foreignKey: "hostID",
-            onDelete: "cascade"
-        })
-    }
+    // Host.associate = (models) => {
+    //     Host.hasMany(models.FoodListing, {
+    //         foreignKey: "hostID",
+    //         onDelete: "cascade"
+    //     })
+    // }
 
     return Host;
 }

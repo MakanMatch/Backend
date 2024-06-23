@@ -39,16 +39,24 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: 0
         },
+        resetKey: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        resetKeyExpiration: {
+            type: DataTypes.STRING,
+            allowNull: true
+        }
     }, { tableName: 'guests' })
 
     // Associations
-    Guest.associate = (models) => {
-        Guest.belongsToMany(models.FoodListing, {
-            through: 'Reservation',
-            foreignKey: 'guestID',
-            as: 'reservations'
-        })
-    }
+    // Guest.associate = (models) => {
+    //     Guest.belongsToMany(models.FoodListing, {
+    //         through: 'Reservation',
+    //         foreignKey: 'guestID',
+    //         as: 'reservations'
+    //     })
+    // }
 
     return Guest;
 }

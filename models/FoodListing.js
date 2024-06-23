@@ -49,17 +49,17 @@ module.exports = (sequelize, DataTypes) => {
     }, { tableName: 'foodListings' })
 
     // Associations
-    FoodListing.associate = (models) => {
-        FoodListing.belongsTo(models.Host, {
-            foreignKey: "hostID",
-            as: "host"
-        })
-        FoodListing.belongsToMany(models.Guest, {
-            through: 'Reservation',
-            foreignKey: 'listingID',
-            as: "reservations"
-        })
-    }
+    // FoodListing.associate = (models) => {
+    //     FoodListing.belongsTo(models.Host, {
+    //         foreignKey: "hostID",
+    //         as: "host"
+    //     })
+    //     FoodListing.belongsToMany(models.Guest, {
+    //         through: 'Reservation',
+    //         foreignKey: 'listingID',
+    //         as: "reservations"
+    //     })
+    // }
 
     return FoodListing;
 }

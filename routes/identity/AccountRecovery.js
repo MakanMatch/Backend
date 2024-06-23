@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
 const { Universal, Emailer, Encryption, Logger } = require('../../services');
-const { logger } = require('sequelize/lib/utils/logger');
 require('dotenv').config();
 
 router.post("/resetKey", async (req, res) => {

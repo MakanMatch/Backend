@@ -51,22 +51,27 @@ async function onDBSynchronise() {
     const currentDatetime = new Date()
     const datetime = new Date(currentDatetime.getTime() + 24 * 60 * 60 * 1000).toISOString();
 
-    const newListing = await FoodListing.create({
-        listingID: uuidv4(),
-        title: "Chili Crab for Dinner",
-        images: "sample1.jpeg|sample2.jpg",
-        shortDescription: "Making chili crab for dinner again! Come join!",
-        longDescription: "Seeing that chili crab last time was a hit, cooking some again! Bought fresh groceries from the market today for it too. Come join me for dinner!",
-        portionPrice: "5.00",
-        approxAddress: "Near Tampines West Community Centre, Singapore",
-        address: "Block 67, Tampines Avenue 10, Singapore 520678",
-        totalSlots: "5",
-        datetime: datetime,
-        published: false
-    })
-
-    Universal.data["DUMMY_LISTING_ID"] = newListing.listingID
-    console.log(`Created dummy listing with ID: ${newListing.listingID}`)
+    const listings = await FoodListing.findAll()
+    if (listings.length > 0) {
+        Universal.data["DUMMY_LISTING_ID"] = listings[0].listingID
+        console.log(`Found existing listing, using as dummy. Listing ID: ${listings[0].listingID}`)
+    } else {
+        const newListing = await FoodListing.create({
+            listingID: uuidv4(),
+            title: "Chili Crab for Dinner",
+            images: "sample1.jpeg|sample2.jpg",
+            shortDescription: "Making chili crab for dinner again! Come join!",
+            longDescription: "Seeing that chili crab last time was a hit, cooking some again! Bought fresh groceries from the market today for it too. Come join me for dinner!",
+            portionPrice: "5.00",
+            approxAddress: "Near Tampines West Community Centre, Singapore",
+            address: "Block 67, Tampines Avenue 10, Singapore 520678",
+            totalSlots: "5",
+            datetime: datetime,
+            published: false
+        })
+        Universal.data["DUMMY_LISTING_ID"] = newListing.listingID
+        console.log(`Created dummy listing with ID: ${newListing.listingID}`)
+    }
 }
 
 // Start server

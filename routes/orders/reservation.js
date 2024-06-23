@@ -28,19 +28,20 @@ router.get("/img/:name", async (req, res) => {
 })
 
 router.post("/uploadListingImage", async (req, res) => {
-    if (!req.body.listingID) {
-        res.status(400).send("ERROR: Listing ID not provided.")
-    }
-
-    // const listingID = req.listingID
-    const listingID = Universal.data["DUMMY_LISTING_ID"]
-    const listing = await FoodListing.findByPk(listingID)
-    if (!listing) {
-        res.status(404).send("ERROR: Listing not found.")
-        return
-    }
-
     storeFile(req, res, async (err) => {
+        if (!req.body.listingID) {
+            res.status(400).send("ERROR: Listing ID not provided.")
+            return
+        }
+
+        // const listingID = req.listingID
+        const listingID = Universal.data["DUMMY_LISTING_ID"]
+        const listing = await FoodListing.findByPk(listingID)
+        if (!listing) {
+            res.status(404).send("ERROR: Listing not found.")
+            return
+        }
+        
         if (err) {
             res.status(400).json(err)
             return
@@ -48,7 +49,18 @@ router.post("/uploadListingImage", async (req, res) => {
             res.status(400).send("ERROR: No file selected.")
             return
         } else {
-            await FileManager.saveFile(req.file.filename)
+            var fileSave = await FileManager.saveFile(req.file.filename)
+            if (!fileSave) {
+                res.status(400).send("ERROR: Failed to save file.")
+                return
+            }
+
+            if (listing.images == null || listing.images == "") {
+                listing.images = req.file.filename
+            } else {
+                listing.images += "|" + req.file.filename
+            }
+            await listing.save()
             res.json("SUCCESS: File uploaded successfully.")
             return
         }

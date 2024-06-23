@@ -6,3 +6,4 @@ database.sqlite
 logs.txt
 serviceAccountKey.json
 FileStore/
+sqlQueries.txt

@@ -5,10 +5,18 @@ const path = require('path');
 const Sequelize = require('sequelize');
 require('dotenv').config()
 const process = require('process');
+const FileOps = require('../services/FileOps');
 const basename = path.basename(__filename);
 const env = process.env.DB_CONFIG || 'development';
 const config = require(__dirname + '/../config/config.json')[env];
 const db = {};
+
+if (config.logging && config.useFileLogging == true) {
+    config.logging = (msg) => {
+        const date = new Date().toISOString()
+        FileOps.appendTo("sqlQueries.txt", `${date} - ${msg}\n`)
+    }
+}
 
 let sequelize;
 if (process.env.DB_MODE == "mysql") {

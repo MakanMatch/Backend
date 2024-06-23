@@ -17,6 +17,9 @@ Logger.setup()
 const Emailer = require('./services/Emailer')
 Emailer.checkContext()
 
+const Cache = require('./services/Cache')
+Cache.load();
+
 const FileManager = require('./services/FileManager');
 const checkHeaders = require('./middleware/headersCheck');
 const logRoutes = require('./middleware/logRoutes');

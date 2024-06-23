@@ -7,3 +7,4 @@ logs.txt
 serviceAccountKey.json
 FileStore/
 sqlQueries.txt
+cache.json

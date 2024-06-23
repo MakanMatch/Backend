@@ -24,9 +24,11 @@ const Cache = require('./services/Cache')
 Cache.load();
 
 const FileManager = require('./services/FileManager');
+FileManager.setup().catch(err => { Logger.logAndThrow(err) })
+
+// Import middleware
 const checkHeaders = require('./middleware/headersCheck');
 const logRoutes = require('./middleware/logRoutes');
-FileManager.setup().catch(err => { Logger.logAndThrow(err) })
 
 // Configure express app
 const app = express();

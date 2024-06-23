@@ -12,7 +12,7 @@ const env = process.env.DB_CONFIG || 'development';
 const config = require(__dirname + '/../config/config.json')[env];
 const db = {};
 
-if (config["logging"] && config.logging == true) {
+if (config["logging"] && config.logging === true) {
     if (config.loggingOptions != undefined) {
         var queryLogsFile = "sqlQueries.txt"
         if (config.loggingOptions["logsFile"] !== undefined) { queryLogsFile = config.loggingOptions["logsFile"] }
@@ -49,7 +49,7 @@ if (process.env.DB_MODE == "mysql") {
     sequelize = new Sequelize({
         dialect: 'sqlite',
         storage: 'database.sqlite',
-        logging: config["logging"]
+        logging: config["logging"] !== undefined ? config.logging : console.log
     })
 }
 

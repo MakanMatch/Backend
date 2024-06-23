@@ -4,7 +4,14 @@
         "password": null,
         "database": "database_development",
         "host": "127.0.0.1",
-        "dialect": "mysql"
+        "dialect": "mysql",
+        "logging": true,
+        "loggingOptions": {
+            "logsFile": "sqlQueries.txt",
+            "useFileLogging": false,
+            "logPostBootOnly": false,
+            "clearUponBoot": false
+        }
     },
     "test": {
         "username": "root",

@@ -93,6 +93,7 @@ if (!SEQUELIZE_ACTIVE) {
             console.log()
             app.listen(process.env.SERVER_PORT, () => {
                 console.log(`Server is running on port ${process.env.SERVER_PORT}`)
+                Universal.booted = true;
             })
         })
         .catch(err => {

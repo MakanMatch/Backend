@@ -80,8 +80,6 @@ router.post("/updateListing", async (req, res) => {
         return
     }
 
-    console.log(req.body)
-
     try {
         listing.update(req.body)
         await listing.save()

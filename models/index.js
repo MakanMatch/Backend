@@ -9,7 +9,7 @@ const FileOps = require('../services/FileOps');
 const Universal = require('../services/Universal');
 const basename = path.basename(__filename);
 const env = process.env.DB_CONFIG || 'development';
-const config = require(__dirname + '/../config/config.json')[env];
+const config = require('../config/config.json')[env];
 const db = {};
 
 if (config["logging"] && config.logging === true) {

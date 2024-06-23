@@ -1,3 +1,4 @@
+require('./services/BootCheck').check()
 const express = require('express');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid')
@@ -11,7 +12,6 @@ const SEQUELIZE_ACTIVE = true;
 
 // Set up services
 const Universal = require('./services/Universal')
-require('./services/BootCheck').check()
 const FileOps = require('./services/FileOps')
 
 const Logger = require('./services/Logger')

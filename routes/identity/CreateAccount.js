@@ -1,9 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
-const Universal = require('../../services/Universal');
-const Encryption = require('../../services/Encryption');
-const sendVerificationEmail = require('../../services/Emailer'); 
+const { Universal, Emailer, Encryption } = require('../../services')
 require('dotenv').config();
 
 // Function to check if the username is unique across all tables
@@ -29,111 +27,65 @@ async function isUniqueContactNum(contactNum) {
     return !contactNumExists;
 }
 
-router.post("/guest", async (req, res) => {
+router.post("/", async (req, res) => {
     console.log("received at CreateAccount");
-    let data = req.body;
-    console.log(data);
+    const { username, email, password, contactNum, address, isHostAccount } = req.body;
+    console.log(req.body);
 
     try {
         // Check username
-        if (!await isUniqueUsername(data.username)) {
-            res.status(400).json({ message: "Username already exists." });
-            return;
+        if (!await isUniqueUsername(username)) {
+            return res.status(400).json({ message: "Username already exists." });
         }
 
         // Check email
-        if (!await isUniqueEmail(data.email)) {
-            res.status(400).json({ message: "Email already exists." });
-            return;
+        if (!await isUniqueEmail(email)) {
+            return res.status(400).json({ message: "Email already exists." });
         }
 
         // Generate a unique userID
-        let userID = Universal.generateUniqueID();
-
-        // Add the userID to the data
-        data.userID = userID;
+        const userID = Universal.generateUniqueID();
 
         // Hash password
-        data.password = await Encryption.hash(data.password);
+        const hashedPassword = await Encryption.hash(password);
 
-        // Create guest
-        let result = await Guest.create({
-            userID: data.userID,
-            username: data.username,
-            email: data.email,
-            password: data.password,
-        });
+        // Determine account type and validate necessary fields
+        let accountData = {
+            userID,
+            username,
+            email,
+            password: hashedPassword
+        };
+
+        if (isHostAccount) {
+            // Check contact number and address
+            if (!contactNum || !address) {
+                return res.status(400).json({ message: "Contact number and address are required for host accounts." });
+            }
+
+            // Check contact number uniqueness
+            if (!await isUniqueContactNum(contactNum)) {
+                return res.status(400).json({ message: "Contact number already exists." });
+            }
+
+            accountData = {
+                ...accountData,
+                contactNum: parseInt(contactNum),
+                address
+            };
+
+            // Create host
+            await Host.create(accountData);
+        } else {
+            // Create guest
+            await Guest.create(accountData);
+        }
 
         // Send verification email
-        // await sendVerificationEmail(data.email);
 
-        // Redirect to EmailVerification page
+        // Success message to redirect user to EmailVerification page
         res.json({
-            redirectUrl: `/EmailVerification?email=${data.email}`
-        });
-    }
-    catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Internal server error." });
-    }
-});
-
-// Endpoint to send verification email after host account creation
-router.post("/host", async (req, res) => {
-    console.log("received");
-    let data = req.body;
-    console.log(data);
-
-    try {
-        // Check username
-        if (!await isUniqueUsername(data.username)) {
-            res.status(400).json({ message: "Username already exists." });
-            return;
-        }
-
-        // Check email
-        if (!await isUniqueEmail(data.email)) {
-            res.status(400).json({ message: "Email already exists." });
-            return;
-        }
-
-        // Check contact number and address
-        if (!data.contactNum || !data.address) {
-            res.status(400).json({ message: "Contact number and address are required." });
-            return;
-        }
-
-        // Check contact number
-        if (!await isUniqueContactNum(data.contactNum)) {
-            res.status(400).json({ message: "Contact number already exists." });
-            return;
-        }
-
-        // Generate a unique userID
-        let userID = Universal.generateUniqueID();
-
-        // Add the userID to the data
-        data.userID = userID;
-
-        // Hash password
-        data.password = await Encryption.hash(data.password);
-
-        // Create host
-        let result = await Host.create({
-            userID: data.userID,
-            username: data.username,
-            email: data.email,
-            password: data.password,
-            contactNum: parseInt(data.contactNum),
-            address: data.address
-        });
-
-        // Send verification email
-        // await sendVerificationEmail(data.email);
-
-        // Redirect to EmailVerification page
-        res.json({
-            redirectUrl: `/EmailVerification?email=${data.email}`
+            message: "SUCCESS: Account created. Please verify your email."
         });
     }
     catch (err) {

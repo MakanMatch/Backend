@@ -1,41 +1,22 @@
 const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
-const Universal = require('../../services/Universal');
-const Emailer = require('../../services/Emailer');
-const Encryption = require('../../services/Encryption');
+const { Universal, Emailer, Encryption } = require('../../services')
 require('dotenv').config();
 
-router.post("/ResetKey", async (req, res) => {
+router.post("/resetKey", async (req, res) => {
     console.log("received at AccountRecovery ResetKey");
     let data = req.body;
     console.log(data);
     let { usernameOrEmail } = req.body;
 
     try {
-        let user;
-        let userType;
-
-        const findUser = async (model, identifier) => {
-            if (identifier.includes('@')) {
-                return await model.findOne({ where: { email: identifier } });
-            } else {
-                return await model.findOne({ where: { username: identifier } });
-            }
-        };
-
-        user = await findUser(Guest, usernameOrEmail);
-        userType = 'Guest';
-
-        if (!user) {
-            user = await findUser(Host, usernameOrEmail);
-            userType = 'Host';
-        }
-
-        if (!user) {
-            user = await findUser(Admin, usernameOrEmail);
-            userType = 'Admin';
-        }
+        let user = await Guest.findOne({ where: { username: usernameOrEmail } }) ||
+            await Guest.findOne({ where: { email: usernameOrEmail } }) ||
+            await Host.findOne({ where: { username: usernameOrEmail } }) ||
+            await Host.findOne({ where: { email: usernameOrEmail } }) ||
+            await Admin.findOne({ where: { username: usernameOrEmail } }) ||
+            await Admin.findOne({ where: { email: usernameOrEmail } });
 
         if (!user) {
             res.status(400).json({ message: "Username or email doesn't exist." });
@@ -59,7 +40,7 @@ router.post("/ResetKey", async (req, res) => {
         );
 
         if (emailSent) {
-            res.json({ message: 'Reset key sent.' });
+            res.json({ message: 'SUCCESS: Reset key sent.' });
         } else {
             res.status(500).json({ message: "Failed to send reset key." });
         }
@@ -69,7 +50,7 @@ router.post("/ResetKey", async (req, res) => {
     }
 });
 
-router.post('/ResetPassword', async (req, res) => {
+router.post('/resetPassword', async (req, res) => {
     console.log("received at AccountRecovery ResetPassword");
     let data = req.body;
     console.log(data);
@@ -92,7 +73,7 @@ router.post('/ResetPassword', async (req, res) => {
         user.resetKeyExpiration = null;
         await user.save();
 
-        res.json({ message: "Password reset successful. You can now log in with your new password." });
+        res.json({ message: "SUCCESS: Password reset successful. You can now log in with your new password." });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Internal server error." });

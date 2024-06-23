@@ -40,24 +40,22 @@ router.post("/", async (req, res) => {
 
     // If user is not found in any of the models
     if (!user) {
-      res.status(400).json({ message: "Invalid username or email or password." });
+      res.status(400).send("Invalid username or email or password.");
       return;
     }
 
     // Check password
     let passwordMatch = await Encryption.compare(data.password, user.password);
     if (!passwordMatch) {
-      res.status(400).json({ message: "Invalid username or email or password." });
+      res.status(400).send("Invalid username or email or password.");
       return;
     }
 
     // Login success
-    res.json({
-      message: `Logged in successfully as ${userType}.`
-    });
+    res.send(`Logged in successfully as ${userType}.`);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Internal server error." });
+    res.status(500).send("Internal server error.");
   }
 });
 

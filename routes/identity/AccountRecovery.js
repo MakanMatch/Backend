@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
-const { Universal, Emailer, Encryption } = require('../../services')
+const { Universal, Emailer, Encryption, Logger } = require('../../services');
+const { logger } = require('sequelize/lib/utils/logger');
 require('dotenv').config();
 
 router.post("/resetKey", async (req, res) => {
@@ -19,7 +20,7 @@ router.post("/resetKey", async (req, res) => {
             await Admin.findOne({ where: { email: usernameOrEmail } });
 
         if (!user) {
-            res.status(400).json({ message: "Username or email doesn't exist." });
+            res.status(400).send("Username or email doesn't exist.");
             return;
         }
 
@@ -40,13 +41,13 @@ router.post("/resetKey", async (req, res) => {
         );
 
         if (emailSent) {
-            res.json({ message: 'SUCCESS: Reset key sent.' });
+            res.send('SUCCESS: Reset key sent.');
         } else {
-            res.status(500).json({ message: "Failed to send reset key." });
+            res.status(500).send("Failed to send reset key.");
         }
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: "Internal server error." });
+        res.status(500).send("Internal server error.");
     }
 });
 
@@ -63,7 +64,7 @@ router.post('/resetPassword', async (req, res) => {
             await Admin.findOne({ where: { resetKey } });
 
         if (!user || user.resetKeyExpiration < Date.now()) {
-            res.status(400).json({ message: "Invalid or expired reset key." });
+            res.status(400).send("Invalid or expired reset key.");
             return;
         }
 
@@ -73,10 +74,11 @@ router.post('/resetPassword', async (req, res) => {
         user.resetKeyExpiration = null;
         await user.save();
 
-        res.json({ message: "SUCCESS: Password reset successful. You can now log in with your new password." });
+        Logger.log(`IDENTITY ACCOUNTRECOVERY RESETPASSWORD: Password reset for userID ${user.userID} successful.`)
+        res.send("SUCCESS: Password reset successful. You can now log in with your new password.");
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: "Internal server error." });
+        res.status(500).send("Internal server error.");
     }
 });
 

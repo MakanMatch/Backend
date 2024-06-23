@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
-const { Universal, Emailer, Encryption } = require('../../services')
+const { Universal, Emailer, Encryption, Logger } = require('../../services');
 require('dotenv').config();
 
 // Function to check if the username is unique across all tables
@@ -35,12 +35,12 @@ router.post("/", async (req, res) => {
     try {
         // Check username
         if (!await isUniqueUsername(username)) {
-            return res.status(400).json({ message: "Username already exists." });
+            return res.status(400).send( "Username already exists." );
         }
 
         // Check email
         if (!await isUniqueEmail(email)) {
-            return res.status(400).json({ message: "Email already exists." });
+            return res.status(400).send("Email already exists.");
         }
 
         // Generate a unique userID
@@ -60,12 +60,12 @@ router.post("/", async (req, res) => {
         if (isHostAccount) {
             // Check contact number and address
             if (!contactNum || !address) {
-                return res.status(400).json({ message: "Contact number and address are required for host accounts." });
+                return res.status(400).send("Contact number and address are required for host accounts.");
             }
 
             // Check contact number uniqueness
             if (!await isUniqueContactNum(contactNum)) {
-                return res.status(400).json({ message: "Contact number already exists." });
+                return res.status(400).send("Contact number already exists." );
             }
 
             accountData = {
@@ -84,13 +84,12 @@ router.post("/", async (req, res) => {
         // Send verification email
 
         // Success message to redirect user to EmailVerification page
-        res.json({
-            message: "SUCCESS: Account created. Please verify your email."
-        });
+        Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created`)
+        res.send("SUCCESS: Account created. Please verify your email.");
     }
     catch (err) {
         console.error(err);
-        res.status(500).json({ message: "Internal server error." });
+        res.status(500).send("Internal server error." );
     }
 });
 

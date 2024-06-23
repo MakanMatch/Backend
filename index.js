@@ -49,10 +49,9 @@ app.get("/", (req, res) => {
 })
 
 // Register routers
-app.use("/misc", require("./routes/misc"));
-
-// API routes
 app.use(checkHeaders) // Middleware to check Content-Type and API key headers
+app.use("/misc", require("./routes/misc"));
+app.use("/listings", require("./routes/listings/listings"));
 app.use("/", require("./routes/orders/reservation"));
 
 async function onDBSynchronise() {

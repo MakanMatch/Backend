@@ -1,149 +1,149 @@
 const express = require("express");
-const multer = require('multer');
+const multer = require("multer");
 const router = express.Router();
-const axios = require("axios");
 const { FoodListing } = require("../../models");
 const { Host } = require("../../models");
 const Universal = require("../../services/Universal");
 const FileManager = require("../../services/FileManager");
-const Logger = require("../../services/Logger");
 const ListingsStoreFile = require("../../middleware/ListingsStoreFile");
 
 router.post("/createHost", async (req, res) => {
-  // POST a new host before creating a food listing
-  const data = req.body;
-  try {
-    const newHost = await Host.create(data);
-    res.status(200).json({ message: "Host created successfully!", newHost });
-  } catch (error) {
-    console.error("Error creating host:", error);
-    res.status(400).json({ error: "One or more required payloads were not provided." });
-  }
+    // POST a new host before creating a food listing
+    const data = req.body;
+    try {
+        const newHost = await Host.create(data);
+        res.status(200).json({
+            message: "Host created successfully!",
+            newHost,
+        });
+    } catch (error) {
+        console.error("Error creating host:", error);
+        res.status(400).json({
+            error: "One or more required payloads were not provided.",
+        });
+    }
 });
 
 router.get("/hostInfo", async (req, res) => {
-  try {
-    // GET host info before displaying listing's host name
-    const hostInfo = await Host.findByPk("272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4"); // hardcoded for now
-    if (hostInfo) {
-      res.status(200).json(hostInfo);
-    } else {
-      res.status(404).json({ error: "Host not found" });
+    try {
+        // GET host info before displaying listing's host name
+        const hostInfo = await Host.findByPk(
+            "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4"
+        ); // hardcoded for now
+        if (hostInfo) {
+            res.status(200).json(hostInfo);
+        } else {
+            res.status(404).json({ error: "Host not found" });
+        }
+    } catch (error) {
+        console.error("Error fetching host info:", error);
+        res.status(500).json({ error: "Failed to fetch host info" });
     }
-  } catch (error) {
-    console.error("Error fetching host info:", error);
-    res.status(500).json({ error: "Failed to fetch host info" });
-  }
 });
 
 router.get("/", async (req, res) => {
-  // GET all food listings
-  try {
-    const foodListings = await FoodListing.findAll();
-    res.status(200).json(foodListings);
-  } catch (error) {
-    console.error("Error retrieving food listings:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
+    // GET all food listings
+    try {
+        const foodListings = await FoodListing.findAll();
+        res.status(200).json(foodListings);
+    } catch (error) {
+        console.error("Error retrieving food listings:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+// Flow: addListing -> refreshes -> fetchListings -> Image component sources from /getImageForListing?listingID=<value>&imageName=<value> -> send file back down -> Image component renders
+
+router.get("/getImageForListing", async (req, res) => {
+    const { listingID, imageName } = req.query;
+    if (!listingID || !imageName) {
+        res.status(400).send("ERROR: Invalid request parameters.");
+        console.error("Invalid request parameters.");
+        return;
+    }
+
+    // Find the listing
+    const findListing = await FoodListing.findByPk(listingID);
+    const findImageName = await FileManager.prepFile(imageName);
+    if (!findImageName) {
+        res.status(404).send("ERROR: Image not found.");
+        console.error("Image not found.");
+        return;
+    }
+    if (!findListing) {
+        res.status(404).send("ERROR: Listing not found.");
+        console.error("Listing not found.");
+        return;
+    }
+    res.status(200).sendFile(imageName, { root: "./FileStore" });
+    return;
 });
 
 router.post("/addListing", async (req, res) => {
-  // POST a new food listing
-  const { title, images, shortDescription, longDescription, portionPrice, totalSlots, datetime } = req.body;
-
-  if (!title || !shortDescription || !longDescription || !portionPrice || !totalSlots || !datetime) {
-    res.status(400).json({ error: "One or more required payloads were not provided" });
-    return;
-  } else {
-    const listingID = Universal.generateUniqueID();
-    const approxAddress = "Yishun, Singapore" // hardcoded for now
-    const address = "1 North Point Dr, #01-164/165 Northpoint City, Singapore 768019" // hardcoded for now
-    const hostID = "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4" // hardcoded for now
-    const published = true;
-    const formattedDatetime = datetime + ":00.000Z"
-    try {
-      const addListingResponse = await FoodListing.create({ listingID, title, images, shortDescription, longDescription, portionPrice, approxAddress, address, totalSlots, datetime: formattedDatetime, published, hostID });
-      if (addListingResponse) {
-        res.status(200).json({ message: "Food listing created successfully!", addListingResponse });
-      } else {
-        res.status(400).json({ error: "Failed to create food listing" });
-      }
-    } catch (error) {
-      console.error("Error creating food listing:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  }
-});
-
-router.post("/addImage", async (req, res) => {
-  const id = req.query.id;
-  if (!id) {
-    res.status(400).json({ error: "One or more required payloads were not provided" });
-    return;
-  } else {
-    const verifyExistingListing = await FoodListing.findByPk(id);
-    if (!verifyExistingListing) {
-      res.status(404).json({ error: "Invalid payload" });
-      return;
-    } else {
-      try {
-        ListingsStoreFile(req, res, async (err) => {
-          if (err instanceof multer.MulterError) {
-            console.error("Multer error:", err);
-            res.status(400).json({ error: "File upload error" });
-          } else if (err) {
-            console.error("Unknown error occured during upload:", err);
-            res.status(500).json({ error: "Internal server error" });
-          } else if (!req.file) {
-            res.status(400).json({ error: "No file was selected to upload" });
-          } else {
-            await FileManager.saveFile(req.file.filename);
-            Logger.log(`File uploaded: ${req.file.filename}`);
-            publicUrl = `https://firebasestorage.googleapis.com/v0/b/makanmatch.appspot.com/o/${req.file.filename}?alt=media`
-            res.status(200).json({ message: "File uploaded successfully", url: publicUrl });
-          }
-        });
-      } catch (error) {
-        console.error("Error occured while adding image to food listing:", error);
-        res.status(500).json({ error: "Internal server error" });
-      }
-    }
-  }
-});
-
-router.put("/updateListingImageUrl", async (req, res) => {
-  const { listingID, url } = req.body;
-  if (!listingID || !url) {
-    res.status(400).json({ error: "One or more required payloads were not provided" });
-    return;
-  } else {
-    const verifyExistingListing = await FoodListing.findByPk(listingID);
-    const verifyImageUrl = await axios.get(url);
-
-    if (verifyImageUrl.status !== 200) {
-      res.status(400).json({ error: "Invalid image URL" });
-      return;
-    } 
-    if (!verifyExistingListing) {
-      res.status(404).json({ error: "Invalid payload" });
-      return;
-    }
-
-    try {
-      const updatedListing = await FoodListing.update(
-        { images: url },
-        { where: { listingID } }
-      );
-      if (updatedListing == 1) {
-        res.status(200).json({ message: "Image URL updated successfully!", url });
-      } else {
-        res.status(404).json({ error: "Food listing not found" });
-      }
-    } catch (error) {
-      console.error("Error updating image URL:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  }
+    ListingsStoreFile(req, res, async (err) => {
+        console.log(req.body);
+        if (
+            !req.body.title ||
+            !req.body.shortDescription ||
+            !req.body.longDescription ||
+            !req.body.portionPrice ||
+            !req.body.totalSlots ||
+            !req.body.datetime
+        ) {
+            res.status(400).send(
+                "One or more required payloads were not provided"
+            );
+            return;
+        } else {
+            if (err instanceof multer.MulterError) {
+                console.error("Multer error:", err);
+                res.status(400).send("Image upload error");
+            } else if (err) {
+                console.error("Unknown error occured during upload:", err);
+                res.status(500).send("Internal server error");
+            } else if (!req.file) {
+                res.status(400).send("No file was selected to upload");
+            } else {
+                const uploadImageResponse = await FileManager.saveFile(
+                    req.file.filename
+                );
+                if (uploadImageResponse) {
+                    const formattedDatetime = req.body.datetime + ":00.000Z";
+                    const listingDetails = {
+                        listingID: Universal.generateUniqueID(),
+                        title: req.body.title,
+                        images: req.file.filename,
+                        shortDescription: req.body.shortDescription,
+                        longDescription: req.body.longDescription,
+                        portionPrice: req.body.portionPrice,
+                        totalSlots: req.body.totalSlots,
+                        datetime: formattedDatetime,
+                        approxAddress: "Yishun, Singapore", // hardcoded for now
+                        address:
+                            "1 North Point Dr, #01-164/165 Northpoint City, Singapore 768019", // hardcoded for now
+                        hostID: "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4", // hardcoded for now
+                        published: true,
+                    };
+                    const addListingResponse = await FoodListing.create(
+                        listingDetails
+                    );
+                    if (addListingResponse) {
+                        res.status(200).json({
+                            message: "Food listing created successfully",
+                            listingDetails,
+                        });
+                        return;
+                    } else {
+                        res.status(400).send("Failed to create food listing");
+                        return;
+                    }
+                } else {
+                    res.status(400).send("Failed to upload image");
+                    return;
+                }
+            }
+        }
+    });
 });
 
 module.exports = router;

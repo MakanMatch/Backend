@@ -4,6 +4,9 @@ const { v4: uuidv4 } = require('uuid')
 const { FoodListing } = require('./models')
 require('dotenv').config()
 
+const env = process.env.DB_CONFIG || 'development';
+const config = require('./config/config.json')[env];
+
 const SEQUELIZE_ACTIVE = true;
 
 // Set up services
@@ -34,7 +37,7 @@ app.use(express.urlencoded({ extended: true }))
 app.set("view engine", "ejs");
 
 // Top-level middleware
-app.use(logRoutes)
+if (config["routeLogging"] !== false) { app.use(logRoutes) }
 
 // Main routes
 app.get("/", (req, res) => {

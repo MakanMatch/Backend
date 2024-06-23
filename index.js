@@ -19,6 +19,7 @@ Emailer.checkContext()
 
 const FileManager = require('./services/FileManager');
 const checkHeaders = require('./middleware/headersCheck');
+const logRoutes = require('./middleware/logRoutes');
 FileManager.setup().catch(err => { Logger.logAndThrow(err) })
 
 // Configure express app
@@ -30,6 +31,7 @@ app.use(express.urlencoded({ extended: true }))
 app.set("view engine", "ejs");
 
 // Top-level middleware
+app.use(logRoutes)
 
 // Main routes
 app.get("/", (req, res) => {

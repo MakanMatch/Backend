@@ -20,7 +20,8 @@ if (process.env.DB_MODE == "mysql") {
 } else {
     sequelize = new Sequelize({
         dialect: 'sqlite',
-        storage: 'database.sqlite'
+        storage: 'database.sqlite',
+        logging: config["logging"]
     })
 }
 

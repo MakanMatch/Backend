@@ -1,5 +1,4 @@
 const path = require('path');
-const Logger = require('../services/Logger');
 
 const ListingsFileFilter = function (req, file, cb) {
     const allowedMIMETypes = /jpeg|jpg|png|svg\+xml/;
@@ -10,7 +9,6 @@ const ListingsFileFilter = function (req, file, cb) {
     
     if (mimetype && extname) {
       cb(null, true);
-      Logger.log(`File ${file.originalname} uploaded successfully`);
     } else {
       cb(new Error('Only .jpeg, .jpg, .png, and .svg files are allowed'), false);
     }

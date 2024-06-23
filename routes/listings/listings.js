@@ -6,6 +6,7 @@ const FoodListing = require("../../models").FoodListing;
 const Host = require("../../models").Host;
 const Universal = require("../../services/Universal");
 const FileManager = require("../../services/FileManager");
+const Logger = require("../../services/Logger");
 const ListingsStoreFile = require("../../middleware/ListingsStoreFile");
 
 router.post("/createHost", async (req, res) => {
@@ -44,13 +45,7 @@ router.post("/createHost", async (req, res) => {
         hygieneGrade: hygieneGrade || null,
         paymentImage,
       });
-      const verifyHost = await Host.findByPk(userID);
-      if (!verifyHost) {
-        res.status(404).json({ error: "Failed to create host" });
-        return;
-      } else {
-        res.status(200).json({ message: "Host created successfully!", newHost });
-      }
+      res.status(200).json({ message: "Host created successfully!", newHost });
     } catch (error) {
       console.error("Error creating host:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -157,6 +152,7 @@ router.post("/addImage", async (req, res) => {
             res.status(400).json({ error: "No file was selected to upload" });
           } else {
             await FileManager.saveFile(req.file.filename);
+            Logger.log(`File uploaded: ${req.file.filename}`);
             publicUrl = `https://firebasestorage.googleapis.com/v0/b/makanmatch.appspot.com/o/${req.file.filename}?alt=media`
             res.status(200).json({ message: "File uploaded successfully", url: publicUrl });
           }

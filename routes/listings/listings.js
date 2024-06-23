@@ -75,7 +75,12 @@ router.get("/getImageForListing", async (req, res) => {
         console.error("Listing not found.");
         return;
     }
-    res.status(200).sendFile(imageName, { root: "./FileStore" });
+    if (findListing.images !== imageName) {
+        res.status(404).send("ERROR: Requested image does not belong to its corresponding listing.");
+        console.error("Requested image does not belong to its corresponding listing.");
+        return;
+    }
+    res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length))
     return;
 });
 

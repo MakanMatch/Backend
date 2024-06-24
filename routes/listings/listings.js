@@ -14,45 +14,14 @@ router.post("/createHost", async (req, res) => {
     try {
         const newHost = await Host.create(data);
         res.status(200).json({
-            message: "Host created successfully!",
+            message: "SUCCESS: Host created successfully!",
             newHost,
         });
+        Logger.log(`LISTINGS CREATEHOST: Sample Host with userID ${newHost.username} created successfully`)
     } catch (error) {
-        console.error("Error creating host:", error);
-        res.status(400).json({
-            error: "One or more required payloads were not provided.",
-        });
+        res.status(400).send("UERROR: One or more required payloads were not provided.");
     }
 });
-
-router.get("/hostInfo", async (req, res) => { // Moved to /routes/cdn/coreData
-    try {
-        const hostInfo = await Host.findByPk(
-            "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4"
-        ); // hardcoded for now
-        if (hostInfo) {
-            res.status(200).json(hostInfo);
-        } else {
-            res.status(404).json({ error: "Host not found" });
-        }
-    } catch (error) {
-        console.error("Error fetching host info:", error);
-        res.status(500).json({ error: "Failed to fetch host info" });
-    }
-});
-
-router.get("/", async (req, res) => { // Moved to /routes/cdn/coreData
-    try {
-        const foodListings = await FoodListing.findAll();
-        foodListings.map(listing => listing.images = listing.images.split("|"));
-        res.status(200).json(foodListings);
-    } catch (error) {
-        console.error("Error retrieving food listings:", error);
-        res.status(500).json({ error: "Internal server error" });
-    }
-});
-
-// Flow: addListing -> refreshes -> fetchListings -> Image component sources from /getImageForListing?listingID=<value>&imageName=<value> -> send file back down -> Image component renders
 
 router.post("/addListing", async (req, res) => {
     storeImages(req, res, async (err) => {
@@ -64,23 +33,17 @@ router.post("/addListing", async (req, res) => {
             !req.body.totalSlots ||
             !req.body.datetime
         ) {
-            res.status(400).send(
-                "One or more required payloads were not provided"
-            );
+            res.status(400).send("UERROR: One or more required payloads were not provided");
             return;
         } else {
             if (err instanceof multer.MulterError) {
-                console.error("Multer error:", err);
-                res.status(400).send("Image upload error");
+                res.status(400).send("ERROR: Image upload error");
             } else if (err) {
-                console.error("Unknown error occured during upload:", err);
-                res.status(500).send("Internal server error");
+                res.status(500).send("ERROR: Internal server error");
             } else if (!req.file) {
-                res.status(400).send("No file was selected to upload");
+                res.status(400).send("UERROR: No file was selected to upload");
             } else {
-                const uploadImageResponse = await FileManager.saveFile(
-                    req.file.filename
-                );
+                const uploadImageResponse = await FileManager.saveFile(req.file.filename);
                 if (uploadImageResponse) {
                     const formattedDatetime = req.body.datetime + ":00.000Z";
                     const listingDetails = {
@@ -93,27 +56,24 @@ router.post("/addListing", async (req, res) => {
                         totalSlots: req.body.totalSlots,
                         datetime: formattedDatetime,
                         approxAddress: "Yishun, Singapore", // hardcoded for now
-                        address:
-                            "1 North Point Dr, #01-164/165 Northpoint City, Singapore 768019", // hardcoded for now
+                        address: "1 North Point Dr, #01-164/165 Northpoint City, Singapore 768019", // hardcoded for now
                         hostID: "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4", // hardcoded for now
                         published: true,
                     };
-                    const addListingResponse = await FoodListing.create(
-                        listingDetails
-                    );
+                    const addListingResponse = await FoodListing.create(listingDetails);
                     if (addListingResponse) {
                         res.status(200).json({
-                            message: "Food listing created successfully",
+                            message: "SUCCESS: Food listing created successfully",
                             listingDetails,
                         });
-                        Logger.log(`LISTINGS ADDLISTING: Listing created successfully(${listingDetails})`)
+                        Logger.log(`LISTINGS ADDLISTING: Listing with listingID ${listingDetails.listingID} created successfully.`)
                         return;
                     } else {
-                        res.status(400).send("Failed to create food listing");
+                        res.status(400).send("ERROR: Failed to create food listing");
                         return;
                     }
                 } else {
-                    res.status(400).send("Failed to upload image");
+                    res.status(400).send("ERROR: Failed to upload image");
                     return;
                 }
             }

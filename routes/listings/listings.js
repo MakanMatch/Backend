@@ -45,6 +45,7 @@ router.get("/", async (req, res) => {
     // GET all food listings
     try {
         const foodListings = await FoodListing.findAll();
+        foodListings.map(listing => listing.images = listing.images.split("|"));
         res.status(200).json(foodListings);
     } catch (error) {
         console.error("Error retrieving food listings:", error);

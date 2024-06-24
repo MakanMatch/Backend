@@ -15,17 +15,17 @@ router.get("/listingDetails", async (req, res) => {
     res.json(listing)
 })
 
-router.get("/getListingImage/:name", async (req, res) => {
-    const imageName = req.params.name
-    const filePrep = await FileManager.prepFile(imageName)
-    if (filePrep.startsWith("ERROR") || !filePrep.startsWith("SUCCESS")) {
-        res.status(400).send(filePrep)
-        console.log(filePrep)
-        return
-    }
+// router.get("/getListingImage/:name", async (req, res) => {
+//     const imageName = req.params.name
+//     const filePrep = await FileManager.prepFile(imageName)
+//     if (filePrep.startsWith("ERROR") || !filePrep.startsWith("SUCCESS")) {
+//         res.status(400).send(filePrep)
+//         console.log(filePrep)
+//         return
+//     }
 
-    res.sendFile(filePrep.substring("SUCCESS: File path: ".length))
-})
+//     res.sendFile(filePrep.substring("SUCCESS: File path: ".length))
+// })
 
 router.post("/uploadListingImage", async (req, res) => {
     storeFile(req, res, async (err) => {

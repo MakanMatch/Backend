@@ -64,22 +64,27 @@ router.get("/getImageForListing", async (req, res) => {
 
     // Find the listing
     const findListing = await FoodListing.findByPk(listingID);
-    const findImageName = await FileManager.prepFile(imageName);
-    if (!findImageName) {
-        res.status(404).send("ERROR: Image not found.");
-        console.error("Image not found.");
-        return;
-    }
     if (!findListing) {
         res.status(404).send("ERROR: Listing not found.");
         console.error("Listing not found.");
         return;
     }
-    if (findListing.images !== imageName) {
+
+    const findImageName = await FileManager.prepFile(imageName);
+    if (!findImageName.startsWith("SUCCESS")) {
+        res.status(404).send("ERROR: Image not found.");
+        console.error("Image not found.");
+        return;
+    }
+
+    const listingImages = findListing.images.split("|");
+    
+    if (listingImages.includes(imageName) !== true) {
         res.status(404).send("ERROR: Requested image does not belong to its corresponding listing.");
         console.error("Requested image does not belong to its corresponding listing.");
         return;
     }
+    res.sendFile
     res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length))
     return;
 });

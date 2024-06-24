@@ -51,6 +51,7 @@ app.get("/", (req, res) => {
 // Register routers
 app.use(checkHeaders) // Middleware to check Content-Type and API key headers
 app.use("/misc", require("./routes/misc"));
+app.use("/cdn", require("./routes/cdn"));
 app.use("/reviews", require("./routes/reviews/reviews"));
 app.use("/createAccount", require('./routes/identity/createAccount'));
 app.use("/loginAccount", require('./routes/identity/loginAccount'));

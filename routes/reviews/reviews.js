@@ -3,7 +3,7 @@ const router = express.Router();
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const FileManager = require('../../services/FileManager');
-const { multiUpload: storeFiles } = require('../../middleware/storeFiles');
+const { storeFiles } = require("../../middleware/storeFiles");
 
 //Global dictionary to store reviews (tempororily saved in memory, implement to database later)
 const reviews = {};

@@ -20,4 +20,4 @@ const storeImages = multer({
 })
 .single('images')
 
-module.exports = storeImages;
+module.exports = { storeImages };

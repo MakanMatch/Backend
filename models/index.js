@@ -5,10 +5,42 @@ const path = require('path');
 const Sequelize = require('sequelize');
 require('dotenv').config()
 const process = require('process');
+const FileOps = require('../services/FileOps');
+const Universal = require('../services/Universal');
 const basename = path.basename(__filename);
 const env = process.env.DB_CONFIG || 'development';
-const config = require(__dirname + '/../config/config.json')[env];
+const config = require('../config/config.json')[env];
 const db = {};
+
+if (!config) {
+    throw new Error("Database configuration not found in config/config.json")
+}
+
+if (config.logging == true) {
+    if (config.loggingOptions != undefined) {
+        var queryLogsFile = "sqlQueries.txt"
+        if (config.loggingOptions["logsFile"] !== undefined) { queryLogsFile = config.loggingOptions["logsFile"] }
+
+        if (config.loggingOptions["useFileLogging"] === true) {
+            if (config.loggingOptions["clearUponBoot"] === true) { FileOps.writeTo(queryLogsFile, "") }
+            // Log SQL query executions to a file
+            config.logging = (msg) => {
+                // Check whether post-boot executions are to be logged only (Use Universal.booted to check if system has booted)
+                if (config.loggingOptions["logPostBootOnly"] === true && Universal.booted !== true) { return }
+                const date = new Date().toISOString()
+                FileOps.appendTo(queryLogsFile, `${date} - ${msg}\n`)
+            }
+        } else {
+            // Log normally to console
+            config.logging = (msg) => {
+                // Check whether post-boot executions are to be logged only (Use Universal.booted to check if system has booted)
+                if (config.loggingOptions["logPostBootOnly"] === true && Universal.booted !== true) { return }
+                console.log(msg)
+            }
+        }
+    }
+    // If logging options not provided, sequelize will default to console.log
+}
 
 let sequelize;
 if (process.env.DB_MODE == "mysql") {
@@ -20,7 +52,8 @@ if (process.env.DB_MODE == "mysql") {
 } else {
     sequelize = new Sequelize({
         dialect: 'sqlite',
-        storage: 'database.sqlite'
+        storage: 'database.sqlite',
+        logging: config["logging"] !== undefined ? config.logging : console.log
     })
 }
 

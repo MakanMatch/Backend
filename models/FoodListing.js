@@ -1,3 +1,9 @@
+/**
+ * 
+ * @param {import('sequelize').Sequelize} sequelize 
+ * @param {import('sequelize').DataTypes} DataTypes 
+ * @returns 
+ */
 module.exports = (sequelize, DataTypes) => {
     const FoodListing = sequelize.define("FoodListing", {
         listingID: {
@@ -49,17 +55,14 @@ module.exports = (sequelize, DataTypes) => {
     }, { tableName: 'foodListings' })
 
     // Associations
-    // FoodListing.associate = (models) => {
-    //     FoodListing.belongsTo(models.Host, {
-    //         foreignKey: "hostID",
-    //         as: "host"
-    //     })
-    //     FoodListing.belongsToMany(models.Guest, {
-    //         through: 'Reservation',
-    //         foreignKey: 'listingID',
-    //         as: "reservations"
-    //     })
-    // }
+    FoodListing.associate = (models) => {
+        FoodListing.belongsTo(models.Host)
+        FoodListing.belongsToMany(models.Guest, {
+            through: models.Reservation,
+            as: "guests",
+            foreignKey: "listingID",
+        })
+    }
 
     return FoodListing;
 }

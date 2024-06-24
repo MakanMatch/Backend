@@ -25,7 +25,7 @@ router.get("/getImageForListing", async (req, res) => {
         return;
     }
 
-    const listingImages = findListing.images.split("|");
+    const listingImages = findListing.images;
     
     if (listingImages.includes(imageName) !== true) {
         res.status(404).send("ERROR: Requested image does not belong to its corresponding listing.");

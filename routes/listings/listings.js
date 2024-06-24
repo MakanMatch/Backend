@@ -7,6 +7,7 @@ const Universal = require("../../services/Universal");
 const FileManager = require("../../services/FileManager");
 const Logger = require("../../services/Logger")
 const { storeImages } = require("../../middleware/storeImages");
+const { all } = require("axios");
 
 router.post("/createHost", async (req, res) => {
     // POST a new host before creating a food listing
@@ -31,7 +32,8 @@ router.post("/addListing", async (req, res) => {
             !req.body.longDescription ||
             !req.body.portionPrice ||
             !req.body.totalSlots ||
-            !req.body.datetime
+            !req.body.datetime ||
+            req.files.length === 0
         ) {
             res.status(400).send("UERROR: One or more required payloads were not provided");
             return;
@@ -40,16 +42,24 @@ router.post("/addListing", async (req, res) => {
                 res.status(400).send("ERROR: Image upload error");
             } else if (err) {
                 res.status(500).send("ERROR: Internal server error");
-            } else if (!req.file) {
-                res.status(400).send("UERROR: No file was selected to upload");
             } else {
-                const uploadImageResponse = await FileManager.saveFile(req.file.filename);
-                if (uploadImageResponse) {
+                var allImagesSuccess = false;
+                for (let i=0; i<req.files.length; i++) {
+                    const imageFile = req.files[i];
+                    const uploadImageResponse = await FileManager.saveFile(imageFile.filename);
+                    if (uploadImageResponse) {
+                        allImagesSuccess = true;
+                    } else {
+                        allImagesSuccess = false;
+                        break;
+                    }
+                }
+                if (allImagesSuccess === true) {
                     const formattedDatetime = req.body.datetime + ":00.000Z";
                     const listingDetails = {
                         listingID: Universal.generateUniqueID(),
                         title: req.body.title,
-                        images: req.file.filename,
+                        images: req.files.map(file => file.filename).join("|"),
                         shortDescription: req.body.shortDescription,
                         longDescription: req.body.longDescription,
                         portionPrice: req.body.portionPrice,

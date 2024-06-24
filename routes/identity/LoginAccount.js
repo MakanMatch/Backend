@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
-const Encryption = require('../../services/Encryption');
+const { Encryption, Logger } = require('../../services');
 require('dotenv').config();
 
 router.post("/", async (req, res) => {
@@ -40,14 +40,14 @@ router.post("/", async (req, res) => {
 
     // If user is not found in any of the models
     if (!user) {
-      res.status(400).send("Invalid username or email or password.");
+      res.status(400).send("UERROR: Invalid username or email or password.");
       return;
     }
 
     // Check password
     let passwordMatch = await Encryption.compare(data.password, user.password);
     if (!passwordMatch) {
-      res.status(400).send("Invalid username or email or password.");
+      res.status(400).send("UERROR: Invalid username or email or password.");
       return;
     }
 

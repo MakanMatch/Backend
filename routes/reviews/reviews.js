@@ -3,7 +3,7 @@ const router = express.Router();
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const FileManager = require('../../services/FileManager');
-const { multiUpload } = require('../../middleware/multiUpload');
+const { multiUpload: storeFiles } = require('../../middleware/storeFiles');
 
 //Global dictionary to store reviews (tempororily saved in memory, implement to database later)
 const reviews = {};
@@ -13,7 +13,7 @@ router.route("/")
     .get((req, res) => {
         res.json(Object.values(reviews));
     })
-    .post(multiUpload, async (req, res) => {
+    .post(storeFiles, async (req, res) => {
         const { sender, receiver, foodRating, hygieneRating, comments, dateCreated } = req.body;
 
         if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {

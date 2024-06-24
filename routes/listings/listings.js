@@ -5,7 +5,7 @@ const { FoodListing } = require("../../models");
 const { Host } = require("../../models");
 const Universal = require("../../services/Universal");
 const FileManager = require("../../services/FileManager");
-const ListingsStoreFile = require("../../middleware/ListingsStoreFile");
+const storeImages = require("../../middleware/storeImages");
 
 router.post("/createHost", async (req, res) => {
     // POST a new host before creating a food listing
@@ -85,7 +85,7 @@ router.get("/getImageForListing", async (req, res) => {
 });
 
 router.post("/addListing", async (req, res) => {
-    ListingsStoreFile(req, res, async (err) => {
+    storeImages(req, res, async (err) => {
         console.log(req.body);
         if (
             !req.body.title ||

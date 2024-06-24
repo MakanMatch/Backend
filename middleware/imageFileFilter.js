@@ -1,6 +1,6 @@
 const path = require('path');
 
-const ListingsFileFilter = function (req, file, cb) {
+const imageFileFilter = function (req, file, cb) {
     const allowedMIMETypes = /jpeg|jpg|png|svg\+xml/;
     const allowedExtensions = /jpeg|jpg|png|svg/;
     
@@ -14,4 +14,4 @@ const ListingsFileFilter = function (req, file, cb) {
     }
 };
 
-module.exports = ListingsFileFilter;
+module.exports = imageFileFilter;

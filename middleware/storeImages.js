@@ -1,7 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const ListingsFileFilter = require('./ListingsFileFilter');
+const imageFileFilter = require('./imageFileFilter');
 
 
 const storage = multer.diskStorage({
@@ -13,11 +13,11 @@ const storage = multer.diskStorage({
     }
 })
 
-const ListingsStoreFile = multer({
+const storeImages = multer({
     storage: storage,
     limits: { fileSize: 1024 * 1024 * 10 },
-    fileFilter: ListingsFileFilter
+    fileFilter: imageFileFilter
 })
 .single('images')
 
-module.exports = ListingsStoreFile;
+module.exports = storeImages;

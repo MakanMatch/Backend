@@ -10,8 +10,7 @@ router.get("/listings", async (req, res) => { // GET all food listings
         foodListings.map(listing => listing.images = listing.images.split("|"));
         res.status(200).json(foodListings);
     } catch (error) {
-        console.error("Error retrieving food listings:", error);
-        res.status(500).json({ error: "Internal server error" });
+        res.status(500).send("ERROR: Internal server error");
     }
 });
 

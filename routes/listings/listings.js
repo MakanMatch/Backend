@@ -5,7 +5,8 @@ const { FoodListing } = require("../../models");
 const { Host } = require("../../models");
 const Universal = require("../../services/Universal");
 const FileManager = require("../../services/FileManager");
-const storeImages = require("../../middleware/storeImages");
+const Logger = require("../../services/Logger")
+const { storeImages } = require("../../middleware/storeImages");
 
 router.post("/createHost", async (req, res) => {
     // POST a new host before creating a food listing
@@ -24,9 +25,8 @@ router.post("/createHost", async (req, res) => {
     }
 });
 
-router.get("/hostInfo", async (req, res) => {
+router.get("/hostInfo", async (req, res) => { // Moved to /routes/cdn/coreData
     try {
-        // GET host info before displaying listing's host name
         const hostInfo = await Host.findByPk(
             "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4"
         ); // hardcoded for now
@@ -41,8 +41,7 @@ router.get("/hostInfo", async (req, res) => {
     }
 });
 
-router.get("/", async (req, res) => {
-    // GET all food listings
+router.get("/", async (req, res) => { // Moved to /routes/cdn/coreData
     try {
         const foodListings = await FoodListing.findAll();
         foodListings.map(listing => listing.images = listing.images.split("|"));
@@ -57,7 +56,6 @@ router.get("/", async (req, res) => {
 
 router.post("/addListing", async (req, res) => {
     storeImages(req, res, async (err) => {
-        console.log(req.body);
         if (
             !req.body.title ||
             !req.body.shortDescription ||
@@ -108,6 +106,7 @@ router.post("/addListing", async (req, res) => {
                             message: "Food listing created successfully",
                             listingDetails,
                         });
+                        Logger.log(`LISTINGS ADDLISTING: Listing created successfully(${listingDetails})`)
                         return;
                     } else {
                         res.status(400).send("Failed to create food listing");

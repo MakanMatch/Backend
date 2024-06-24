@@ -9,7 +9,7 @@ router.get("/listingDetails", async (req, res) => {
     const dummyListingID = Universal.data["DUMMY_LISTING_ID"]
     const listing = await FoodListing.findByPk(dummyListingID)
     if (!listing || listing == null) {
-        res.status(404).send("Listing not found")
+        res.status(404).send("ERROR: Listing not found")
         return
     }
     res.json(listing)
@@ -31,7 +31,7 @@ router.post("/uploadListingImage", async (req, res) => {
         }
 
         if (err) {
-            res.status(400).json(err)
+            res.status(400).send("ERROR: Failed to upload file. Error: " + err)
             return
         } else if (req.file == undefined) {
             res.status(400).send("ERROR: No file selected.")
@@ -49,7 +49,7 @@ router.post("/uploadListingImage", async (req, res) => {
                 listing.images += "|" + req.file.filename
             }
             await listing.save()
-            res.json("SUCCESS: File uploaded successfully.")
+            res.send("SUCCESS: File uploaded successfully.")
             return
         }
     })

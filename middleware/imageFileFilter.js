@@ -1,8 +1,8 @@
 const path = require('path');
 
-const ListingsFileFilter = function (req, file, cb) {
-    const allowedMIMETypes = /jpeg|jpg|png|svg\+xml/;
-    const allowedExtensions = /jpeg|jpg|png|svg/;
+const imageFileFilter = function (req, file, cb) {
+    const allowedMIMETypes = /jpeg|jpg|png|heic|svg\+xml/;
+    const allowedExtensions = /jpeg|jpg|png|heic|svg/;
     
     const mimetype = allowedMIMETypes.test(file.mimetype);
     const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
@@ -14,4 +14,4 @@ const ListingsFileFilter = function (req, file, cb) {
     }
 };
 
-module.exports = ListingsFileFilter;
+module.exports = imageFileFilter;

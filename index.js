@@ -1,3 +1,4 @@
+require('./services/BootCheck').check()
 const express = require('express');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid')
@@ -11,7 +12,6 @@ const SEQUELIZE_ACTIVE = true;
 
 // Set up services
 const Universal = require('./services/Universal')
-require('./services/BootCheck').check()
 const FileOps = require('./services/FileOps')
 
 const Logger = require('./services/Logger')
@@ -46,11 +46,17 @@ app.get("/", (req, res) => {
     res.render("index", {
         currentTime: new Date().toString()
     });
-})
+});
 
 // Register routers
 app.use(checkHeaders) // Middleware to check Content-Type and API key headers
 app.use("/misc", require("./routes/misc"));
+app.use("/cdn", require("./routes/cdn/contentDelivery"));
+app.use("/cdn", require("./routes/cdn/coreData"));
+app.use("/reviews", require("./routes/reviews/reviews"));
+app.use("/createAccount", require('./routes/identity/createAccount'));
+app.use("/loginAccount", require('./routes/identity/loginAccount'));
+app.use("/accountRecovery", require('./routes/identity/accountRecovery'));
 app.use("/listings", require("./routes/listings/listings"));
 app.use("/", require("./routes/orders/reservation"));
 

@@ -2,7 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const router = express.Router();
 const { FoodListing } = require("../../models");
-const { Host } = require("../../models");
+const { Host, Guest } = require("../../models");
 const Universal = require("../../services/Universal");
 const FileManager = require("../../services/FileManager");
 const Logger = require("../../services/Logger")
@@ -18,6 +18,20 @@ router.post("/createHost", async (req, res) => {
             newHost,
         });
         Logger.log(`LISTINGS CREATEHOST: Sample Host with userID ${newHost.username} created successfully`)
+    } catch (error) {
+        res.status(400).send("UERROR: One or more required payloads were not provided.");
+    }
+});
+
+router.post("/createGuest", async (req, res) => {
+    const data = req.body;
+    try {
+        const newGuest = await Guest.create(data);
+        res.status(200).json({
+            message: "SUCCESS: Guest created successfully!",
+            newGuest,
+        });
+        Logger.log(`LISTINGS CREATEGUEST: Sample Guest with userID ${newGuest.username} created successfully`)
     } catch (error) {
         res.status(400).send("UERROR: One or more required payloads were not provided.");
     }
@@ -89,5 +103,9 @@ router.post("/addListing", async (req, res) => {
         }
     });
 });
+
+router.put("/addListingToFavourites", async (req, res) => {
+
+})
 
 module.exports = router;

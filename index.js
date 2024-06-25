@@ -26,6 +26,9 @@ Cache.load();
 const FileManager = require('./services/FileManager');
 FileManager.setup().catch(err => { Logger.logAndThrow(err) })
 
+const startWebSocketServer = require('./routes/chat/WebSocketServer');
+startWebSocketServer();
+
 // Import middleware
 const checkHeaders = require('./middleware/headersCheck');
 const logRoutes = require('./middleware/logRoutes');
@@ -59,6 +62,7 @@ app.use("/loginAccount", require('./routes/identity/loginAccount'));
 app.use("/accountRecovery", require('./routes/identity/accountRecovery'));
 app.use("/listings", require("./routes/listings/listings"));
 app.use("/", require("./routes/orders/reservation"));
+// app.use("/chats", require("./routes/chat/Chat"));
 
 async function onDBSynchronise() {
     const currentDatetime = new Date()

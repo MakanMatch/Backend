@@ -1,3 +1,9 @@
+/**
+ * 
+ * @param {import('sequelize').Sequelize} sequelize 
+ * @param {import('sequelize').DataTypes} DataTypes 
+ * @returns 
+ */
 module.exports = (sequelize, DataTypes) => {
     const Host = sequelize.define("Host", {
         userID: {
@@ -62,12 +68,20 @@ module.exports = (sequelize, DataTypes) => {
     }, { tableName: 'hosts' })
 
     // Associations
-    // Host.associate = (models) => {
-    //     Host.hasMany(models.FoodListing, {
-    //         foreignKey: "hostID",
-    //         onDelete: "cascade"
-    //     })
-    // }
+    Host.associate = (models) => {
+        Host.hasMany(models.FoodListing, {
+            foreignKey: "hostID",
+            onDelete: "cascade"
+        })
+        Host.hasMany(models.Review, {
+            foreignKey: "hostID",
+            onDelete: "cascade"
+        })
+        Host.belongsToMany(models.Admin, {
+            through: models.Warning,
+            as: "warnings"
+        })
+    }
 
     return Host;
 }

@@ -18,6 +18,6 @@ const storeImages = multer({
     limits: { fileSize: 1024 * 1024 * 10 },
     fileFilter: imageFileFilter
 })
-.single('images')
+.array('images')
 
 module.exports = { storeImages };

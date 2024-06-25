@@ -19,7 +19,7 @@ router.post("/resetKey", async (req, res) => {
             await Admin.findOne({ where: { email: usernameOrEmail } });
 
         if (!user) {
-            res.status(400).send("Username or email doesn't exist.");
+            res.status(400).send("UERROR: Username or email doesn't exist.");
             return;
         }
 
@@ -63,7 +63,7 @@ router.post('/resetPassword', async (req, res) => {
             await Admin.findOne({ where: { resetKey } });
 
         if (!user || user.resetKeyExpiration < Date.now()) {
-            res.status(400).send("Invalid or expired reset key.");
+            res.status(400).send("UERROR: Invalid or expired reset key.");
             return;
         }
 

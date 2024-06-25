@@ -3,7 +3,8 @@ const router = express.Router();
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const FileManager = require('../../services/FileManager');
-const { multiUpload } = require('../../middleware/multiUpload');
+const Universal = require("../../services/Universal")
+const { storeFiles } = require("../../middleware/storeFiles");
 
 //Global dictionary to store reviews (tempororily saved in memory, implement to database later)
 const reviews = {};
@@ -11,13 +12,13 @@ let nextReviewId = 1;
 
 router.route("/")
     .get((req, res) => {
-        res.json(Object.values(reviews));
+        res.json(Object.values(reviews)); 
     })
-    .post(multiUpload, async (req, res) => {
+    .post(storeFiles, async (req, res) => {
         const { sender, receiver, foodRating, hygieneRating, comments, dateCreated } = req.body;
 
         if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
-            return res.status(400).send("Missing required fields");
+            return res.status(400).send("UERROR: Missing required fields");
         }
 
         try {
@@ -48,10 +49,10 @@ router.route("/")
                 dateCreated
             };
 
-            res.status(201).json({ message: "Review submitted successfully", review: reviews[reviewId] });
+            res.send("SUCCESS: Review submitted successfully");
         } catch (error) {
-            console.error('Failed to upload images or submit review:', error);
-            res.status(500).send('Failed to upload images or submit review');
+            console.error('ERROR: Failed to upload images or submit review:', error);
+            res.status(500).send('ERROR: Failed to upload images or submit review');
         }
     });
 
@@ -67,13 +68,13 @@ router.route("/reviews/:id")
         if (review) {
             res.json(review);
         } else {
-            res.status(404).send(`Review with ID ${req.params.id} not found`);
+            res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
         }
     })
     .put((req, res) => {
         const { sender, receiver, foodRating, hygieneRating, comments, images, dateCreated } = req.body;
         if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
-            res.status(400).send("Missing required fields");
+            res.status(400).send("UERROR: Missing required fields");
             return;
         }
         if (reviews[req.params.id]) {
@@ -89,15 +90,15 @@ router.route("/reviews/:id")
             };
             res.json(reviews[req.params.id]);
         } else {
-            res.status(404).send(`Review with ID ${req.params.id} not found`);
+            res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
         }
     })
     .delete((req, res) => {
         if (reviews[req.params.id]) {
             delete reviews[req.params.id];
-            res.send(`Review with ID ${req.params.id} deleted`);
+            res.send(`SUCCESS: Review with ID ${req.params.id} deleted`);
         } else {
-            res.status(404).send(`Review with ID ${req.params.id} not found`);
+            res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
         }
     });
 

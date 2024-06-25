@@ -7,7 +7,6 @@ const Universal = require("../../services/Universal");
 const FileManager = require("../../services/FileManager");
 const Logger = require("../../services/Logger")
 const { storeImages } = require("../../middleware/storeImages");
-const { all } = require("axios");
 
 router.post("/createHost", async (req, res) => {
     // POST a new host before creating a food listing

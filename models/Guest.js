@@ -1,3 +1,9 @@
+/**
+ * 
+ * @param {import('sequelize').Sequelize} sequelize 
+ * @param {import('sequelize').DataTypes} DataTypes 
+ * @returns 
+ */
 module.exports = (sequelize, DataTypes) => {
     const Guest = sequelize.define('Guest', {
         userID: {
@@ -50,13 +56,16 @@ module.exports = (sequelize, DataTypes) => {
     }, { tableName: 'guests' })
 
     // Associations
-    // Guest.associate = (models) => {
-    //     Guest.belongsToMany(models.FoodListing, {
-    //         through: 'Reservation',
-    //         foreignKey: 'guestID',
-    //         as: 'reservations'
-    //     })
-    // }
+    Guest.associate = (models) => {
+        Guest.belongsToMany(models.FoodListing, {
+            through: models.Reservation,
+            as: "reservations"
+        })
+        Guest.hasMany(models.Review, {
+            foreignKey: "guestID",
+            onDelete: "cascade"
+        })
+    }
 
     return Guest;
 }

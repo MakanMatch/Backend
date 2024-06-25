@@ -42,7 +42,11 @@ if (config.logging == true) {
     // If logging options not provided, sequelize will default to console.log
 }
 
+/**
+ * @type {Sequelize.Sequelize}
+ */
 let sequelize;
+process.env.DB_MODE = "mysql"
 if (process.env.DB_MODE == "mysql") {
     if (config.use_env_variable) {
         sequelize = new Sequelize(process.env[config.use_env_variable], config);
@@ -68,6 +72,9 @@ fs
         );
     })
     .forEach(file => {
+        /**
+        * @type {Sequelize.Model}
+        */
         const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
         db[model.name] = model;
     });
@@ -78,7 +85,52 @@ Object.keys(db).forEach(modelName => {
     }
 });
 
-db.sequelize = sequelize;
-db.Sequelize = Sequelize;
+const { admin, chatHistory, chatMessage, foodListing, guest, host, reservation, review, warning, ...otherModels } = db
 
-module.exports = db;
+/**
+ * @type {Sequelize.Model}
+ */
+const Admin = admin;
+
+/**
+ * @type {Sequelize.Model}
+ */
+const ChatHistory = chatHistory;
+
+/**
+ * @type {Sequelize.Model}
+ */
+const ChatMessage = chatMessage;
+
+/**
+ * @type {Sequelize.Model}
+ */
+const FoodListing = foodListing;
+
+/**
+ * @type {Sequelize.Model}
+ */
+const Guest = guest;
+
+/**
+ * @type {Sequelize.Model}
+ */
+const Host = host;
+
+/**
+ * @type {Sequelize.Model}
+ */
+const Reservation = reservation;
+
+/**
+ * @type {Sequelize.Model}
+ */
+const Review = review;
+
+/**
+ * @type {Sequelize.Model}
+ */
+const Warning = warning;
+
+// console.log({ Admin, FoodListing, Guest, Host, Reservation, Review, Warning, ...otherModels, sequelize, Sequelize })
+module.exports = { Admin, ChatHistory, ChatMessage, FoodListing, Guest, Host, Reservation, Review, Warning, ...otherModels, sequelize, Sequelize };

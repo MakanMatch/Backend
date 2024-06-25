@@ -35,12 +35,12 @@ router.post("/", async (req, res) => {
     try {
         // Check username
         if (!await isUniqueUsername(username)) {
-            return res.status(400).send( "Username already exists." );
+            return res.status(400).send( "UERROR: Username already exists." );
         }
 
         // Check email
         if (!await isUniqueEmail(email)) {
-            return res.status(400).send("Email already exists.");
+            return res.status(400).send("UERROR: Email already exists.");
         }
 
         // Generate a unique userID
@@ -60,12 +60,12 @@ router.post("/", async (req, res) => {
         if (isHostAccount) {
             // Check contact number and address
             if (!contactNum || !address) {
-                return res.status(400).send("Contact number and address are required for host accounts.");
+                return res.status(400).send("UERROR: Contact number and address are required for host accounts.");
             }
 
             // Check contact number uniqueness
             if (!await isUniqueContactNum(contactNum)) {
-                return res.status(400).send("Contact number already exists." );
+                return res.status(400).send("UERROR: Contact number already exists." );
             }
 
             accountData = {

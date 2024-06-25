@@ -1,8 +1,8 @@
 const path = require('path');
 
 const imageFileFilter = function (req, file, cb) {
-    const allowedMIMETypes = /jpeg|jpg|png|svg\+xml/;
-    const allowedExtensions = /jpeg|jpg|png|svg/;
+    const allowedMIMETypes = /jpeg|jpg|png|heic|svg\+xml/;
+    const allowedExtensions = /jpeg|jpg|png|heic|svg/;
     
     const mimetype = allowedMIMETypes.test(file.mimetype);
     const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());

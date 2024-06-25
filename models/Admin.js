@@ -1,3 +1,9 @@
+/**
+ * 
+ * @param {import('sequelize').Sequelize} sequelize 
+ * @param {import('sequelize').DataTypes} DataTypes 
+ * @returns 
+ */
 module.exports = (sequelize, DataTypes) => {
     const Admin = sequelize.define('Admin', {
         userID: {
@@ -33,10 +39,24 @@ module.exports = (sequelize, DataTypes) => {
         role: {
             type: DataTypes.STRING,
             allowNull: false
+        },
+        resetKey: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        resetKeyExpiration: {
+            type: DataTypes.STRING,
+            allowNull: true
         }
     }, { tableName: 'admins' });
 
     // Associations
+    Admin.associate = (models) => {
+        Admin.belongsToMany(models.Host, {
+            through: models.Warning,
+            as: "warnings"
+        })
+    }
 
     return Admin;
 }

@@ -1,5 +1,3 @@
-// websocket-server.js
-
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -14,24 +12,21 @@ function startWebSocketServer() {
     // Integrate WebSocket with the HTTP server
     const wss = new WebSocket.Server({ server });
 
-    // Array to keep track of all connected clients
     const clients = [];
 
-    wss.on('connection', function connection(ws) {
+    wss.on('connection', (ws) => {
         console.log("WS connection arrived");
 
         // Add the new connection to our list of clients
         clients.push(ws);
 
-        ws.on('message', function incoming(message) {
-            console.log('received: %s', message);
-
-            // Broadcast the message to all clients
-            clients.forEach(function each(client) {
+        ws.on('message', (message) => {
+            // Broadcast message to all clients except the sender
+            clients.forEach((client) => {
                 if (client !== ws && client.readyState === WebSocket.OPEN) {
-                  client.send(message);
+                    client.send(message);
                 }
-              });
+            });
         });
 
         ws.on('close', () => {
@@ -44,6 +39,11 @@ function startWebSocketServer() {
 
         // Send a welcome message on new connection
         ws.send('Welcome to the chat!');
+    });
+
+    // Error handling for WebSocket server
+    wss.on('error', function(error) {
+        console.error('WebSocket server error:', error);
     });
 
     // Start the server

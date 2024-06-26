@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
-const { FoodListing, Host, Guest, Admin } = require("../../models");
+const { FoodListing, Host, Guest, Admin, Review} = require("../../models");
 
 router.get("/listings", async (req, res) => { // GET all food listings
     try {
@@ -72,8 +72,17 @@ router.get("/accountInfo", async (req, res) => { // GET account information
     }
 })
 
-router.get("/getReviews", (req, res) => { // GET full reviews list
-    res.json({}); // Placeholder, change later
+router.get("/getReviews", async (req, res) => { // GET full reviews list
+    try {
+        const reviews = await Review.findAll();
+        if (reviews) {
+            res.status(200).json(reviews);
+        } else {
+            res.status(404).send("UERROR: No reviews found.");
+        }
+    } catch (error) {
+        res.status(500).send("ERROR: Internal server error");
+    }
 })
 
 router.get("/reviews", (req, res) => { // GET review from review id

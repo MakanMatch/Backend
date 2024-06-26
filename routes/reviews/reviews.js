@@ -3,18 +3,18 @@ const router = express.Router();
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const FileManager = require('../../services/FileManager');
-const Universal = require("../../services/Universal")
+const { Universal } = require("../../services")
 const { storeFiles } = require("../../middleware/storeFiles");
+const { Review } = require('../../models');
 
-//Global dictionary to store reviews (tempororily saved in memory, implement to database later)
-const reviews = {};
-let nextReviewId = 1;
 
 router.route("/")
     .get((req, res) => {
         res.json(Object.values(reviews)); 
     })
     .post(storeFiles, async (req, res) => {
+        const host = Universal.data["DUMMY_HOST_ID"]
+        const guest = Universal.data["DUMMY_GUEST_ID"]
         const { sender, receiver, foodRating, hygieneRating, comments, dateCreated } = req.body;
 
         if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
@@ -32,22 +32,23 @@ router.route("/")
                 fileUrls.push(`${file.filename}`);
             }
 
-            const reviewId = nextReviewId++;
+            const reviewID = Universal.generateUniqueID();
+            const fileUrlsString = fileUrls.join("|");
 
-            console.log("Review ID:", reviewId);
-            console.log("Review Data:", req.body);
-            console.log("Image URLs:", fileUrls);
-
-            reviews[reviewId] = {
-                id: reviewId,
+            const review = {
+                reviewID: reviewID,
                 sender,
                 receiver,
-                foodRating,
-                hygieneRating,
-                comments,
-                fileUrls,
-                dateCreated
+                foodRating: foodRating,
+                hygieneRating: hygieneRating,
+                comments: comments,
+                images: fileUrlsString,
+                dateCreated: dateCreated,
+                guestID: guest, // Hardcoded for now
+                hostID: host, // Hardcoded for now
             };
+
+            await Review.create(review);
 
             res.send("SUCCESS: Review submitted successfully");
         } catch (error) {
@@ -71,6 +72,7 @@ router.route("/reviews/:id")
             res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
         }
     })
+    // Tested in postcode, working!
     .put((req, res) => {
         const { sender, receiver, foodRating, hygieneRating, comments, images, dateCreated } = req.body;
         if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
@@ -93,6 +95,7 @@ router.route("/reviews/:id")
             res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
         }
     })
+    // Tested in postcode, working!
     .delete((req, res) => {
         if (reviews[req.params.id]) {
             delete reviews[req.params.id];

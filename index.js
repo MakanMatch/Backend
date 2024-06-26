@@ -2,7 +2,7 @@ require('./services/BootCheck').check()
 const express = require('express');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid')
-const { FoodListing } = require('./models')
+const { FoodListing, Host, Guest } = require('./models')
 require('dotenv').config()
 
 const env = process.env.DB_CONFIG || 'development';
@@ -83,7 +83,54 @@ async function onDBSynchronise() {
             published: false
         })
         Universal.data["DUMMY_LISTING_ID"] = newListing.listingID
-        console.log(`Created dummy listing with ID: ${newListing.listingID}`)
+        console.log(`Created new dummy listing. Listing ID: ${newListing.listingID}`)
+
+    }
+    
+    const hosts = await Host.findAll()
+    if (hosts.length > 0) {
+        Universal.data["DUMMY_HOST_ID"] = (await hosts[0].userID)
+        console.log(`Found existing dummy host. Host ID: ${Universal.data["DUMMY_HOST_ID"]}`)
+    } else {
+        const newHost = await Host.create({
+            "userID": "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4",
+            "username": "Jamie Oliver",
+            "email": "jamie_oliver@gmail.com",
+            "password": "JamieOliver123",
+            "contactNum": "81118222",
+            "address": "Block 123, Hougang Avenue 1, #01-234",
+            "emailVerified": "false",
+            "favCuisine": "Chilli Crab",
+            "mealsMatched": "0",
+            "foodRating": "4",
+            "hygieneGrade": "5",
+            "paymentImage": "public/Sample PayNow QR.png",
+            "resetKeyExpiration": "2024-06-22T14:30:00.000Z"
+        })
+        Universal.data["DUMMY_HOST_ID"] = newHost.userID
+        console.log(`Created new dummy host. Host ID: ${newHost.userID}`)
+    }
+
+    const guests = await Guest.findAll()
+    if (guests.length > 0) {
+        Universal.data["DUMMY_GUEST_ID"] = guests[0].userID
+        console.log(`Found existing dummy guest. Guest ID: ${Universal.data["DUMMY_GUEST_ID"]}`)
+    } else {
+        const newGuest = await Guest.create({
+            "userID": "47f4497b-1331-4b8a-97a4-095a79a1fd48",
+            "username": "Susie Jones",
+            "email": "susie_jones@gmail.com",
+            "password": "SusieJones123",
+            "contactNum": "82228111",
+            "address": "Block 321, Hougang Avenue 10, #10-567",
+            "emailVerified": "false",
+            "favCuisine": "",
+            "mealsMatched": "0",
+            "resetKey": "265c18",
+            "resetKeyExpiration": "2024-06-22T14:30:00.000Z"
+        })
+        Universal.data["DUMMY_GUEST_ID"] = newGuest.userID
+        console.log(`Created new dummy guest. Guest ID: ${newGuest.userID}`)
     }
 }
 

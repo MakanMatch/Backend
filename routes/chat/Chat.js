@@ -1,5 +1,3 @@
-// chat.js
-
 let ws;
 
 function connectWebSocket() {

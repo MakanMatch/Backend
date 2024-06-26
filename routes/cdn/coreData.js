@@ -2,7 +2,9 @@ const express = require("express");
 const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
-const { FoodListing, Host, Guest, Admin, Review} = require("../../models");
+const { FoodListing, Host, Guest, Admin, Review } = require("../../models");
+const { EmptyResultError, or } = require("sequelize");
+const { orderBy } = require("firebase/firestore");
 
 router.get("/listings", async (req, res) => { // GET all food listings
     try {
@@ -74,12 +76,34 @@ router.get("/accountInfo", async (req, res) => { // GET account information
 
 router.get("/getReviews", async (req, res) => { // GET full reviews list
     try {
-        const reviews = await Review.findAll();
-        if (reviews) {
-            res.status(200).json(reviews);
-        } else {
-            res.status(404).send("UERROR: No reviews found.");
+        const where = {};
+        const order = [];
+
+        if (req.query.hostID) {
+            where.hostID = req.query.hostID;
         }
+
+        if (req.query.order) {
+            if (req.query.order === "mostRecent") {
+                order.push(['dateCreated', 'DESC']);
+            } else if (req.query.order === "highestRating") {
+                accRating = parseInt(order.foodRating) + parseInt(order.hygieneRating);
+                order.push([accRating, 'DESC']);
+            } else if (req.query.order === "lowestRating") {
+                accRating = parseInt(order.foodRating) + parseInt(order.hygieneRating);
+                order.push([accRating, 'ASC']);
+            } else if (req.query.order === "images") {
+                order.push(['images', 'ASC']);
+            }
+        }
+
+        const reviews = await Review.findAll({ where, order});
+        try {
+            res.status(200).json(reviews);
+        } catch (error) {
+            res.status(404).send("ERROR: No reviews found.");
+        }
+
     } catch (error) {
         res.status(500).send("ERROR: Internal server error");
     }

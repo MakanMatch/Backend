@@ -141,4 +141,72 @@ router.put("/toggleFavouriteListing", async (req, res) => {
     }
 });
 
+router.put("/updateListing", async (req, res) => {
+    storeImages(req, res, async (err) => {
+        if (
+            !req.body.listingID ||
+            !req.body.title ||
+            !req.body.shortDescription ||
+            !req.body.longDescription ||
+            !req.body.portionPrice ||
+            !req.body.totalSlots ||
+            !req.body.datetime ||
+            req.files.length === 0
+        ) {
+            res.status(400).send("UERROR: One or more required payloads were not provided");
+            return;
+        } else {
+            if (err instanceof multer.MulterError) {
+                res.status(400).send("ERROR: Image upload error");
+            } else if (err) {
+                res.status(500).send("ERROR: Internal server error");
+            } else {
+                var allImagesSuccess = false;
+                for (let i=0; i<req.files.length; i++) {
+                    const imageFile = req.files[i];
+                    const uploadImageResponse = await FileManager.saveFile(imageFile.filename);
+                    if (uploadImageResponse) {
+                        allImagesSuccess = true;
+                    } else {
+                        allImagesSuccess = false;
+                        break;
+                    }
+                }
+                if (allImagesSuccess === true) {
+                    const formattedDatetime = req.body.datetime + ":00.000Z";
+                    const listingDetails = {
+                        listingID: req.body.listingID,
+                        title: req.body.title,
+                        images: req.files.map(file => file.filename).join("|"),
+                        shortDescription: req.body.shortDescription,
+                        longDescription: req.body.longDescription,
+                        portionPrice: req.body.portionPrice,
+                        totalSlots: req.body.totalSlots,
+                        datetime: formattedDatetime,
+                        approxAddress: "Yishun, Singapore", // hardcoded for now
+                        address: "1 North Point Dr, #01-164/165 Northpoint City, Singapore 768019", // hardcoded for now
+                        hostID: "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4", // hardcoded for now
+                        published: true,
+                    };
+                    const updateListingResponse = await FoodListing.update(listingDetails, { where: { listingID: req.body.listingID } });
+                    if (updateListingResponse) {
+                        res.status(200).json({
+                            message: "SUCCESS: Food listing updated successfully",
+                            listingDetails,
+                        });
+                        Logger.log(`LISTINGS UPDATELISTING: Listing with listingID ${listingDetails.listingID} updated successfully.`)
+                        return;
+                    } else {
+                        res.status(400).send("ERROR: Failed to update food listing");
+                        return;
+                    }
+                } else {
+                    res.status(400).send("ERROR: Failed to upload image");
+                    return;
+                }
+            }
+        }
+    });
+});
+
 module.exports = router;

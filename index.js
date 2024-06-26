@@ -58,7 +58,7 @@ app.use("/createAccount", require('./routes/identity/createAccount'));
 app.use("/loginAccount", require('./routes/identity/loginAccount'));
 app.use("/accountRecovery", require('./routes/identity/accountRecovery'));
 app.use("/listings", require("./routes/listings/listings"));
-app.use("/", require("./routes/orders/reservation"));
+app.use("/", require("./routes/orders/listingDetails"));
 
 async function onDBSynchronise() {
     const currentDatetime = new Date()

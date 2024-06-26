@@ -161,6 +161,16 @@ router.put("/updateListing", async (req, res) => {
             } else if (err) {
                 res.status(500).send("ERROR: Internal server error");
             } else {
+                targetListing = await FoodListing.findByPk(req.body.listingID);
+                if (!targetListing) {
+                    res.status(404).send("ERROR: Listing to update was not found");
+                    return;
+                }
+                const listingImages = targetListing.images.split("|");
+                for (let i=0; i<listingImages.length; i++) {
+                    await FileManager.deleteFile(listingImages[i]);
+                    Logger.log(`LISTINGS UPDATELISTING: Image ${listingImages[i]} deleted successfully.`)
+                }
                 var allImagesSuccess = false;
                 for (let i=0; i<req.files.length; i++) {
                     const imageFile = req.files[i];

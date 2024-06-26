@@ -85,14 +85,13 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
     }
 })
 
-router.get("/reviews", (req, res) => { // GET review from review id
-    res.send("TBC")
-    // const review = reviews[req.query.id];
-    // if (review) {
-    //     res.json(review);
-    // } else {
-    //     res.status(404).send(`Review with ID ${req.params.id} not found`);
-    // }
+router.get("/reviews", async (req, res) => { // GET review from review id
+    const review = await Review.findOne({ where: { reviewID: req.query.id } });
+    if (review) {
+        res.json(review);
+    } else {
+        res.status(404).send(`Review with ID ${req.params.id} not found`);
+    }
 })
 
 module.exports = router;

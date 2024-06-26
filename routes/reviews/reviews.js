@@ -5,16 +5,15 @@ const { v4: uuidv4 } = require('uuid');
 const FileManager = require('../../services/FileManager');
 const { Universal } = require("../../services")
 const { storeFiles } = require("../../middleware/storeFiles");
-const { Review } = require('../../models');
+const { Review, Host, Guest } = require('../../models');
 
 
 router.route("/")
-    .get((req, res) => {
-        res.json(Object.values(reviews)); 
-    })
     .post(storeFiles, async (req, res) => {
-        const host = Universal.data["DUMMY_HOST_ID"]
-        const guest = Universal.data["DUMMY_GUEST_ID"]
+        const hostID = Universal.data["DUMMY_HOST_ID"]
+        const host = await Host.findByPk(hostID)
+        const guestID = Universal.data["DUMMY_GUEST_ID"]
+        const guest = await Guest.findByPk(guestID)
         const { sender, receiver, foodRating, hygieneRating, comments, dateCreated } = req.body;
 
         if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
@@ -44,8 +43,8 @@ router.route("/")
                 comments: comments,
                 images: fileUrlsString,
                 dateCreated: dateCreated,
-                guestID: guest, // Hardcoded for now
-                hostID: host, // Hardcoded for now
+                guestID: guestID, // Hardcoded for now
+                hostID: hostID, // Hardcoded for now
             };
 
             await Review.create(review);

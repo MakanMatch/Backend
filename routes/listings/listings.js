@@ -104,8 +104,41 @@ router.post("/addListing", async (req, res) => {
     });
 });
 
-router.put("/addListingToFavourites", async (req, res) => {
-
-})
+router.put("/toggleFavouriteListing", async (req, res) => {
+    const { userID, listingID } = req.body;
+    if (!userID || !listingID) {
+        res.status(400).send("ERROR: One or more required payloads were not provided");
+        return;
+    }
+    const findGuest = await Guest.findByPk(userID);
+    if (!findGuest) {
+        res.status(404).send("ERROR: Guest not found");
+        return;
+    }
+    const findListing = await FoodListing.findByPk(listingID);
+    if (!findListing) {
+        res.status(404).send("ERROR: Listing not found");
+        return;
+    }
+    if (findGuest.favCuisine.split("|").includes(listingID)) {
+        const removeFavourite = await Guest.update({ favCuisine: findGuest.favCuisine.replace(listingID + "|", "") }, { where: { userID: userID } }); // Removes the listingID from the guest's favCuisine field
+        if (removeFavourite) {
+            res.status(200).json({ message: "SUCCESS: Listing removed from favourites successfully", favourite: false });
+            return;
+        } else {
+            res.status(400).send("ERROR: Failed to remove listing from favourites");
+            return;
+        }
+    } else {
+        const addFavourite = await Guest.update({ favCuisine: findGuest.favCuisine + listingID + "|" }, { where: { userID: userID } }); // Adds the listingID to the guest's favCuisine field
+        if (addFavourite) {
+            res.status(200).json({ message: "SUCCESS: Listing added to favourites successfully", favourite: true });
+            return;
+        } else {
+            res.status(400).send("ERROR: Failed to add listing to favourites");
+            return;
+        }
+    }
+});
 
 module.exports = router;

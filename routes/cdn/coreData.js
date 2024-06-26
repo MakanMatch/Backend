@@ -14,6 +14,25 @@ router.get("/listings", async (req, res) => { // GET all food listings
     }
 });
 
+router.get("/checkFavouriteListing", async (req, res) => { // GET favourite listing
+    try {
+        const listingID = req.query.listingID;
+        const userID = req.query.userID;
+        const guest = await Guest.findByPk(userID);
+        if (!guest) {
+            return res.status(404).send("Guest not found.");
+        }
+        const favouriteCuisines = guest.favCuisine.split("|");
+        if (favouriteCuisines.includes(listingID)) {
+            res.status(200).json({ message: "SUCCESS: Listing is a favourite", listingIsFavourite: true });
+        } else {
+            res.status(200).json({ message: "SUCCESS: Listing is not a favourite", listingIsFavourite: false });
+        }
+    } catch (error) {
+        res.status(500).send("ERROR: Internal server error");
+    }
+});
+
 router.get("/accountInfo", async (req, res) => { // GET account information
     try {
         const targetUserID = req.query.userID;

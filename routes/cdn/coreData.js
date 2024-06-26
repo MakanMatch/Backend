@@ -14,6 +14,22 @@ router.get("/listings", async (req, res) => { // GET all food listings
     }
 });
 
+router.get("/getListing", async (req, res) => {
+    const listingID = req.query.id || req.body.listingID;
+    if (!listingID) {
+        res.status(400).send("ERROR: Listing ID not provided.")
+        return
+    }
+    
+    const listing = await FoodListing.findByPk(listingID)
+    if (!listing || listing == null) {
+        res.status(404).send("ERROR: Listing not found")
+        return
+    }
+    res.json(listing)
+    return
+})
+
 router.get("/accountInfo", async (req, res) => { // GET account information
     try {
         const targetUserID = req.query.userID;

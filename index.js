@@ -2,7 +2,7 @@ require('./services/BootCheck').check()
 const express = require('express');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid')
-const { FoodListing } = require('./models')
+const { FoodListing, Host } = require('./models')
 require('dotenv').config()
 
 const env = process.env.DB_CONFIG || 'development';
@@ -84,6 +84,32 @@ async function onDBSynchronise() {
         })
         Universal.data["DUMMY_LISTING_ID"] = newListing.listingID
         console.log(`Created dummy listing with ID: ${newListing.listingID}`)
+    }
+
+    const joshuasHost = await Host.findByPk("272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4")
+    if (!joshuasHost) {
+        const newHost = await Host.create({
+            "userID": "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4",
+            "username": "Jamie Oliver",
+            "email": "jamie_oliver@gmail.com",
+            "password": "123456789",
+            "contactNum": "81118222",
+            "address": "12 Washington Avenue",
+            "emailVerified": false,
+            "favCuisine": "Mexican",
+            "mealsMatched": "0",
+            "foodRating": "4",
+            "hygieneGrade": "5",
+            "paymentImage": "https://savh.org.sg/wp-content/uploads/2020/05/QRCodeS61SS0119JDBS.png"
+        })
+
+        if (!newHost) {
+            console.log("WARNING: Failed to create dummy host.")
+        } else {
+            console.log("Created dummy host.")
+        }
+    } else {
+        console.log("Found dummy host existing already, skipping creation.")
     }
 }
 

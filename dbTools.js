@@ -12,10 +12,29 @@ async function resetDB() {
     }
 }
 
+async function clearFiles() {
+    console.log("Clearing files...")
+    const FileManager = require("./services/FileManager")
+    const setupResult = await FileManager.setup();
+    if (setupResult !== true) {
+        console.error(setupResult)
+        process.exit()
+    }
+
+    const deleteAllResult = await FileManager.deleteAll();
+    if (deleteAllResult !== true) {
+        console.error(deleteAllResult)
+        process.exit()
+    }
+    console.log("Files cleared!")
+}
+
 sequelize.sync({ alter: true })
     .then(() => {
-        if (process.argv[2] == "reset") {
+        if (process.argv[2].toLowerCase() == "reset") {
             resetDB()
+        } else if (process.argv[2].toLowerCase() == "clearfiles") {
+            clearFiles()
         } else {
             console.log("No tool activated.")
             return

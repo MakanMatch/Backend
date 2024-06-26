@@ -5,16 +5,6 @@ const Universal = require('../../services/Universal');
 const FileManager = require('../../services/FileManager');
 const { storeFile } = require('../../middleware/storeFile');
 
-router.get("/listingDetails", async (req, res) => {
-    const dummyListingID = Universal.data["DUMMY_LISTING_ID"]
-    const listing = await FoodListing.findByPk(dummyListingID)
-    if (!listing || listing == null) {
-        res.status(404).send("ERROR: Listing not found")
-        return
-    }
-    res.json(listing)
-})
-
 router.post("/uploadListingImage", async (req, res) => {
     storeFile(req, res, async (err) => {
         if (!req.body.listingID) {
@@ -22,8 +12,7 @@ router.post("/uploadListingImage", async (req, res) => {
             return
         }
 
-        // const listingID = req.listingID
-        const listingID = Universal.data["DUMMY_LISTING_ID"]
+        const listingID = req.body.listingID
         const listing = await FoodListing.findByPk(listingID)
         if (!listing) {
             res.status(404).send("ERROR: Listing not found.")

@@ -219,4 +219,31 @@ router.put("/updateListing", async (req, res) => {
     });
 });
 
+router.delete("/deleteListing", async (req, res) => {
+    const { listingID } = req.body;
+    if (!listingID) {
+        res.status(400).send("ERROR: One or more required payloads were not provided");
+        return;
+    }
+    const findListing = await FoodListing.findByPk(listingID);
+    if (!findListing) {
+        res.status(404).send("ERROR: Listing not found");
+        return;
+    }
+    const listingImages = findListing.images.split("|");
+    for (let i=0; i<listingImages.length; i++) {
+        await FileManager.deleteFile(listingImages[i]);
+        Logger.log(`LISTINGS DELETELISTING: Image ${listingImages[i]} deleted successfully.`)
+    }
+    const deleteListing = await FoodListing.destroy({ where: { listingID: listingID } });
+    if (deleteListing) {
+        res.status(200).json({ message: "SUCCESS: Listing deleted successfully" });
+        Logger.log(`LISTINGS DELETELISTING: Listing with listingID ${listingID} deleted successfully.`)
+        return;
+    } else {
+        res.status(400).send("ERROR: Failed to delete listing");
+        return;
+    }
+});
+
 module.exports = router;

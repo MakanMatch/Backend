@@ -67,7 +67,6 @@ router.get("/host", async (req, res) => {
         where: {
             hostID: req.query.hostID
         }
-
     })
     res.json(hostReviews); // Tested in postcode, working!
 });
@@ -96,17 +95,6 @@ router.route("/reviews/:id/")
             res.status(400).send("UERROR: Missing review ID");
             return;
         }
-        try {
-            const review = await Review.findByPk(req.params.id);
-            if (!review) {
-                res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
-                return;
-            }
-        } catch {
-            Logger.log(`UERROR: Failed to update review with ID ${req.params.id}`);
-            return;
-        }
-
         const updateFields = ["foodRating", "hygieneRating", "comments", "images"];
         const updateDict = {};
         updateFields.forEach(field => {
@@ -114,12 +102,21 @@ router.route("/reviews/:id/")
                 updateDict[field] = req.query[field];
             }
         })
-
+        if (Object.keys(updateDict).length === 0) {
+            res.status(400).send("UERROR: No fields to update");
+            return;
+        }
         try {
-            await Review.update(updateDict, {
-                where: { reviewID: req.params.id }
-            })
-            res.send(`SUCCESS: Review with ID ${req.params.id} updated`); // Tested in postcode, working!
+            const updateReview = await Review.findByPk(req.params.id);
+            if (!updateReview) {
+                res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
+                return;
+            } else {
+                await Review.update(updateDict, {
+                    where: { reviewID: req.params.id }
+                })
+                res.send(`SUCCESS: Review with ID ${req.params.id} updated`); // Tested in postcode, working!
+            }
         } catch {
             Logger.log(`UERROR: Failed to update review with ID ${req.params.id}`);
             return;
@@ -131,12 +128,16 @@ router.route("/reviews/:id/")
             return;
         }
         try {
-            await Review.destroy({
-                where: {
-                    reviewID: req.params.id
-                }
-            });
-            res.send(`SUCCESS: Review with ID ${req.params.id} deleted`);     // Tested in postcode, working!
+            const deleteReview = await Review.findByPk(req.params.id);
+            if (!deleteReview) {
+                res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
+                return;
+            } else {
+                await Review.destroy({
+                    where: { reviewID: req.params.id }
+                })
+                res.send(`SUCCESS: Review with ID ${req.params.id} deleted`); // Tested in postcode, working!
+            }
         } catch {
             Logger.log(`UERROR: Failed to delete review with ID ${req.params.id}`);
             return;

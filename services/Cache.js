@@ -1,7 +1,7 @@
 const FileOps = require("./FileOps");
 
 class Cache {
-    static #cache = {};
+    static cache = {};
     static dataFile = "cache.json"
 
     static load() {
@@ -11,7 +11,7 @@ class Cache {
                 if (readResult.startsWith("ERROR")) {
                     throw new Error(readResult)
                 }
-                this.#cache = JSON.parse(readResult)
+                this.cache = JSON.parse(readResult)
             } else {
                 FileOps.writeTo(this.dataFile, "{}")
             }
@@ -22,7 +22,7 @@ class Cache {
     }
 
     static save() {
-        const response = FileOps.writeTo(this.dataFile, JSON.stringify(this.#cache))
+        const response = FileOps.writeTo(this.dataFile, JSON.stringify(this.cache))
         if (response === true) {
             return true
         } else {
@@ -31,16 +31,16 @@ class Cache {
     }
 
     static set(key, value) {
-        this.#cache[key] = value
+        this.cache[key] = value
         return this.save()
     }
 
     static get(key) {
-        return this.#cache[key]
+        return this.cache[key]
     }
 
     static delete(key) {
-        delete this.#cache[key]
+        delete this.cache[key]
         return this.save()
     }
 }

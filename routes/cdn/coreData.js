@@ -3,8 +3,6 @@ const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
 const { FoodListing, Host, Guest, Admin, Review } = require("../../models");
-const { EmptyResultError, or } = require("sequelize");
-const { orderBy } = require("firebase/firestore");
 
 router.get("/listings", async (req, res) => { // GET all food listings
     try {

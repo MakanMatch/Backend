@@ -6,8 +6,6 @@ const FileManager = require('../../services/FileManager');
 const { Universal } = require("../../services")
 const { storeFiles } = require("../../middleware/storeFiles");
 const { Review, Host, Guest } = require('../../models');
-const { where } = require('sequelize');
-const { update } = require('firebase/database');
 
 
 router.route("/")

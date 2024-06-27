@@ -89,7 +89,7 @@ async function onDBSynchronise() {
     
     const hosts = await Host.findAll()
     if (hosts.length > 0) {
-        Universal.data["DUMMY_HOST_ID"] = (await hosts[0].userID)
+        Universal.data["DUMMY_HOST_ID"] = (hosts[0].userID)
         console.log(`Found existing dummy host. Host ID: ${Universal.data["DUMMY_HOST_ID"]}`)
     } else {
         const newHost = await Host.create({
@@ -104,8 +104,8 @@ async function onDBSynchronise() {
             "mealsMatched": "0",
             "foodRating": "4",
             "hygieneGrade": "5",
-            "paymentImage": "public/Sample PayNow QR.png",
-            "resetKeyExpiration": "2024-06-22T14:30:00.000Z"
+            "paymentImage": null,
+            "resetKeyExpiration": null
         })
         Universal.data["DUMMY_HOST_ID"] = newHost.userID
         console.log(`Created new dummy host. Host ID: ${newHost.userID}`)
@@ -126,8 +126,8 @@ async function onDBSynchronise() {
             "emailVerified": "false",
             "favCuisine": "",
             "mealsMatched": "0",
-            "resetKey": "265c18",
-            "resetKeyExpiration": "2024-06-22T14:30:00.000Z"
+            "resetKey": null,
+            "resetKeyExpiration": null
         })
         Universal.data["DUMMY_GUEST_ID"] = newGuest.userID
         console.log(`Created new dummy guest. Guest ID: ${newGuest.userID}`)

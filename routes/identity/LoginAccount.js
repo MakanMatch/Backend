@@ -2,10 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
 const { Encryption, Logger } = require('../../services');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 router.post("/", async (req, res) => {
-  console.log("received at LoginAccount");
+  // console.log("received at LoginAccount");
   let data = req.body;
   console.log(data);
 
@@ -51,8 +53,27 @@ router.post("/", async (req, res) => {
       return;
     }
 
+    // User info
+    let userInfo = {
+      userID: user.userID,
+      username: user.username,
+      email: user.email,
+      contactNum: user.contactNum,
+      address: user.address,
+      emailVerified: user.emailVerified,
+      userType: userType
+    }
+
+    // Generate jwt
+    const accessToken = jwt.sign(
+      userInfo,
+      process.env.JWT_KEY,
+      { expiresIn: '24h' }
+    );
+
     // Login success
-    res.send(`Logged in successfully as ${userType}.`);
+    Logger.log(`IDENTITY LOGINACCOUNT: Account with userID ${user.userID} logged in.`)
+    res.json({ message: `SUCCESS: Logged in successfully as ${userType}.`, accessToken, user: userInfo });
   } catch (err) {
     console.error(err);
     res.status(500).send("Internal server error.");

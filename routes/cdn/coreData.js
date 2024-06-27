@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
+const Universal = require("../../services/Universal");
 const { FoodListing, Host, Guest, Admin } = require("../../models");
 const { validateToken } = require("../../middleware/auth");
 
@@ -11,11 +12,52 @@ router.get('/MyAccount', validateToken, (req, res) => {
     res.json(userInfo);
 });
 
+router.get("/fetchHostDetails", async (req, res) => {
+    const hostDetails = {
+        hostUsername: Universal.data["DUMMY_HOST_USERNAME"],
+        hostFoodRating: Universal.data["DUMMY_HOST_FOODRATING"]
+    }
+    res.status(200).json(hostDetails);
+})
+
+router.get("/fetchGuestDetails", async (req, res) => {
+    const targetGuest = await Guest.findByPk(Universal.data["DUMMY_GUEST_USERID"])
+    if (!targetGuest) {
+        return res.status(404).send("Dummy Guest not found.");
+    }
+    const guestFavCuisine = targetGuest.favCuisine;
+    const guestDetails = {
+        guestUserID: Universal.data["DUMMY_GUEST_USERID"],
+        guestUsername: Universal.data["DUMMY_GUEST_USERNAME"],
+        guestFavCuisine: guestFavCuisine
+    }
+    res.status(200).json(guestDetails);
+})
+
 router.get("/listings", async (req, res) => { // GET all food listings
     try {
         const foodListings = await FoodListing.findAll();
         foodListings.map(listing => (listing.images == null || listing.images == "") ? listing.images = [] : listing.images = listing.images.split("|"));
         res.status(200).json(foodListings);
+    } catch (error) {
+        res.status(500).send("ERROR: Internal server error");
+    }
+});
+
+router.get("/checkFavouriteListing", async (req, res) => { // GET favourite listing
+    try {
+        const listingID = req.query.listingID;
+        const userID = req.query.userID;
+        const guest = await Guest.findByPk(userID);
+        if (!guest) {
+            return res.status(404).send("Guest not found.");
+        }
+        const favouriteCuisines = guest.favCuisine.split("|");
+        if (favouriteCuisines.includes(listingID)) {
+            res.status(200).json({ message: "SUCCESS: Listing is a favourite", listingIsFavourite: true });
+        } else {
+            res.status(200).json({ message: "SUCCESS: Listing is not a favourite", listingIsFavourite: false });
+        }
     } catch (error) {
         res.status(500).send("ERROR: Internal server error");
     }

@@ -69,7 +69,7 @@ router.post("/", async (req, res) => {
 
     // Login success
     Logger.log(`Account with userID ${user.userID} logged in.`)
-    res.json({ message: `Logged in successfully as ${userType}.`, accessToken });
+    res.json({ message: `Logged in successfully as ${userType}.`, accessToken, user: userInfo});
     console.log (userInfo)
   } catch (err) {
     console.error(err);

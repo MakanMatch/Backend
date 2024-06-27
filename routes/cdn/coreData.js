@@ -3,6 +3,7 @@ const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
 const { FoodListing, Host, Guest, Admin, Review } = require("../../models");
+const Logger = require("../../services/Logger");
 
 router.get("/listings", async (req, res) => { // GET all food listings
     try {
@@ -99,11 +100,11 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
         try {
             res.status(200).json(reviews);
         } catch (error) {
-            res.status(404).send("ERROR: No reviews found.");
+            Logger.log("ERROR: No reviews found.");
         }
 
     } catch (error) {
-        res.status(500).send("ERROR: Internal server error");
+        Logger.log("ERROR: Internal server error");
     }
 })
 
@@ -112,7 +113,7 @@ router.get("/reviews", async (req, res) => { // GET review from review id
     if (review) {
         res.json(review);
     } else {
-        res.status(404).send(`Review with ID ${req.params.id} not found`);
+        Logger.log(`Review with ID ${req.params.id} not found`);
     }
 })
 

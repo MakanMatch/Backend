@@ -6,6 +6,7 @@ const FileManager = require('../../services/FileManager');
 const { Universal } = require("../../services")
 const { storeFiles } = require("../../middleware/storeFiles");
 const { Review, Host, Guest } = require('../../models');
+const Logger = require('../../services/Logger');
 
 
 router.route("/")
@@ -50,9 +51,8 @@ router.route("/")
             await Review.create(review);
 
             res.send("SUCCESS: Review submitted successfully");
-        } catch (error) {
-            console.error('ERROR: Failed to upload images or submit review:', error);
-            res.status(500).send('ERROR: Failed to upload images or submit review');
+        } catch {
+            Logger.log('ERROR: Failed to upload images or submit review:');
         }
     });
 
@@ -73,11 +73,17 @@ router.route("/reviews/:id/")
             res.status(400).send("UERROR: Missing review ID");
             return;
         }
-        const review = await Review.findOne({ where: { reviewID: req.params.id } });
-        if (review) {
+
+        try {
+            const review = await Review.findOne({ where: { reviewID: req.params.id } });
+            if (!review) {
+                res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
+                return;
+            }
             res.json(review); // Tested in postcode, working!
-        } else {
-            res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
+        } catch {
+            Logger.log(`UERROR: Failed to retrieve review with ID ${req.params.id}`);
+            return;
         }
     })
     .put(async (req, res) => {
@@ -91,8 +97,8 @@ router.route("/reviews/:id/")
                 res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
                 return;
             }
-        } catch (err) {
-            res.status(500).send(`UERROR: Failed to update review with ID ${req.params.id}: ${err}`);
+        } catch {
+            Logger.log(`UERROR: Failed to update review with ID ${req.params.id}`);
             return;
         }
         updateDict= {};
@@ -118,8 +124,9 @@ router.route("/reviews/:id/")
                 where: { reviewID: req.params.id }
             })
             res.send(`SUCCESS: Review with ID ${req.params.id} updated`); // Tested in postcode, working!
-        } catch (err) {
-            res.status(500).send(`UERROR: Failed to update review with ID ${req.params.id}: ${err}`);
+        } catch {
+            Logger.log(`UERROR: Failed to update review with ID ${req.params.id}`);
+            return;
         }
     })
     .delete(async (req, res) => {
@@ -134,8 +141,8 @@ router.route("/reviews/:id/")
                 }
             });
             res.send(`SUCCESS: Review with ID ${req.params.id} deleted`);     // Tested in postcode, working!
-        } catch(err) {
-            res.status(500).send(`UERROR: Failed to delete review with ID ${req.params.id}: ${err}`);
+        } catch{
+            Logger.log(`UERROR: Failed to delete review with ID ${req.params.id}`);
             return;
         }
     });

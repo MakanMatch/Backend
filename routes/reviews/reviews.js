@@ -62,10 +62,10 @@ router.route("/")
         });
     });
 
-router.get("/host/:hostID", async (req, res) => {
+router.get("/host", async (req, res) => {
     const hostReviews = await Review.findAll({
         where: {
-            hostID: req.params.hostID
+            hostID: req.query.hostID
         }
 
     })

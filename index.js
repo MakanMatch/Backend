@@ -26,6 +26,8 @@ Cache.load();
 const FileManager = require('./services/FileManager');
 FileManager.setup().catch(err => { Logger.logAndThrow(err) })
 
+
+
 // Import middleware
 const checkHeaders = require('./middleware/headersCheck');
 const logRoutes = require('./middleware/logRoutes');
@@ -37,6 +39,8 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 // app.use(express.static('public'))
 app.set("view engine", "ejs");
+const startWebSocketServer = require('./routes/chat/WebSocketServer');
+startWebSocketServer(app);
 
 // Top-level middleware
 if (config["routeLogging"] !== false) { app.use(logRoutes) }

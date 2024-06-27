@@ -10,50 +10,51 @@ const Logger = require('../../services/Logger');
 
 
 router.route("/")
-    .post(storeFiles, async (req, res) => {
-        const hostID = Universal.data["DUMMY_HOST_ID"]
-        const host = await Host.findByPk(hostID)
-        const guestID = Universal.data["DUMMY_GUEST_ID"]
-        const guest = await Guest.findByPk(guestID)
-        const { sender, receiver, foodRating, hygieneRating, comments, dateCreated } = req.body;
+    .post(async (req, res) => {
+        storeFiles(req, res, async (err) => {
+            const hostID = Universal.data["DUMMY_HOST_ID"]
+            const host = await Host.findByPk(hostID)
+            const guestID = Universal.data["DUMMY_GUEST_ID"]
+            const guest = await Guest.findByPk(guestID)
+            const { sender, receiver, foodRating, hygieneRating, comments, dateCreated } = req.body;
 
-        if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
-            return res.status(400).send("UERROR: Missing required fields");
-        }
-
-        try {
-            const fileUrls = [];
-
-            for (const file of req.files) {
-                const saveResult = await FileManager.saveFile(file.filename);
-                if (saveResult !== true) {
-                    throw new Error(saveResult);
-                }
-                fileUrls.push(`${file.filename}`);
+            if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
+                return res.status(400).send("UERROR: Missing required fields");
             }
+            try {
+                const fileUrls = [];
 
-            const reviewID = Universal.generateUniqueID();
-            const fileUrlsString = fileUrls.join("|");
+                for (const file of req.files) {
+                    const saveResult = await FileManager.saveFile(file.filename);
+                    if (saveResult !== true) {
+                        throw new Error(saveResult);
+                    }
+                    fileUrls.push(`${file.filename}`);
+                }
 
-            const review = {
-                reviewID: reviewID,
-                sender,
-                receiver,
-                foodRating: foodRating,
-                hygieneRating: hygieneRating,
-                comments: comments,
-                images: fileUrlsString,
-                dateCreated: dateCreated,
-                guestID: guestID, // Hardcoded for now
-                hostID: hostID, // Hardcoded for now
-            };
+                const reviewID = Universal.generateUniqueID();
+                const fileUrlsString = fileUrls.join("|");
 
-            await Review.create(review);
+                const review = {
+                    reviewID: reviewID,
+                    sender,
+                    receiver,
+                    foodRating: foodRating,
+                    hygieneRating: hygieneRating,
+                    comments: comments,
+                    images: fileUrlsString,
+                    dateCreated: dateCreated,
+                    guestID: guestID, // Hardcoded for now
+                    hostID: hostID, // Hardcoded for now
+                };
 
-            res.send("SUCCESS: Review submitted successfully");
-        } catch {
-            Logger.log('ERROR: Failed to upload images or submit review:');
-        }
+                await Review.create(review);
+
+                res.send("SUCCESS: Review submitted successfully");
+            } catch {
+                Logger.log('ERROR: Failed to upload images or submit review:');
+            }
+        });
     });
 
 router.get("/host/:hostID", async (req, res) => {
@@ -61,7 +62,7 @@ router.get("/host/:hostID", async (req, res) => {
         where: {
             hostID: req.params.hostID
         }
-    
+
     })
     res.json(hostReviews); // Tested in postcode, working!
 });
@@ -101,7 +102,7 @@ router.route("/reviews/:id/")
             Logger.log(`UERROR: Failed to update review with ID ${req.params.id}`);
             return;
         }
-        updateDict= {};
+        updateDict = {};
         const newFoodRating = req.query.foodRating;
         if (newFoodRating) {
             updateDict["foodRating"] = newFoodRating;
@@ -134,14 +135,14 @@ router.route("/reviews/:id/")
             res.status(400).send("UERROR: Missing review ID");
             return;
         }
-        try{
+        try {
             await Review.destroy({
                 where: {
                     reviewID: req.params.id
                 }
             });
             res.send(`SUCCESS: Review with ID ${req.params.id} deleted`);     // Tested in postcode, working!
-        } catch{
+        } catch {
             Logger.log(`UERROR: Failed to delete review with ID ${req.params.id}`);
             return;
         }

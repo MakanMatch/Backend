@@ -79,9 +79,8 @@ router.route("/reviews/:id/")
             res.status(400).send("UERROR: Missing review ID");
             return;
         }
-
         try {
-            const review = await Review.findOne({ where: { reviewID: req.params.id } });
+            const review = await Review.findByPk(req.params.id);
             if (!review) {
                 res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
                 return;
@@ -98,7 +97,7 @@ router.route("/reviews/:id/")
             return;
         }
         try {
-            const review = await Review.findOne({ where: { reviewID: req.params.id } });
+            const review = await Review.findByPk(req.params.id);
             if (!review) {
                 res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
                 return;

@@ -52,8 +52,13 @@ router.route("/")
 
                 res.send("SUCCESS: Review submitted successfully");
             } catch {
-                Logger.log('ERROR: Failed to upload images or submit review:');
+                Logger.log('ERROR: Failed to submit review:');
             }
+            if (err instanceof multer.MulterError) {
+                Logger.log("ERROR: Image upload error");
+            } else {
+                Logger.log("ERROR: Internal server error");
+            } 
         });
     });
 

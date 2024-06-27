@@ -9,7 +9,6 @@ const validateToken = (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
-    console.log(token)
     if (!token) {
         console.error('No token found in authorization header');
         return res.sendStatus(401);
@@ -20,7 +19,7 @@ const validateToken = (req, res, next) => {
             console.error('Token verification failed:', err);
             return res.sendStatus(403);
         }
-        console.log("Decoded this user: " + user)
+        // console.log("Decoded this user: " + user)
         req.user = user;
         next();
     });

@@ -7,7 +7,7 @@ const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 router.post("/", async (req, res) => {
-  console.log("received at LoginAccount");
+  // console.log("received at LoginAccount");
   let data = req.body;
   console.log(data);
 
@@ -57,23 +57,26 @@ router.post("/", async (req, res) => {
     let userInfo = {
       userID: user.userID,
       username: user.username,
-      email: user.email
+      email: user.email,
+      contactNum: user.contactNum,
+      address: user.address,
+      emailVerified: user.emailVerified,
+      userType: userType
     }
 
     // Generate jwt
     const accessToken = jwt.sign(
       userInfo,
       process.env.JWT_KEY,
-      { expiresIn: '1h' }
+      { expiresIn: '24h' }
     );
 
     // Login success
-    Logger.log(`Account with userID ${user.userID} logged in.`)
-    res.json({ message: `Logged in successfully as ${userType}.`, accessToken, user: userInfo});
-    console.log (userInfo)
+    Logger.log(`IDENTITY LOGINACCOUNT: Account with userID ${user.userID} logged in.`)
+    res.json({ message: `SUCCESS: Logged in successfully as ${userType}.`, accessToken, user: userInfo });
   } catch (err) {
     console.error(err);
-    res.status(500).json("Internal server error.");
+    res.status(500).send("Internal server error.");
   }
 });
 

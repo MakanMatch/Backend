@@ -6,6 +6,8 @@ const FileManager = require('../../services/FileManager');
 const { Universal } = require("../../services")
 const { storeFiles } = require("../../middleware/storeFiles");
 const { Review, Host, Guest } = require('../../models');
+const { where } = require('sequelize');
+const { update } = require('firebase/database');
 
 
 router.route("/")
@@ -56,51 +58,87 @@ router.route("/")
         }
     });
 
-router.get("/host/:name", (req, res) => {
-    const hostReviews = Object.values(reviews).filter(review => review.receiver === req.params.name);
-    res.json(hostReviews);
+router.get("/host/:hostID", async (req, res) => {
+    const hostReviews = await Review.findAll({
+        where: {
+            hostID: req.params.hostID
+        }
+    
+    })
+    res.json(hostReviews); // Tested in postcode, working!
 });
 
 
-router.route("/reviews/:id")
-    .get((req, res) => {
-        const review = reviews[req.params.id];
-        if (review) {
-            res.json(review);
-        } else {
-            res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
-        }
-    })
-    // Tested in postcode, working!
-    .put((req, res) => {
-        const { sender, receiver, foodRating, hygieneRating, comments, images, dateCreated } = req.body;
-        if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
-            res.status(400).send("UERROR: Missing required fields");
+router.route("/reviews/:id/")
+    .get(async (req, res) => {
+        if (!req.params.id) {
+            res.status(400).send("UERROR: Missing review ID");
             return;
         }
-        if (reviews[req.params.id]) {
-            reviews[req.params.id] = {
-                id: req.params.id,
-                sender,
-                receiver,
-                foodRating,
-                hygieneRating,
-                comments,
-                images: reviews[req.params.id].images,
-                dateCreated
-            };
-            res.json(reviews[req.params.id]);
+        const review = await Review.findOne({ where: { reviewID: req.params.id } });
+        if (review) {
+            res.json(review); // Tested in postcode, working!
         } else {
             res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
         }
     })
-    // Tested in postcode, working!
-    .delete((req, res) => {
-        if (reviews[req.params.id]) {
-            delete reviews[req.params.id];
-            res.send(`SUCCESS: Review with ID ${req.params.id} deleted`);
-        } else {
-            res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
+    .put(async (req, res) => {
+        if (!req.params.id) {
+            res.status(400).send("UERROR: Missing review ID");
+            return;
+        }
+        try {
+            const review = await Review.findOne({ where: { reviewID: req.params.id } });
+            if (!review) {
+                res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
+                return;
+            }
+        } catch (err) {
+            res.status(500).send(`UERROR: Failed to update review with ID ${req.params.id}: ${err}`);
+            return;
+        }
+        updateDict= {};
+        const newFoodRating = req.query.foodRating;
+        if (newFoodRating) {
+            updateDict["foodRating"] = newFoodRating;
+        }
+        const newHygieneRating = req.query.hygieneRating;
+        if (newHygieneRating) {
+            updateDict["hygieneRating"] = newHygieneRating;
+        }
+        const newComment = req.query.comments;
+        if (newComment) {
+            updateDict["comments"] = newComment;
+        }
+        const newImages = req.query.images;
+        if (newImages) {
+            updateDict["images"] = newImages;
+        }
+
+        try {
+            await Review.update(updateDict, {
+                where: { reviewID: req.params.id }
+            })
+            res.send(`SUCCESS: Review with ID ${req.params.id} updated`); // Tested in postcode, working!
+        } catch (err) {
+            res.status(500).send(`UERROR: Failed to update review with ID ${req.params.id}: ${err}`);
+        }
+    })
+    .delete(async (req, res) => {
+        if (!req.params.id) {
+            res.status(400).send("UERROR: Missing review ID");
+            return;
+        }
+        try{
+            await Review.destroy({
+                where: {
+                    reviewID: req.params.id
+                }
+            });
+            res.send(`SUCCESS: Review with ID ${req.params.id} deleted`);     // Tested in postcode, working!
+        } catch(err) {
+            res.status(500).send(`UERROR: Failed to delete review with ID ${req.params.id}: ${err}`);
+            return;
         }
     });
 

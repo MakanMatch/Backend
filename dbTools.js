@@ -31,6 +31,7 @@ async function clearFiles() {
 
 sequelize.sync({ alter: true })
     .then(() => {
+        if (!process.argv[2] || process.argv[2].length == 0) { console.log("No tool activated."); return; }
         if (process.argv[2].toLowerCase() == "reset") {
             resetDB()
         } else if (process.argv[2].toLowerCase() == "clearfiles") {

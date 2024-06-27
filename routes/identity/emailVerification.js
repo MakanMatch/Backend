@@ -77,7 +77,7 @@ router.get("/verifyEmail", async (req, res) => {
         
         const saveUser = await user.save();
 
-        if (!saveUser) {
+        if (saveUser != 1) {
             res.status(500).send("ERROR: Failed to save verification token.")
         }
 

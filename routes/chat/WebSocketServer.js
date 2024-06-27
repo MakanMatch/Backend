@@ -6,23 +6,20 @@ const Cache = require("../../services/Cache");
 function startWebSocketServer(app) {
   const PORT = 8080;
 
-
-  // Create HTTP server by passing the Express app
   const server = http.createServer(app);
 
-  // Integrate WebSocket with the HTTP server
   const wss = new WebSocket.Server({ server });
 
   const clients = [];
 
   wss.on("connection", (ws) => {
     console.log("WS connection arrived");
-    // Add the new connection to our list of clients
     clients.push(ws);
-	if (!Cache.cache["chat"]) {
-		Cache.cache["chat"] = {};
-	  }
-    // Send cached messages to the new client
+
+    if (!Cache.cache["chat"]) {
+      Cache.cache["chat"] = {};
+    }
+
     const cachedMessages = Cache.cache["chat"];
     for (const messageId in cachedMessages) {
       const message = {
@@ -34,26 +31,24 @@ function startWebSocketServer(app) {
 
     ws.on("message", (message) => {
       const parsedMessage = JSON.parse(message);
-	  console.log(parsedMessage.id)
+
       Cache.cache["chat"][parsedMessage.id] = {
         sender: parsedMessage.sender,
         message: parsedMessage.message,
         timestamp: parsedMessage.timestamp,
       };
       Cache.save();
-      // Handle different message actions
+
       if (parsedMessage.action === "edit") {
         handleEditMessage(parsedMessage);
       } else if (parsedMessage.action === "delete") {
         handleDeleteMessage(parsedMessage);
       } else {
-        // Broadcast message to all clients except the sender
         broadcastMessage(message, ws);
       }
     });
 
     ws.on("close", () => {
-      // Remove the client from the array when it disconnects
       const index = clients.indexOf(ws);
       if (index > -1) {
         clients.splice(index, 1);
@@ -61,12 +56,10 @@ function startWebSocketServer(app) {
     });
   });
 
-  // Error handling for WebSocket server
-  wss.on("error", function (error) {
+  wss.on("error", (error) => {
     console.error("WebSocket server error:", error);
   });
 
-  // Broadcast message to all clients except the sender
   function broadcastMessage(message, sender) {
     clients.forEach((client) => {
       if (client !== sender && client.readyState === WebSocket.OPEN) {
@@ -77,39 +70,36 @@ function startWebSocketServer(app) {
 
   function handleDeleteMessage(deleteMessage) {
     const messageId = deleteMessage.id;
+    delete Cache.cache["chat"][messageId];
+    Cache.save();
 
-    // Filter out the message with the matching ID
-    messages = messages.filter((msg) => msg.id !== messageId);
-
-    // Broadcast delete message action to all clients
-    const jsonMessage = JSON.stringify(deleteMessage);
+    const jsonMessage = JSON.stringify({
+      id: messageId,
+      action: "delete",
+      action: "reload",
+    });
     broadcastMessage(jsonMessage);
   }
 
-  // Handle edit message action
   function handleEditMessage(editedMessage) {
     const messageId = editedMessage.id;
+    if (Cache.cache["chat"][messageId]) {
+      Cache.cache["chat"][messageId].message = editedMessage.message;
+      Cache.cache["chat"][messageId].edited = true;
+      Cache.save();
 
-    // Find the message by ID and update its content
-    const index = messages.findIndex((msg) => msg.id === messageId);
-    if (index !== -1) {
-      // Update the existing message
-      messages[index] = {
-        ...messages[index],
-        message: editedMessage.message,
-        edited: true,
-        timestamp: new Date().toISOString(),
-      };
-
-      // Broadcast edited message to all clients
-      const jsonMessage = JSON.stringify(messages[index]);
+      const jsonMessage = JSON.stringify({
+        ...Cache.cache["chat"][messageId],
+        id: messageId,
+        action: "edit",
+        action: "reload",
+      });
       broadcastMessage(jsonMessage);
     } else {
       console.error(`Message with ID ${messageId} not found.`);
     }
   }
 
-  // Start the server
   server.listen(PORT, () => {
     console.log(`WebSocket Server running on port ${PORT}`);
   });

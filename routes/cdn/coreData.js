@@ -3,6 +3,13 @@ const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
 const { FoodListing, Host, Guest, Admin } = require("../../models");
+const { validateToken } = require("../../middleware/auth");
+
+router.get('/MyAccount', validateToken, (req, res) => {
+    const userInfo = req.user;
+    console.log(userInfo)
+    res.json(userInfo);
+});
 
 router.get("/listings", async (req, res) => { // GET all food listings
     try {

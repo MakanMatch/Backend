@@ -58,6 +58,7 @@ app.use("/createAccount", require('./routes/identity/createAccount'));
 app.use("/loginAccount", require('./routes/identity/loginAccount'));
 app.use("/accountRecovery", require('./routes/identity/accountRecovery'));
 app.use("/emailVerification", require('./routes/identity/emailVerification'));
+app.use("/myAccount", require("./routes/identity/myAccount"));
 app.use("/listings", require("./routes/listings/listings"));
 app.use("/", require("./routes/orders/reservation"));
 

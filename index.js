@@ -57,8 +57,10 @@ app.use("/reviews", require("./routes/reviews/reviews"));
 app.use("/createAccount", require('./routes/identity/createAccount'));
 app.use("/loginAccount", require('./routes/identity/loginAccount'));
 app.use("/accountRecovery", require('./routes/identity/accountRecovery'));
+app.use("/identity/emailVerification", require('./routes/identity/emailVerification'));
+app.use("/identity/myAccount", require("./routes/identity/myAccount"));
 app.use("/listings", require("./routes/listings/listings"));
-app.use("/", require("./routes/orders/reservation"));
+app.use("/", require("./routes/orders/listingDetails"));
 
 async function onDBSynchronise() {
     const currentDatetime = new Date()
@@ -85,7 +87,7 @@ async function onDBSynchronise() {
         Universal.data["DUMMY_LISTING_ID"] = newListing.listingID
         console.log(`Created dummy listing with ID: ${newListing.listingID}`)
     }
-
+  
     const guests = await Guest.findAll()
     if (guests.length > 0) {
         Universal.data["DUMMY_GUEST_USERID"] = guests[0].userID
@@ -109,32 +111,35 @@ async function onDBSynchronise() {
         Universal.data["DUMMY_GUEST_USERNAME"] = newGuest.username
         console.log(`Created dummy guest with User ID: ${newGuest.userID}`)
     }
-
-    const hosts = await Host.findAll()
-    if (hosts.length > 0) {
-        Universal.data["DUMMY_HOST_USERNAME"] = hosts[0].username
-        Universal.data["DUMMY_HOST_FOODRATING"] = hosts[0].foodRating
-        console.log(`Found existing host, using as dummy. Host User ID: ${hosts[0].userID}`)
-    } else {
+  
+    const joshuasHost = await Host.findByPk("272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4")
+    if (!joshuasHost) {
         const newHost = await Host.create({
-            userID: "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4",
-            username: "Jamie Oliver",
-            email: "jamie_oliver@gmail.com",
-            password: "JamieOliver123",
-            contactNum: "81118222",
-            address: "Block 123, Hougang Avenue 1, #01-234",
-            emailVerified: false,
-            favCuisine: "",
-            mealsMatched: 0,
-            foodRating: 4.5,
-            hygieneGrade: 2.5,
-            paymentImage: "public/Sample PayNow QR.png",
-            resetKey: "265c18",
-            resetKeyExpiration: "2024-06-22T14:30:00.000Z"
+            "userID": "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4",
+            "username": "Jamie Oliver",
+            "email": "jamie_oliver@gmail.com",
+            "password": "123456789",
+            "contactNum": "81118222",
+            "address": "12 Washington Avenue",
+            "emailVerified": false,
+            "favCuisine": "Mexican",
+            "mealsMatched": "0",
+            "foodRating": "4",
+            "hygieneGrade": "5",
+            "paymentImage": "https://savh.org.sg/wp-content/uploads/2020/05/QRCodeS61SS0119JDBS.png"
         })
+
+        if (!newHost) {
+            console.log("WARNING: Failed to create dummy host.")
+        } else {
+            Universal.data["DUMMY_HOST_USERNAME"] = newHost.username
+            Universal.data["DUMMY_HOST_FOODRATING"] = newHost.foodRating
+            console.log("Created dummy host.")
+        }
+    } else {
         Universal.data["DUMMY_HOST_USERNAME"] = newHost.username
         Universal.data["DUMMY_HOST_FOODRATING"] = newHost.foodRating
-        console.log(`Created dummy host with User ID: ${newHost.userID}`)
+        console.log("Found dummy host existing already, skipping creation.")
     }
 }
 

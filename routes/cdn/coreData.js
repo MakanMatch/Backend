@@ -4,6 +4,13 @@ const path = require("path");
 const FileManager = require("../../services/FileManager");
 const Universal = require("../../services/Universal");
 const { FoodListing, Host, Guest, Admin } = require("../../models");
+const { validateToken } = require("../../middleware/auth");
+
+router.get('/MyAccount', validateToken, (req, res) => {
+    const userInfo = req.user;
+    console.log(userInfo)
+    res.json(userInfo);
+});
 
 router.get("/fetchHostDetails", async (req, res) => {
     const hostDetails = {
@@ -30,7 +37,7 @@ router.get("/fetchGuestDetails", async (req, res) => {
 router.get("/listings", async (req, res) => { // GET all food listings
     try {
         const foodListings = await FoodListing.findAll();
-        foodListings.map(listing => listing.images = listing.images.split("|"));
+        foodListings.map(listing => (listing.images == null || listing.images == "") ? listing.images = [] : listing.images = listing.images.split("|"));
         res.status(200).json(foodListings);
     } catch (error) {
         res.status(500).send("ERROR: Internal server error");
@@ -55,6 +62,22 @@ router.get("/checkFavouriteListing", async (req, res) => { // GET favourite list
         res.status(500).send("ERROR: Internal server error");
     }
 });
+
+router.get("/getListing", async (req, res) => {
+    const listingID = req.query.id || req.body.listingID;
+    if (!listingID) {
+        res.status(400).send("ERROR: Listing ID not provided.")
+        return
+    }
+
+    const listing = await FoodListing.findByPk(listingID)
+    if (!listing || listing == null) {
+        res.status(404).send("ERROR: Listing not found")
+        return
+    }
+    res.json(listing)
+    return
+})
 
 router.get("/accountInfo", async (req, res) => { // GET account information
     try {
@@ -106,7 +129,7 @@ router.get("/accountInfo", async (req, res) => { // GET account information
             accountInfo.mealsMatched = user.mealsMatched;
         }
 
-        console.log(`Account info for userID ${targetUserID}: ${JSON.stringify(accountInfo)}`)
+        // console.log(`Account info for userID ${targetUserID}: ${JSON.stringify(accountInfo)}`)
         res.status(200).json(accountInfo);
 
     } catch (err) {

@@ -8,35 +8,6 @@ const FileManager = require("../../services/FileManager");
 const Logger = require("../../services/Logger")
 const { storeImages } = require("../../middleware/storeImages");
 
-router.post("/createHost", async (req, res) => {
-    // POST a new host before creating a food listing
-    const data = req.body;
-    try {
-        const newHost = await Host.create(data);
-        res.status(200).json({
-            message: "SUCCESS: Host created successfully!",
-            newHost,
-        });
-        Logger.log(`LISTINGS CREATEHOST: Sample Host with userID ${newHost.username} created successfully`)
-    } catch (error) {
-        res.status(400).send("UERROR: One or more required payloads were not provided.");
-    }
-});
-
-router.post("/createGuest", async (req, res) => {
-    const data = req.body;
-    try {
-        const newGuest = await Guest.create(data);
-        res.status(200).json({
-            message: "SUCCESS: Guest created successfully!",
-            newGuest,
-        });
-        Logger.log(`LISTINGS CREATEGUEST: Sample Guest with userID ${newGuest.username} created successfully`)
-    } catch (error) {
-        res.status(400).send("UERROR: One or more required payloads were not provided.");
-    }
-});
-
 router.post("/addListing", async (req, res) => {
     storeImages(req, res, async (err) => {
         if (

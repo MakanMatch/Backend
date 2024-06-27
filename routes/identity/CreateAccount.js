@@ -49,6 +49,9 @@ router.post("/", async (req, res) => {
         // Hash password
         const hashedPassword = await Encryption.hash(password);
 
+        // Email verification link generation
+        const emailVeriToken = Universal.generateUniqueID(6);
+
         // Determine account type and validate necessary fields
         let accountData = {
             userID,

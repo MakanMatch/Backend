@@ -58,7 +58,7 @@ router.route("/")
                 Logger.log("ERROR: Image upload error");
             } else {
                 Logger.log("ERROR: Internal server error");
-            } 
+            }
         });
     });
 
@@ -106,23 +106,14 @@ router.route("/reviews/:id/")
             Logger.log(`UERROR: Failed to update review with ID ${req.params.id}`);
             return;
         }
-        updateDict = {};
-        const newFoodRating = req.query.foodRating;
-        if (newFoodRating) {
-            updateDict["foodRating"] = newFoodRating;
-        }
-        const newHygieneRating = req.query.hygieneRating;
-        if (newHygieneRating) {
-            updateDict["hygieneRating"] = newHygieneRating;
-        }
-        const newComment = req.query.comments;
-        if (newComment) {
-            updateDict["comments"] = newComment;
-        }
-        const newImages = req.query.images;
-        if (newImages) {
-            updateDict["images"] = newImages;
-        }
+
+        const updateFields = ["foodRating", "hygieneRating", "comments", "images"];
+        const updateDict = {};
+        updateFields.forEach(field => {
+            if (req.query[field]) {
+                updateDict[field] = req.query[field];
+            }
+        })
 
         try {
             await Review.update(updateDict, {

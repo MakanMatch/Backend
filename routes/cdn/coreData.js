@@ -80,7 +80,9 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
         const where = {};
         const order = [];
 
-        if (req.query.hostID) {
+        if (!req.query.hostID || !req.query.order) {
+            return res.status(400).send("UERROR: Missing host ID or order.");
+        } else {
             where.hostID = req.query.hostID;
         }
 

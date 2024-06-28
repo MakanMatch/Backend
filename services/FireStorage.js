@@ -65,6 +65,18 @@ class FireStorage {
         }
     }
 
+    static async deleteAll() {
+        if (!this.checkPermission()) { return "ERROR: FireStorage operation permission denied." }
+        if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }
+
+        try {
+            await this.#bucket.deleteFiles({ force: true });
+            return true;
+        } catch (err) {
+            return `ERROR: ${err}`
+        }
+    }
+
     static async fileExistsAt(filePath) {
         if (!this.checkPermission()) { return "ERROR: FireStorage operation permission denied." }
         if (!this.#initialized) { return 'ERROR: FireStorage must be initialized first.' }

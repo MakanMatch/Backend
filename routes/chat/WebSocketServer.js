@@ -3,6 +3,8 @@ const http = require("http");
 const WebSocket = require("ws");
 const { ChatHistory, ChatMessage } = require("../../models");
 const Universal = require("../../services/Universal");
+const Cache = require("../../services/Cache");
+
 function startWebSocketServer(app) {
     if (!process.env.WS_PORT) { console.log("WARNING: WS_PORT environment variable not set. Defaulting to 8080.") }
     const PORT = process.env.WS_PORT || 8080;
@@ -107,4 +109,3 @@ function startWebSocketServer(app) {
 }
 
 module.exports = startWebSocketServer;
-

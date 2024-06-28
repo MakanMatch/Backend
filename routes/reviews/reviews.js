@@ -1,104 +1,153 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const FileManager = require('../../services/FileManager');
-const Universal = require("../../services/Universal")
+const { Universal } = require("../../services")
 const { storeFiles } = require("../../middleware/storeFiles");
+const { Review, Host, Guest } = require('../../models');
+const Logger = require('../../services/Logger');
 
-//Global dictionary to store reviews (tempororily saved in memory, implement to database later)
-const reviews = {};
-let nextReviewId = 1;
 
 router.route("/")
-    .get((req, res) => {
-        res.json(Object.values(reviews)); 
-    })
-    .post(storeFiles, async (req, res) => {
-        const { sender, receiver, foodRating, hygieneRating, comments, dateCreated } = req.body;
+    .post(async (req, res) => {
+        storeFiles(req, res, async (err) => {
+            const hostID = Universal.data["DUMMY_HOST_ID"]
+            const host = await Host.findByPk(hostID)
+            const guestID = Universal.data["DUMMY_GUEST_ID"]
+            const guest = await Guest.findByPk(guestID)
+            const { sender, receiver, foodRating, hygieneRating, comments, dateCreated } = req.body;
 
-        if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
-            return res.status(400).send("UERROR: Missing required fields");
-        }
-
-        try {
-            const fileUrls = [];
-
-            for (const file of req.files) {
-                const saveResult = await FileManager.saveFile(file.filename);
-                if (saveResult !== true) {
-                    throw new Error(saveResult);
-                }
-                fileUrls.push(`${file.filename}`);
+            if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
+                return res.status(400).send("ERROR: Missing required fields");
             }
+            try {
+                const fileUrls = [];
 
-            const reviewId = nextReviewId++;
+                for (const file of req.files) {
+                    const saveResult = await FileManager.saveFile(file.filename);
+                    if (saveResult !== true) {
+                        throw new Error(saveResult);
+                    }
+                    fileUrls.push(`${file.filename}`);
+                }
 
-            console.log("Review ID:", reviewId);
-            console.log("Review Data:", req.body);
-            console.log("Image URLs:", fileUrls);
+                const reviewID = Universal.generateUniqueID();
+                const fileUrlsString = fileUrls.join("|");
 
-            reviews[reviewId] = {
-                id: reviewId,
-                sender,
-                receiver,
-                foodRating,
-                hygieneRating,
-                comments,
-                fileUrls,
-                dateCreated
-            };
+                const review = {
+                    reviewID: reviewID,
+                    sender,
+                    receiver,
+                    foodRating: foodRating,
+                    hygieneRating: hygieneRating,
+                    comments: comments,
+                    images: fileUrlsString,
+                    dateCreated: dateCreated,
+                    guestID: guestID, // Hardcoded for now
+                    hostID: hostID, // Hardcoded for now
+                };
 
-            res.send("SUCCESS: Review submitted successfully");
-        } catch (error) {
-            console.error('ERROR: Failed to upload images or submit review:', error);
-            res.status(500).send('ERROR: Failed to upload images or submit review');
-        }
+                await Review.create(review);
+
+                res.send("SUCCESS: Review submitted successfully");
+            } catch {
+                Logger.log(`CDN REVIEWS POST ERROR: Failed to submit review; error: ${err}.`);
+                res.status(500).send("ERROR: Failed to submit review");
+            }
+            if (err instanceof multer.MulterError) {
+                Logger.log(`CDN REVIEWS POST ERROR: Image upload error; error: ${err}.`);
+                res.status(400).send("ERROR: Image upload error");
+            } else {
+                Logger.log(`CDN REVIEWS POST ERROR: Internal server error; error: ${err}.`);
+                res.status(500).send("ERROR: Internal server error");
+            }
+        });
     });
 
-router.get("/host/:name", (req, res) => {
-    const hostReviews = Object.values(reviews).filter(review => review.receiver === req.params.name);
-    res.json(hostReviews);
+router.get("/host", async (req, res) => {
+    if (!req.query.hostID) {
+        return res.status(400).send("ERROR: Missing host ID");
+    }
+    try {
+        const hostReview = await Review.findAll({
+            where: { hostID: req.query.hostID }
+        })
+        if (!hostReview) {
+            return res.send([]);
+        } else {
+            res.json(hostReview);
+        }
+    } catch (err) {
+        Logger.log(`CDN REVIEWS HOST ERROR: Failed to retrieve host review; error: ${err}.`);
+        return res.status(500).send("ERROR: Failed to retrieve host review");
+    }
 });
 
 
-router.route("/reviews/:id")
-    .get((req, res) => {
-        const review = reviews[req.params.id];
-        if (review) {
-            res.json(review);
-        } else {
-            res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
+router.route("/reviews/")
+    .get(async (req, res) => {
+        if (!req.query.id) {
+            return res.status(400).send("ERROR: Missing review ID");
+        }
+        try {
+            const review = await Review.findByPk(req.query.id);
+            if (!review) {
+                return res.status(404).send(`ERROR: Review not found`);
+            }
+            res.json(review); // Tested in postcode, working!
+        } catch {
+            Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to retrieve review with ID ${req.query.id}`);
+            return res.status(500).send("ERROR: Failed to retrieve review");
         }
     })
-    .put((req, res) => {
-        const { sender, receiver, foodRating, hygieneRating, comments, images, dateCreated } = req.body;
-        if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
-            res.status(400).send("UERROR: Missing required fields");
-            return;
+    .put(async (req, res) => {
+        if (!req.query.id) {
+            return res.status(400).send("ERROR: Missing review ID");
+            
         }
-        if (reviews[req.params.id]) {
-            reviews[req.params.id] = {
-                id: req.params.id,
-                sender,
-                receiver,
-                foodRating,
-                hygieneRating,
-                comments,
-                images: reviews[req.params.id].images,
-                dateCreated
-            };
-            res.json(reviews[req.params.id]);
+        const updateFields = ["foodRating", "hygieneRating", "comments", "images"];
+        const updateDict = {};
+        updateFields.forEach(field => {
+            if (req.query[field]) {
+                updateDict[field] = req.query[field];
+            }
+        })
+        if (Object.keys(updateDict).length === 0) {
+            return res.send("SUCCESS: No fields to update");
         } else {
-            res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
+            try {
+                const updateReview = await Review.update(updateDict, {
+                    where: { reviewID: req.query.id }
+                });
+                if (!updateReview) {
+                    return res.status(404).send(`UERROR: Review with ID ${req.query.id} not found`);
+                } else {
+                    res.send(`SUCCESS: Review with ID ${req.query.id} updated`); // Tested in postcode, working!
+                }
+            } catch {
+                Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to update review with ID ${req.query.id}`);
+                return res.status(500).send("ERROR: Failed to update review");
+            }
         }
     })
-    .delete((req, res) => {
-        if (reviews[req.params.id]) {
-            delete reviews[req.params.id];
-            res.send(`SUCCESS: Review with ID ${req.params.id} deleted`);
-        } else {
-            res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
+    .delete(async (req, res) => {
+        if (!req.query.id) {
+            return res.status(400).send("ERROR: Missing review ID");
+        }
+        try {
+            const deleteReview = await Review.destroy({
+                where: { reviewID: req.query.id }
+            });
+            if (!deleteReview) {
+                return res.status(404).send(`ERROR: Review with ID ${req.query.id} not found`);
+            } else {
+                res.send(`SUCCESS: Review with ID ${req.query.id} deleted`); // Tested in postcode, working!
+            }
+        } catch {
+            Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to delete review with ID ${req.query.id}`);
+            return res.status(500).send("ERROR: Failed to delete review");
         }
     });
 

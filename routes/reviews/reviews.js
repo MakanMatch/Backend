@@ -19,6 +19,16 @@ router.route("/")
             const guest = await Guest.findByPk(guestID)
             const { sender, receiver, foodRating, hygieneRating, comments, dateCreated } = req.body;
 
+            if (err instanceof multer.MulterError) {
+                Logger.log(`CDN REVIEWS POST ERROR: Image upload error; error: ${err}.`);
+                res.status(400).send("ERROR: Image upload error");
+                return
+            } else if (err) {
+                Logger.log(`CDN REVIEWS POST ERROR: Internal server error; error: ${err}.`);
+                res.status(500).send("ERROR: Internal server error");
+                return
+            }
+
             if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
                 return res.status(400).send("ERROR: Missing required fields");
             }
@@ -52,16 +62,10 @@ router.route("/")
                 await Review.create(review);
 
                 res.send("SUCCESS: Review submitted successfully");
+                return;
             } catch {
                 Logger.log(`CDN REVIEWS POST ERROR: Failed to submit review; error: ${err}.`);
                 res.status(500).send("ERROR: Failed to submit review");
-            }
-            if (err instanceof multer.MulterError) {
-                Logger.log(`CDN REVIEWS POST ERROR: Image upload error; error: ${err}.`);
-                res.status(400).send("ERROR: Image upload error");
-            } else {
-                Logger.log(`CDN REVIEWS POST ERROR: Internal server error; error: ${err}.`);
-                res.status(500).send("ERROR: Internal server error");
             }
         });
     });

@@ -3,89 +3,109 @@ const http = require("http");
 const WebSocket = require("ws");
 const { ChatHistory, ChatMessage } = require("../../models");
 const Universal = require("../../services/Universal");
+const Cache = require("../../services/Cache");
+
 function startWebSocketServer(app) {
-  const PORT = 8080;
-  const server = http.createServer(app);
-  const wss = new WebSocket.Server({ server });
-  const clients = [];
+    if (!process.env.WS_PORT) { console.log("WARNING: WS_PORT environment variable not set. Defaulting to 8080.") }
+    const PORT = process.env.WS_PORT || 8080;
 
-  wss.on("connection", async (ws) => {
-    console.log("WS connection arrived");
-    clients.push(ws);
+    const server = http.createServer(app);
 
-    // Assuming you have some way to identify users, like user IDs
-    const user1ID = "user1"; // Replace with actual user IDs
-    const user2ID = "user2"; // Replace with actual user IDs
+    const wss = new WebSocket.Server({ server });
 
-    try {
-      // Check if a ChatHistory exists between user1 and user2
-      let chatHistory = await ChatHistory.findOne({
-        where: {
-          user1ID,
-          user2ID,
-        },
-      });
+    const clients = [];
 
-      if (!chatHistory) {
-        // Create a new ChatHistory if it doesn't exist
-        chatHistory = await ChatHistory.create({
-          chatID: Universal.generateUniqueID(),
-          user1ID,
-          user2ID,
-          datetime: new Date().toISOString(), // Replace with current datetime logic
-        });
-      }
+    wss.on("connection", (ws) => {
+        console.log("WS connection arrived");
+        clients.push(ws);
 
-      // Now you can handle further WebSocket message events
-      ws.on("message", async (message) => {
-        const parsedMessage = JSON.parse(message);
-        console.log("Received message:", parsedMessage);
-
-        try {
-          // Create ChatMessage in the database
-          const createdMessage = await ChatMessage.create({
-            messageID: parsedMessage.messageid,
-            message: parsedMessage.message,
-            from: parsedMessage.sender,
-            datetime: parsedMessage.datetime,
-            chatID: chatHistory.chatID, // Assign the chatID from ChatHistory
-          });
-
-          // Broadcast the message to all clients
-          broadcastMessage(JSON.stringify(createdMessage), ws);
-        } catch (error) {
-          console.error("Error creating message:", error);
+        if (!Cache.cache["chat"]) {
+            Cache.cache["chat"] = {};
         }
-      });
 
-    } catch (error) {
-      console.error("Error checking ChatHistory:", error);
+        const cachedMessages = Cache.cache["chat"];
+        for (const messageId in cachedMessages) {
+            const message = {
+                id: messageId,
+                ...cachedMessages[messageId],
+            };
+            ws.send(JSON.stringify(message));
+        }
+
+        ws.on("message", (message) => {
+            const parsedMessage = JSON.parse(message);
+
+            Cache.cache["chat"][parsedMessage.id] = {
+                sender: parsedMessage.sender,
+                message: parsedMessage.message,
+                timestamp: parsedMessage.timestamp,
+            };
+            Cache.save();
+
+            if (parsedMessage.action === "edit") {
+                handleEditMessage(parsedMessage);
+            } else if (parsedMessage.action === "delete") {
+                handleDeleteMessage(parsedMessage);
+            } else {
+                broadcastMessage(message, ws);
+            }
+        });
+
+        ws.on("close", () => {
+            const index = clients.indexOf(ws);
+            if (index > -1) {
+                clients.splice(index, 1);
+            }
+        });
+    });
+
+    wss.on("error", (error) => {
+        console.error("WebSocket server error:", error);
+    });
+
+    function broadcastMessage(message, sender) {
+        clients.forEach((client) => {
+            if (client !== sender && client.readyState === WebSocket.OPEN) {
+                client.send(message);
+            }
+        });
+    }
+  
+    function handleDeleteMessage(deleteMessage) {
+        const messageId = deleteMessage.id;
+        delete Cache.cache["chat"][messageId];
+        Cache.save();
+
+        const jsonMessage = JSON.stringify({
+            id: messageId,
+            action: "delete",
+            action: "reload",
+        });
+        broadcastMessage(jsonMessage);
     }
 
-    ws.on("close", () => {
-      const index = clients.indexOf(ws);
-      if (index > -1) {
-        clients.splice(index, 1);
-      }
+    function handleEditMessage(editedMessage) {
+        const messageId = editedMessage.id;
+        if (Cache.cache["chat"][messageId]) {
+            Cache.cache["chat"][messageId].message = editedMessage.message;
+            Cache.cache["chat"][messageId].edited = true;
+            Cache.save();
+
+            const jsonMessage = JSON.stringify({
+                ...Cache.cache["chat"][messageId],
+                id: messageId,
+                action: "edit",
+                action: "reload",
+            });
+            broadcastMessage(jsonMessage);
+        } else {
+            console.error(`Message with ID ${messageId} not found.`);
+        }
+    }
+
+    server.listen(PORT, () => {
+        console.log(`WebSocket Server running on port ${PORT}`);
     });
-  });
-
-  wss.on("error", (error) => {
-    console.error("WebSocket server error:", error);
-  });
-
-  function broadcastMessage(message, sender) {
-    clients.forEach((client) => {
-      if (client !== sender && client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
-  }
-
-  server.listen(PORT, () => {
-    console.log(`WebSocket Server running on port ${PORT}`);
-  });
 }
 
 module.exports = startWebSocketServer;
-

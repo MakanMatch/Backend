@@ -40,8 +40,11 @@ module.exports = (sequelize, DataTypes) => {
 
     // Associations
     Review.associate = (models) => {
-        Review.belongsTo(models.Host)
-        Review.belongsTo(models.Guest)
+        Review.belongsTo(models.Host),
+        Review.belongsTo(models.Guest, {
+            foreignKey: 'guestID',
+            as: 'guest'
+        });
     }
 
     return Review;

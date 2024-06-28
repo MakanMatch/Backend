@@ -5,21 +5,21 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const FileManager = require('../../services/FileManager');
 const { Universal } = require("../../services")
-const { storeFiles } = require("../../middleware/storeFiles");
+const { storeImages } = require("../../middleware/storeImages");
 const { Review, Host, Guest } = require('../../models');
 const Logger = require('../../services/Logger');
 
 
 router.route("/")
     .post(async (req, res) => {
-        storeFiles(req, res, async (err) => {
+        storeImages(req, res, async (err) => {
             const hostID = Universal.data["DUMMY_HOST_ID"]
             const host = await Host.findByPk(hostID)
             const guestID = Universal.data["DUMMY_GUEST_ID"]
             const guest = await Guest.findByPk(guestID)
-            const { sender, receiver, foodRating, hygieneRating, comments, dateCreated } = req.body;
+            const { foodRating, hygieneRating, comments, dateCreated } = req.body;
 
-            if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
+            if (!foodRating || !hygieneRating || !dateCreated) {
                 return res.status(400).send("ERROR: Missing required fields");
             }
             try {
@@ -29,8 +29,9 @@ router.route("/")
                     const saveResult = await FileManager.saveFile(file.filename);
                     if (saveResult !== true) {
                         throw new Error(saveResult);
+                    } else {
+                        fileUrls.push(`${file.filename}`);
                     }
-                    fileUrls.push(`${file.filename}`);
                 }
 
                 const reviewID = Universal.generateUniqueID();
@@ -38,8 +39,6 @@ router.route("/")
 
                 const review = {
                     reviewID: reviewID,
-                    sender,
-                    receiver,
                     foodRating: foodRating,
                     hygieneRating: hygieneRating,
                     comments: comments,
@@ -107,7 +106,7 @@ router.route("/reviews/")
             return res.status(400).send("ERROR: Missing review ID");
             
         }
-        const updateFields = ["foodRating", "hygieneRating", "comments", "images"];
+        const updateFields = ["foodRating", "hygieneRating", "comments", "images", "likeCount", "dateCreated","guestID","hostID"];
         const updateDict = {};
         updateFields.forEach(field => {
             if (req.query[field]) {

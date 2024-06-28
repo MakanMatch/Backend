@@ -63,6 +63,7 @@ module.exports = (sequelize, DataTypes) => {
         })
         Guest.hasMany(models.Review, {
             foreignKey: "guestID",
+            as: "reviews",
             onDelete: "cascade"
         })
     }

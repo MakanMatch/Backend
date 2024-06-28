@@ -120,28 +120,6 @@ async function onDBSynchronise() {
 
     const guests = await Guest.findAll()
     if (guests.length > 0) {
-        Universal.data["DUMMY_GUEST_ID"] = guests[0].userID
-        console.log(`Found existing dummy guest. Guest ID: ${Universal.data["DUMMY_GUEST_ID"]}`)
-    } else {
-        const newGuest = await Guest.create({
-            "userID": "47f4497b-1331-4b8a-97a4-095a79a1fd48",
-            "username": "Susie Jones",
-            "email": "susie_jones@gmail.com",
-            "password": "SusieJones123",
-            "contactNum": "82228111",
-            "address": "Block 321, Hougang Avenue 10, #10-567",
-            "emailVerified": "false",
-            "favCuisine": "",
-            "mealsMatched": "0",
-            "resetKey": null,
-            "resetKeyExpiration": null
-        })
-        Universal.data["DUMMY_GUEST_ID"] = newGuest.userID
-        console.log(`Created new dummy guest. Guest ID: ${newGuest.userID}`)
-    }
-  
-    const guests = await Guest.findAll()
-    if (guests.length > 0) {
         Universal.data["DUMMY_GUEST_USERID"] = guests[0].userID
         Universal.data["DUMMY_GUEST_USERNAME"] = guests[0].username
         console.log(`Found existing guest, using as dummy. Guest User ID: ${guests[0].userID}`)

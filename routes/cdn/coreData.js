@@ -174,6 +174,11 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
                 const reviews = await Review.findAll({
                     where,
                     order,
+                    include: [{
+                        model: Guest,
+                        as: 'guest',
+                        attributes: ['username']
+                    }]
                 })
 
                 if (req.query.order === "images") {

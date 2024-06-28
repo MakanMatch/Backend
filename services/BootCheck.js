@@ -2,7 +2,7 @@ require('dotenv').config()
 
 class BootCheck {
     static check() {
-        let requiredVariables = ["SERVER_PORT", "DB_MODE", "EMAILING_ENABLED", "JWT_KEY"]
+        let requiredVariables = ["SERVER_PORT", "DB_MODE", "EMAILING_ENABLED", "JWT_KEY", "WS_PORT", "FILEMANAGER_ENABLED", "FIRESTORAGE_ENABLED", "API_KEY"]
         for (let variable of requiredVariables) {
             if (process.env[variable] === undefined) {
                 throw new Error(`Environment variable ${variable} is not set.`)
@@ -26,6 +26,22 @@ class BootCheck {
                     throw new Error("EMAIL_ADDRESS or EMAIL_PASSWORD environment variables not set.")
                 }
             }
+
+            if (variable == "FIRESTORAGE_ENABLED" && process.env[variable] === "True") {
+                if (!process.env.STORAGE_BUCKET_URL) {
+                    throw new Error("FireStorage service is enabled but no STORAGE_BUCKET_URL environment variable is provided.")
+                }
+            }
+        }
+
+        let optionalVariables = ["LOGGING_ENABLED"]
+        for (let variable of optionalVariables) {
+            if (process.env[variable] !== undefined) {
+                optionalVariables = optionalVariables.filter(v => v !== variable)
+            }
+        }
+        if (optionalVariables.length > 0) {
+            console.log(`BOOTCHECK WARNING: Optional environment variable(s) ${optionalVariables.join(", ")} are not set.`)
         }
     }
 }

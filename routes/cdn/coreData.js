@@ -23,13 +23,13 @@ router.get("/fetchHostDetails", async (req, res) => {
 })
 
 router.get("/fetchGuestDetails", async (req, res) => {
-    const targetGuest = await Guest.findByPk(Universal.data["DUMMY_GUEST_USERID"])
+    const targetGuest = await Guest.findByPk(Universal.data["DUMMY_GUEST_ID"])
     if (!targetGuest) {
         return res.status(404).send("Dummy Guest not found.");
     }
     const guestFavCuisine = targetGuest.favCuisine;
     const guestDetails = {
-        guestUserID: Universal.data["DUMMY_GUEST_USERID"],
+        guestUserID: Universal.data["DUMMY_GUEST_ID"],
         guestUsername: Universal.data["DUMMY_GUEST_USERNAME"],
         guestFavCuisine: guestFavCuisine
     }
@@ -131,7 +131,6 @@ router.get("/accountInfo", async (req, res) => { // GET account information
             accountInfo.mealsMatched = user.mealsMatched;
         }
 
-        // console.log(`Account info for userID ${targetUserID}: ${JSON.stringify(accountInfo)}`)
         res.status(200).json(accountInfo);
 
     } catch (err) {

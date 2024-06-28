@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid')
 const { FoodListing, Guest, Host } = require('./models')
+const Encryption = require("./services/Encryption")
 require('dotenv').config()
 
 const env = process.env.DB_CONFIG || 'development';
@@ -102,7 +103,7 @@ async function onDBSynchronise() {
             userID: "47f4497b-1331-4b8a-97a4-095a79a1fd48",
             username: "Susie Jones",
             email: "susie_jones@gmail.com",
-            password: "SusieJones123",
+            password: await Encryption.hash("SusieJones123"),
             contactNum: "82228111",
             address: "Block 321, Hougang Avenue 10, #10-567",
             emailVerified: false,
@@ -122,7 +123,7 @@ async function onDBSynchronise() {
             "userID": "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4",
             "username": "Jamie Oliver",
             "email": "jamie_oliver@gmail.com",
-            "password": "123456789",
+            "password": await Encryption.hash("123456789"),
             "contactNum": "81118222",
             "address": "12 Washington Avenue",
             "emailVerified": false,
@@ -141,8 +142,8 @@ async function onDBSynchronise() {
             console.log("Created dummy host.")
         }
     } else {
-        Universal.data["DUMMY_HOST_USERNAME"] = newHost.username
-        Universal.data["DUMMY_HOST_FOODRATING"] = newHost.foodRating
+        Universal.data["DUMMY_HOST_USERNAME"] = joshuasHost.username
+        Universal.data["DUMMY_HOST_FOODRATING"] = joshuasHost.foodRating
         console.log("Found dummy host existing already, skipping creation.")
     }
 }

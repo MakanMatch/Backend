@@ -5,6 +5,7 @@ const FileManager = require("../../services/FileManager");
 const { FoodListing, Host, Guest, Admin, Review } = require("../../models");
 const Logger = require("../../services/Logger");
 const { Sequelize } = require('sequelize');
+const { rmSync } = require("fs");
 
 router.get("/listings", async (req, res) => { // GET all food listings
     try {
@@ -119,21 +120,19 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
 
                 if (reviews.length > 0) {
                     res.json(reviews);
-                } else {
-                    Logger.log("ERROR: No reviews found.");
                 }
             }
-        } catch {
+        } catch (err) {
             Logger.log("ERROR: No reviews found.");
         }
 
-    } catch {
+    } catch (err) {
         Logger.log("ERROR: Internal server error");
     }
 })
 
 router.get("/reviews", async (req, res) => { // GET review from review id
-    const review = await Review.findOne({ where: { reviewID: req.query.id } });
+    const review = await Review.findByPk(req.query.id);
     if (review) {
         res.json(review);
     } else {

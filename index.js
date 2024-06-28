@@ -132,7 +132,7 @@ if (!SEQUELIZE_ACTIVE) {
 } else {
     // Server initialisation with sequelize
     const db = require("./models");
-    db.sequelize.sync({ alter: true })
+    db.sequelize.sync()
         .then(() => {
             // Create sample FoodListing
             onDBSynchronise()

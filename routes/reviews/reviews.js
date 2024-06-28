@@ -20,7 +20,7 @@ router.route("/")
             const { sender, receiver, foodRating, hygieneRating, comments, dateCreated } = req.body;
 
             if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
-                return res.status(400).send("UERROR: Missing required fields");
+                return res.status(400).send("ERROR: Missing required fields");
             }
             try {
                 const fileUrls = [];
@@ -53,48 +53,57 @@ router.route("/")
 
                 res.send("SUCCESS: Review submitted successfully");
             } catch {
-                Logger.log('ERROR: Failed to submit review:');
+                Logger.log(`CDN REVIEWS POST ERROR: Failed to submit review; error: ${err}.`);
+                res.status(500).send("ERROR: Failed to submit review");
             }
             if (err instanceof multer.MulterError) {
-                Logger.log("ERROR: Image upload error");
+                Logger.log(`CDN REVIEWS POST ERROR: Image upload error; error: ${err}.`);
+                res.status(400).send("ERROR: Image upload error");
             } else {
-                Logger.log("ERROR: Internal server error");
+                Logger.log(`CDN REVIEWS POST ERROR: Internal server error; error: ${err}.`);
+                res.status(500).send("ERROR: Internal server error");
             }
         });
     });
 
 router.get("/host", async (req, res) => {
-    const hostReviews = await Review.findAll({
-        where: {
-            hostID: req.query.hostID
+    if (!req.query.hostID) {
+        return res.status(400).send("ERROR: Missing host ID");
+    }
+    try {
+        const hostReview = await Review.findByPk(req.query.hostID);
+        if (!hostReview) {
+            return res.status(404).send("ERROR: Host not found");
+        } else {
+            res.json(hostReview);
         }
-    })
-    res.json(hostReviews); // Tested in postcode, working!
+    } catch (err) {
+        Logger.log(`CDN REVIEWS HOST ERROR: Failed to retrieve host review; error: ${err}.`);
+        return res.status(500).send("ERROR: Failed to retrieve host review");
+    }
 });
 
 
-router.route("/reviews/:id/")
+router.route("/reviews/")
     .get(async (req, res) => {
-        if (!req.params.id) {
-            res.status(400).send("UERROR: Missing review ID");
-            return;
+        if (!req.query.id) {
+            return res.status(400).send("ERROR: Missing review ID");
         }
         try {
-            const review = await Review.findByPk(req.params.id);
+            const review = await Review.findByPk(req.query.id);
             if (!review) {
-                res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
-                return;
+                return res.status(404).send(`ERROR: Review not found`);
             }
             res.json(review); // Tested in postcode, working!
         } catch {
-            Logger.log(`UERROR: Failed to retrieve review with ID ${req.params.id}`);
-            return;
+            Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to retrieve review with ID ${req.query.id}`);
+            return res.status(500).send("ERROR: Failed to retrieve review");
         }
     })
     .put(async (req, res) => {
-        if (!req.params.id) {
-            res.status(400).send("UERROR: Missing review ID");
-            return;
+        if (!req.query.id) {
+            return res.status(400).send("ERROR: Missing review ID");
+            
         }
         const updateFields = ["foodRating", "hygieneRating", "comments", "images"];
         const updateDict = {};
@@ -104,44 +113,41 @@ router.route("/reviews/:id/")
             }
         })
         if (Object.keys(updateDict).length === 0) {
-            res.status(400).send("UERROR: No fields to update");
-            return;
-        }
-        try {
-            const updateReview = await Review.findByPk(req.params.id);
-            if (!updateReview) {
-                res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
-                return;
-            } else {
-                await Review.update(updateDict, {
-                    where: { reviewID: req.params.id }
-                })
-                res.send(`SUCCESS: Review with ID ${req.params.id} updated`); // Tested in postcode, working!
+            return res.send("SUCCESS: No fields to update");
+        } else {
+            try {
+                const updateReview = await Review.findByPk(req.query.id);
+                if (!updateReview) {
+                    return res.status(404).send(`UERROR: Review with ID ${req.query.id} not found`);
+                } else {
+                    await Review.update(updateDict, {
+                        where: { reviewID: req.query.id }
+                    })
+                    res.send(`SUCCESS: Review with ID ${req.query.id} updated`); // Tested in postcode, working!
+                }
+            } catch {
+                Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to update review with ID ${req.query.id}`);
+                return res.status(500).send("ERROR: Failed to update review");
             }
-        } catch {
-            Logger.log(`UERROR: Failed to update review with ID ${req.params.id}`);
-            return;
         }
     })
     .delete(async (req, res) => {
-        if (!req.params.id) {
-            res.status(400).send("UERROR: Missing review ID");
-            return;
+        if (!req.query.id) {
+            return res.status(400).send("ERROR: Missing review ID");
         }
         try {
-            const deleteReview = await Review.findByPk(req.params.id);
+            const deleteReview = await Review.findByPk(req.query.id);
             if (!deleteReview) {
-                res.status(404).send(`UERROR: Review with ID ${req.params.id} not found`);
-                return;
+                return res.status(404).send(`ERROR: Review with ID ${req.query.id} not found`);
             } else {
                 await Review.destroy({
-                    where: { reviewID: req.params.id }
+                    where: { reviewID: req.query.id }
                 })
-                res.send(`SUCCESS: Review with ID ${req.params.id} deleted`); // Tested in postcode, working!
+                res.send(`SUCCESS: Review with ID ${req.query.id} deleted`); // Tested in postcode, working!
             }
         } catch {
-            Logger.log(`UERROR: Failed to delete review with ID ${req.params.id}`);
-            return;
+            Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to delete review with ID ${req.query.id}`);
+            return res.status(500).send("ERROR: Failed to delete review");
         }
     });
 

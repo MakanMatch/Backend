@@ -123,11 +123,13 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
                 }
             }
         } catch (err) {
-            Logger.log("ERROR: No reviews found.");
+            Logger.log(`CDN COREDATA GETREVIEWS ERROR: Failed to retrieve reviews; error: ${err}.`);
+            return res.status(404).send("ERROR: No reviews found.");
         }
 
     } catch (err) {
-        Logger.log("ERROR: Internal server error");
+        Logger.log(`CDN COREDATA GETREVIEWS ERROR: Failed to retrieve reviews; error: ${err}.`);
+        return res.status(500).send("ERROR: An error occured while fetching reviews.");
     }
 })
 
@@ -136,7 +138,7 @@ router.get("/reviews", async (req, res) => { // GET review from review id
     if (review) {
         res.json(review);
     } else {
-        Logger.log(`Review with ID ${req.params.id} not found`);
+        return res.status(404).send(`ERROR: Review with ID ${req.params.id} not found`);
     }
 })
 

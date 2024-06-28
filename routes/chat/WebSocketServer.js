@@ -1,7 +1,7 @@
 const express = require("express");
 const http = require("http");
 const WebSocket = require("ws");
-const Cache = require("../../services/Cache");
+const { ChatHistory, ChatMessage } = require("../../models");
 
 function startWebSocketServer(app) {
   const PORT = 8080;
@@ -16,28 +16,30 @@ function startWebSocketServer(app) {
     console.log("WS connection arrived");
     clients.push(ws);
 
-    if (!Cache.cache["chat"]) {
-      Cache.cache["chat"] = {};
-    }
+    // if (!Cache.cache["chat"]) {
+    //   Cache.cache["chat"] = {};
+    // }
 
-    const cachedMessages = Cache.cache["chat"];
-    for (const messageId in cachedMessages) {
-      const message = {
-        id: messageId,
-        ...cachedMessages[messageId],
-      };
-      ws.send(JSON.stringify(message));
-    }
+    // const cachedMessages = Cache.cache["chat"];
+    // for (const messageId in cachedMessages) {
+    //   const message = {
+    //     id: messageId,
+    //     ...cachedMessages[messageId],
+    //   };
+    //   ws.send(JSON.stringify(message));
+    // }
 
     ws.on("message", (message) => {
       const parsedMessage = JSON.parse(message);
-
-      Cache.cache["chat"][parsedMessage.id] = {
-        sender: parsedMessage.sender,
+      console.log("Received message:", parsedMessage);
+      ChatMessage.create({
+        messageID: parsedMessage.messageid,
         message: parsedMessage.message,
-        timestamp: parsedMessage.timestamp,
-      };
-      Cache.save();
+        from: parsedMessage.sender,
+        datetime: parsedMessage.datetime,
+      });
+
+
 
       if (parsedMessage.action === "edit") {
         handleEditMessage(parsedMessage);
@@ -68,37 +70,37 @@ function startWebSocketServer(app) {
     });
   }
 
-  function handleDeleteMessage(deleteMessage) {
-    const messageId = deleteMessage.id;
-    delete Cache.cache["chat"][messageId];
-    Cache.save();
+  // function handleDeleteMessage(deleteMessage) {
+  //   const messageId = deleteMessage.id;
+  //   delete Cache.cache["chat"][messageId];
+  //   Cache.save();
 
-    const jsonMessage = JSON.stringify({
-      id: messageId,
-      action: "delete",
-      action: "reload",
-    });
-    broadcastMessage(jsonMessage);
-  }
+  //   const jsonMessage = JSON.stringify({
+  //     id: messageId,
+  //     action: "delete",
+  //     action: "reload",
+  //   });
+  //   broadcastMessage(jsonMessage);
+  // }
 
-  function handleEditMessage(editedMessage) {
-    const messageId = editedMessage.id;
-    if (Cache.cache["chat"][messageId]) {
-      Cache.cache["chat"][messageId].message = editedMessage.message;
-      Cache.cache["chat"][messageId].edited = true;
-      Cache.save();
+  // function handleEditMessage(editedMessage) {
+  //   const messageId = editedMessage.id;
+  //   if (Cache.cache["chat"][messageId]) {
+  //     Cache.cache["chat"][messageId].message = editedMessage.message;
+  //     Cache.cache["chat"][messageId].edited = true;
+  //     Cache.save();
 
-      const jsonMessage = JSON.stringify({
-        ...Cache.cache["chat"][messageId],
-        id: messageId,
-        action: "edit",
-        action: "reload",
-      });
-      broadcastMessage(jsonMessage);
-    } else {
-      console.error(`Message with ID ${messageId} not found.`);
-    }
-  }
+  //     const jsonMessage = JSON.stringify({
+  //       ...Cache.cache["chat"][messageId],
+  //       id: messageId,
+  //       action: "edit",
+  //       action: "reload",
+  //     });
+  //     broadcastMessage(jsonMessage);
+  //   } else {
+  //     console.error(`Message with ID ${messageId} not found.`);
+  //   }
+  // }
 
   server.listen(PORT, () => {
     console.log(`WebSocket Server running on port ${PORT}`);

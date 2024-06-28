@@ -73,10 +73,9 @@ router.get("/host", async (req, res) => {
     try {
         const hostReview = await Review.findAll({
             where: { hostID: req.query.hostID }
-        
         })
         if (!hostReview) {
-            return res.status(404).send("ERROR: Host not found");
+            return res.send({});
         } else {
             res.json(hostReview);
         }

@@ -5,7 +5,6 @@ const FileManager = require("../../services/FileManager");
 const { FoodListing, Host, Guest, Admin, Review } = require("../../models");
 const Logger = require("../../services/Logger");
 const { Sequelize } = require('sequelize');
-const { rmSync } = require("fs");
 
 router.get("/listings", async (req, res) => { // GET all food listings
     try {

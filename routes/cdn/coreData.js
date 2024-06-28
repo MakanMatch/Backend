@@ -135,11 +135,15 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
 })
 
 router.get("/reviews", async (req, res) => { // GET review from review id
-    const review = await Review.findByPk(req.query.id);
-    if (review) {
-        res.json(review);
+    if (!req.query.id) {
+        return res.status(400).send("UERROR: Missing review ID");
     } else {
-        return res.status(404).send(`ERROR: Review with ID ${req.params.id} not found`);
+        const review = await Review.findByPk(req.query.id);
+        if (review) {
+            res.json(review);
+        } else {
+            return res.status(404).send(`ERROR: Review with ID ${req.params.id} not found`);
+        }
     }
 })
 

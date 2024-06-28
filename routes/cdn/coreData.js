@@ -80,7 +80,7 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
         const where = {};
         const order = [];
 
-        if (!req.query.hostID || !req.query.order) {
+        if (!req.query.hostID) {
             return res.status(400).send("UERROR: Missing host ID or order.");
         } else {
             where.hostID = req.query.hostID;
@@ -105,7 +105,7 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
         try {
             const host = await Host.findByPk(req.query.hostID);
             if (!host) {
-                return res.status(404).send("Host not found.");
+                return res.status(404).send("UERROR: Host not found.");
             } else {
                 const reviews = await Review.findAll({
                     where,

@@ -71,7 +71,10 @@ router.get("/host", async (req, res) => {
         return res.status(400).send("ERROR: Missing host ID");
     }
     try {
-        const hostReview = await Review.findByPk(req.query.hostID);
+        const hostReview = await Review.findAll({
+            where: { hostID: req.query.hostID }
+        
+        })
         if (!hostReview) {
             return res.status(404).send("ERROR: Host not found");
         } else {

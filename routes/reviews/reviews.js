@@ -75,7 +75,7 @@ router.get("/host", async (req, res) => {
             where: { hostID: req.query.hostID }
         })
         if (!hostReview) {
-            return res.send({});
+            return res.send([]);
         } else {
             res.json(hostReview);
         }

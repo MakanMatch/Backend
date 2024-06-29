@@ -112,6 +112,27 @@ function startWebSocketServer(app) {
         messageID: messageId,
       },
     });
+    const jsonMessage = {
+      action: "reload",
+    }
+    broadcastMessage(JSON.stringify(jsonMessage));
+  }
+
+  function handleDeleteMessage(deletedMessage) {
+    const messageId = deletedMessage.id;
+    const findMessage = ChatMessage.findByPk(messageId);
+    if (!findMessage) {
+      console.log("Message not found");
+    }
+    const deleteMessage = ChatMessage.destroy({
+      where: {
+        messageID: messageId,
+      },
+    });
+    const jsonMessage = {
+      action: "reload",
+    }
+    broadcastMessage(JSON.stringify(jsonMessage));
   }
 
 

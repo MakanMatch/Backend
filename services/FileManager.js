@@ -319,6 +319,24 @@ class FileManager {
 
         return true;
     }
+
+    static async deleteAll() {
+        if (!this.checkPermission()) { return "ERROR: FileManager operation permission denied." }
+        if (!this.#initialized) { return 'ERROR: FileManager must be setup first.' }
+
+        // Delete files on cloud storage
+        const deleteAllResult = await FireStorage.deleteAll();
+        if (deleteAllResult !== true) {
+            return `ERROR: ${deleteAllResult}`
+        }
+
+        // Clear file store context and file store
+        this.#fileStoreContext = {}
+        this.persistFileStoreContext();
+        this.cleanupNonmatchingFiles();
+
+        return true;
+    }
 }
 
 module.exports = FileManager;

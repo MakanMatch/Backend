@@ -32,7 +32,7 @@ router.get("/getImageForListing", async (req, res) => {
         return;
     }
     res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length))
-    Logger.log(`CDN GETIMAGEFORLISTING: Image(s) for listing ${listingID} sent successfully.`)
+    // Logger.log(`CDN GETIMAGEFORLISTING: Image(s) for listing ${listingID} sent successfully.`)
     return;
 });
 

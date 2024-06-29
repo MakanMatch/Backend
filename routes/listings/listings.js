@@ -2,26 +2,11 @@ const express = require("express");
 const multer = require("multer");
 const router = express.Router();
 const { FoodListing } = require("../../models");
-const { Host } = require("../../models");
+const { Host, Guest } = require("../../models");
 const Universal = require("../../services/Universal");
 const FileManager = require("../../services/FileManager");
 const Logger = require("../../services/Logger")
 const { storeImages } = require("../../middleware/storeImages");
-
-router.post("/createHost", async (req, res) => {
-    // POST a new host before creating a food listing
-    const data = req.body;
-    try {
-        const newHost = await Host.create(data);
-        res.status(200).json({
-            message: "SUCCESS: Host created successfully!",
-            newHost,
-        });
-        Logger.log(`LISTINGS CREATEHOST: Sample Host with userID ${newHost.username} created successfully`)
-    } catch (error) {
-        res.status(400).send("UERROR: One or more required payloads were not provided.");
-    }
-});
 
 router.post("/addListing", async (req, res) => {
     storeImages(req, res, async (err) => {
@@ -82,12 +67,81 @@ router.post("/addListing", async (req, res) => {
                         return;
                     }
                 } else {
+                    // Delete all images if one of them fails to upload
+                    for (let i=0; i<req.files.length; i++) {
+                        await FileManager.deleteFile(req.files[i].filename);
+                        Logger.log(`LISTINGS ADDLISTING: One or more image checks failed. Image ${req.files[i].filename} deleted successfully.`)
+                    }
                     res.status(400).send("ERROR: Failed to upload image");
                     return;
                 }
             }
         }
     });
+});
+
+router.put("/toggleFavouriteListing", async (req, res) => {
+    const { userID, listingID } = req.body;
+    if (!userID || !listingID) {
+        res.status(400).send("ERROR: One or more required payloads were not provided");
+        return;
+    }
+    const findGuest = await Guest.findByPk(userID);
+    if (!findGuest) {
+        res.status(404).send("ERROR: Guest not found");
+        return;
+    }
+    const findListing = await FoodListing.findByPk(listingID);
+    if (!findListing) {
+        res.status(404).send("ERROR: Listing not found");
+        return;
+    }
+    if (findGuest.favCuisine.split("|").includes(listingID)) {
+        const removeFavourite = await Guest.update({ favCuisine: findGuest.favCuisine.replace(listingID + "|", "") }, { where: { userID: userID } }); // Removes the listingID from the guest's favCuisine field
+        if (removeFavourite) {
+            res.status(200).json({ message: "SUCCESS: Listing removed from favourites successfully", favourite: false });
+            return;
+        } else {
+            res.status(400).send("ERROR: Failed to remove listing from favourites");
+            return;
+        }
+    } else {
+        const addFavourite = await Guest.update({ favCuisine: findGuest.favCuisine + listingID + "|" }, { where: { userID: userID } }); // Adds the listingID to the guest's favCuisine field
+        if (addFavourite) {
+            res.status(200).json({ message: "SUCCESS: Listing added to favourites successfully", favourite: true });
+            return;
+        } else {
+            res.status(400).send("ERROR: Failed to add listing to favourites");
+            return;
+        }
+    }
+});
+
+router.delete("/deleteListing", async (req, res) => {
+    const { listingID } = req.body;
+    if (!listingID) {
+        res.status(400).send("ERROR: One or more required payloads were not provided");
+        return;
+    }
+    const findListing = await FoodListing.findByPk(listingID);
+    if (!findListing) {
+        res.status(404).send("ERROR: Listing not found");
+        return;
+    }
+    const listingImages = findListing.images.split("|");
+    for (let i=0; i<listingImages.length; i++) {
+        await FileManager.deleteFile(listingImages[i]);
+        Logger.log(`LISTINGS DELETELISTING: Image ${listingImages[i]} deleted successfully.`)
+    }
+    const deleteListing = await FoodListing.destroy({ where: { listingID: listingID } });
+    if (deleteListing) {
+        res.status(200).json({ message: "SUCCESS: Listing deleted successfully" });
+        Logger.log(`LISTINGS DELETELISTING: Listing with listingID ${listingID} deleted successfully.`)
+        return;
+    } else {
+        res.status(400).send("ERROR: Failed to delete listing");
+        return;
+    }
 });
 
 module.exports = router;

@@ -5,7 +5,7 @@ const { Universal, Emailer, Encryption, Logger } = require('../../services');
 require('dotenv').config();
 
 router.post("/resetKey", async (req, res) => {
-    console.log("received at AccountRecovery ResetKey");
+    // console.log("received at AccountRecovery ResetKey");
     let data = req.body;
     console.log(data);
     let { usernameOrEmail } = req.body;

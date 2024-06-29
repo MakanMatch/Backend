@@ -31,14 +31,20 @@ async function clearFiles() {
 
 sequelize.sync({ alter: true })
     .then(() => {
-        if (!process.argv[2] || process.argv[2].length == 0) { console.log("No tool activated."); return; }
-        if (process.argv[2].toLowerCase() == "reset") {
-            resetDB()
-        } else if (process.argv[2].toLowerCase() == "clearfiles") {
-            clearFiles()
-        } else {
+        const tools = process.argv.slice(2)
+        if (tools.length == 0) {
             console.log("No tool activated.")
             return
+        }
+        console.log(`Tools activated: ${tools.join(", ")}`)
+        console.log()
+
+        if (tools.includes("reset")) {
+            resetDB()
+        }
+        
+        if (tools.includes("clearfiles")) {
+            clearFiles()
         }
     })
     .catch(err => {

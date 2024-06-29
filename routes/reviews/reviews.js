@@ -23,7 +23,7 @@ router.route("/")
             }
 
             const hostID = Universal.data["DUMMY_HOST_ID"]
-            const guestID = Universal.data["DUMMY_GUEST_ID"]
+            const guestID = Universal.data["DUMMY_GUEST_USERID"]
             const { foodRating, hygieneRating, comments, dateCreated } = req.body;
 
             if (!foodRating || !hygieneRating || !dateCreated) {

@@ -5,6 +5,8 @@ const Universal = require('../../services/Universal');
 const FileManager = require('../../services/FileManager');
 const { storeFile } = require('../../middleware/storeFile');
 const Logger = require('../../services/Logger');
+const yup = require('yup');
+const Extensions = require('../../services/Extensions');
 
 router.post("/uploadListingImage", async (req, res) => {
     storeFile(req, res, async (err) => {
@@ -107,8 +109,32 @@ router.post("/updateListing", async (req, res) => {
         return
     }
 
+    const validationSchema = yup.object({
+        title: yup.string(),
+        shortDescription: yup.string().max(50),
+        longDescription: yup.string().max(350),
+        portionPrice: yup.number(),
+        approxAddress: yup.string(),
+        totalSlots: yup.number(),
+        datetime: yup.string(),
+        published: yup.boolean()
+    })
+
+    let newData = Extensions.filterDictionary(req.body, (key) => key != "listingID")
     try {
-        listing.update(req.body)
+        newData = validationSchema.validateSync(newData, { abortEarly: false })
+        if (Object.keys(newData).length == 0) {
+            res.status(200).send("SUCCESS: Nothing to update.")
+            return
+        }
+    } catch (err) {
+        // send back errors
+        res.status(400).send(`ERROR: Data validation errors occurred. Errors: ${err.errors.join(", ")}`)
+        return
+    }
+
+    try {
+        listing.update(newData)
         await listing.save()
 
         Logger.log(`ORDERS LISTINGDETAILS UPDATELISTING: Listing '${listingID}' updated.`)

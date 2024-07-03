@@ -1,4 +1,4 @@
-# Configuring Database for MakanMatch Backend
+# Configuring System Operation
 
 There's a few ways you can configure the database the backend system uses.
 

@@ -10,12 +10,12 @@ const Universal = require('../services/Universal');
 const basename = path.basename(__filename);
 const env = process.env.DB_CONFIG || 'development';
 const config = require('../config/config.json')[env];
-const db = {};
 
 if (!config) {
     throw new Error("Database configuration not found in config/config.json")
 }
 
+// System Configuration Setup (e.g Logging)
 if (config.logging == true) {
     if (config.loggingOptions != undefined) {
         var queryLogsFile = "sqlQueries.txt"
@@ -42,6 +42,7 @@ if (config.logging == true) {
     // If logging options not provided, sequelize will default to console.log
 }
 
+// Sequelize Initialization
 /**
  * @type {Sequelize.Sequelize}
  */
@@ -60,6 +61,21 @@ if (process.env.DB_MODE == "mysql") {
     })
 }
 
+// Model Registration
+const db = {};
+
+// Hard-import models
+db.Admin = require('./Admin')(sequelize, Sequelize.DataTypes);
+db.ChatHistory = require('./ChatHistory')(sequelize, Sequelize.DataTypes);
+db.ChatMessage = require('./ChatMessage')(sequelize, Sequelize.DataTypes);
+db.FoodListing = require('./FoodListing')(sequelize, Sequelize.DataTypes);
+db.Guest = require('./Guest')(sequelize, Sequelize.DataTypes);
+db.Host = require('./Host')(sequelize, Sequelize.DataTypes);
+db.Reservation = require('./Reservation')(sequelize, Sequelize.DataTypes);
+db.Review = require('./Admin')(sequelize, Sequelize.DataTypes);
+db.Warning = require('./Admin')(sequelize, Sequelize.DataTypes);
+
+// Auto-detect and import other models (intellisense will not work for these models)
 fs
     .readdirSync(__dirname)
     .filter(file => {
@@ -71,11 +87,11 @@ fs
         );
     })
     .forEach(file => {
-        /**
-        * @type {Sequelize.Model}
-        */
         const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
-        db[model.name] = model;
+        // Add model if model not hard-imported
+        if (db[model.name] !== undefined) {
+            db[model.name] = model;
+        }
     });
 
 Object.keys(db).forEach(modelName => {
@@ -84,52 +100,4 @@ Object.keys(db).forEach(modelName => {
     }
 });
 
-const { admin, chatHistory, chatMessage, foodListing, guest, host, reservation, review, warning, ...otherModels } = db
-
-/**
- * @type {Sequelize.Model}
- */
-const Admin = admin;
-
-/**
- * @type {Sequelize.Model}
- */
-const ChatHistory = chatHistory;
-
-/**
- * @type {Sequelize.Model}
- */
-const ChatMessage = chatMessage;
-
-/**
- * @type {Sequelize.Model}
- */
-const FoodListing = foodListing;
-
-/**
- * @type {Sequelize.Model}
- */
-const Guest = guest;
-
-/**
- * @type {Sequelize.Model}
- */
-const Host = host;
-
-/**
- * @type {Sequelize.Model}
- */
-const Reservation = reservation;
-
-/**
- * @type {Sequelize.Model}
- */
-const Review = review;
-
-/**
- * @type {Sequelize.Model}
- */
-const Warning = warning;
-
-// console.log({ Admin, FoodListing, Guest, Host, Reservation, Review, Warning, ...otherModels, sequelize, Sequelize })
-module.exports = { Admin, ChatHistory, ChatMessage, FoodListing, Guest, Host, Reservation, Review, Warning, ...otherModels, sequelize, Sequelize };
+module.exports = { ...db, sequelize, Sequelize };

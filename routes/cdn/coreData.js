@@ -144,7 +144,7 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
         const order = [];
 
         if (!req.query.hostID) {
-            return res.status(400).send("UERROR: Missing host ID or order.");
+            return res.status(400).send("ERROR: Missing host ID or order.");
         } else {
             where.hostID = req.query.hostID;
         }
@@ -173,6 +173,11 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
                 const reviews = await Review.findAll({
                     where,
                     order,
+                    include: [{
+                        model: Guest,
+                        as: 'guest',
+                        attributes: ['username']
+                    }]
                 })
 
                 if (req.query.order === "images") {
@@ -200,7 +205,7 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
 
 router.get("/reviews", async (req, res) => { // GET review from review id
     if (!req.query.id) {
-        return res.status(400).send("UERROR: Missing review ID");
+        return res.status(400).send("ERROR: Missing review ID");
     } else {
         const review = await Review.findByPk(req.query.id);
         if (review) {

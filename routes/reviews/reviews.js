@@ -23,9 +23,9 @@ router.route("/")
             }
 
             const hostID = Universal.data["DUMMY_HOST_ID"]
-            const guestID = Universal.data["DUMMY_GUEST_USERID"]
+            const guestID = Universal.data["DUMMY_GUEST_ID"]
             const { foodRating, hygieneRating, comments, dateCreated } = req.body;
-
+          
             if (!foodRating || !hygieneRating || !dateCreated) {
                 return res.status(400).send("ERROR: Missing required fields");
             }

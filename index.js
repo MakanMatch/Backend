@@ -13,7 +13,6 @@ const SEQUELIZE_ACTIVE = true;
 
 // Set up services
 const Universal = require('./services/Universal')
-const FileOps = require('./services/FileOps')
 
 const Logger = require('./services/Logger')
 Logger.setup()
@@ -33,7 +32,7 @@ FileManager.setup().catch(err => { Logger.logAndThrow(err) })
 const checkHeaders = require('./middleware/headersCheck');
 const logRoutes = require('./middleware/logRoutes');
 
-// Configure express app
+// Configure express app and chat web socket server
 const app = express();
 app.use(cors())
 app.use(express.json())
@@ -68,59 +67,9 @@ app.use("/listings", require("./routes/listings/listings"));
 app.use("/", require("./routes/orders/listingDetails"));
 
 async function onDBSynchronise() {
-    const currentDatetime = new Date()
-    const datetime = new Date(currentDatetime.getTime() + 24 * 60 * 60 * 1000).toISOString();
-
-    const listings = await FoodListing.findAll()
-    if (listings.length > 0) {
-        Universal.data["DUMMY_LISTING_ID"] = listings[0].listingID
-        console.log(`Found existing listing, using as dummy. Listing ID: ${listings[0].listingID}`)
-    } else {
-        const newListing = await FoodListing.create({
-            listingID: uuidv4(),
-            title: "Chili Crab for Dinner",
-            images: "sample3.jpg",
-            shortDescription: "Making chili crab for dinner again! Come join!",
-            longDescription: "Seeing that chili crab last time was a hit, cooking some again! Bought fresh groceries from the market today for it too. Come join me for dinner!",
-            portionPrice: "5.00",
-            approxAddress: "Near Tampines West Community Centre, Singapore",
-            address: "Block 67, Tampines Avenue 10, Singapore 520678",
-            totalSlots: "5",
-            datetime: datetime,
-            published: false
-        })
-        Universal.data["DUMMY_LISTING_ID"] = newListing.listingID
-        console.log(`Created new dummy listing. Listing ID: ${newListing.listingID}`)
-
-    }
-    
-    const hosts = await Host.findAll()
-    if (hosts.length > 0) {
-        Universal.data["DUMMY_HOST_ID"] = (hosts[0].userID)
-        console.log(`Found existing dummy host. Host ID: ${Universal.data["DUMMY_HOST_ID"]}`)
-    } else {
-        const newHost = await Host.create({
-            "userID": "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4",
-            "username": "Jamie Oliver",
-            "email": "jamie_oliver@gmail.com",
-            "password": "JamieOliver123",
-            "contactNum": "81118222",
-            "address": "Block 123, Hougang Avenue 1, #01-234",
-            "emailVerified": "false",
-            "favCuisine": "Chilli Crab",
-            "mealsMatched": "0",
-            "foodRating": "4",
-            "hygieneGrade": "5",
-            "paymentImage": null,
-            "resetKeyExpiration": null
-        })
-        Universal.data["DUMMY_HOST_ID"] = newHost.userID
-        console.log(`Created new dummy host. Host ID: ${newHost.userID}`)
-    }
-
     const guests = await Guest.findAll()
     if (guests.length > 0) {
-        Universal.data["DUMMY_GUEST_USERID"] = guests[0].userID
+        Universal.data["DUMMY_GUEST_ID"] = guests[0].userID
         Universal.data["DUMMY_GUEST_USERNAME"] = guests[0].username
         console.log(`Found existing guest, using as dummy. Guest User ID: ${guests[0].userID}`)
     } else {
@@ -137,7 +86,7 @@ async function onDBSynchronise() {
             resetKey: "265c18",
             resetKeyExpiration: "2024-06-22T14:30:00.000Z"
         })
-        Universal.data["DUMMY_GUEST_USERID"] = newGuest.userID
+        Universal.data["DUMMY_GUEST_ID"] = newGuest.userID
         Universal.data["DUMMY_GUEST_USERNAME"] = newGuest.username
         console.log(`Created dummy guest with User ID: ${newGuest.userID}`)
     }
@@ -162,11 +111,13 @@ async function onDBSynchronise() {
         if (!newHost) {
             console.log("WARNING: Failed to create dummy host.")
         } else {
+            Universal.data["DUMMY_HOST_ID"] = newHost.userID
             Universal.data["DUMMY_HOST_USERNAME"] = newHost.username
             Universal.data["DUMMY_HOST_FOODRATING"] = newHost.foodRating
             console.log("Created dummy host.")
         }
     } else {
+        Universal.data["DUMMY_HOST_ID"] = joshuasHost.userID
         Universal.data["DUMMY_HOST_USERNAME"] = joshuasHost.username
         Universal.data["DUMMY_HOST_FOODRATING"] = joshuasHost.foodRating
         console.log("Found dummy host existing already, skipping creation.")
@@ -181,7 +132,7 @@ if (!SEQUELIZE_ACTIVE) {
 } else {
     // Server initialisation with sequelize
     const db = require("./models");
-    db.sequelize.sync({ alter: true })
+    db.sequelize.sync()
         .then(() => {
             // Create sample FoodListing
             onDBSynchronise()

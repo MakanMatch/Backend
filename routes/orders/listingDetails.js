@@ -123,7 +123,6 @@ router.post("/updateListing", async (req, res) => {
     let newData = Extensions.filterDictionary(req.body, (key) => key != "listingID")
     try {
         newData = validationSchema.validateSync(newData, { abortEarly: false })
-        console.log(newData)
         if (Object.keys(newData).length == 0) {
             res.status(200).send("SUCCESS: Nothing to update.")
             return
@@ -135,7 +134,6 @@ router.post("/updateListing", async (req, res) => {
     }
 
     try {
-        console.log(newData)
         listing.update(newData)
         await listing.save()
 

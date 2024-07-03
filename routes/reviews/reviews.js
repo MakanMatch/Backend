@@ -64,7 +64,7 @@ router.route("/")
                 await Review.create(review);
 
                 res.send("SUCCESS: Review submitted successfully");
-            } catch {
+            } catch (err) {
                 Logger.log(`CDN REVIEWS POST ERROR: Failed to submit review; error: ${err}.`);
                 return res.status(500).send("ERROR: Failed to submit review");
             }
@@ -102,8 +102,8 @@ router.route("/reviews/")
                 return res.status(404).send(`ERROR: Review not found`);
             }
             res.json(review); // Tested in postcode, working!
-        } catch {
-            Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to retrieve review with ID ${req.query.id}`);
+        } catch (err) {
+            Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to retrieve review with ID ${req.query.id} ${err}`);
             return res.status(500).send("ERROR: Failed to retrieve review");
         }
     })
@@ -131,8 +131,8 @@ router.route("/reviews/")
                 } else {
                     res.send(`SUCCESS: Review with ID ${req.query.id} updated`); // Tested in postcode, working!
                 }
-            } catch {
-                Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to update review with ID ${req.query.id}`);
+            } catch (err) {
+                Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to update review with ID ${req.query.id} ${err}`);
                 return res.status(500).send("ERROR: Failed to update review");
             }
         }
@@ -150,8 +150,8 @@ router.route("/reviews/")
             } else {
                 res.send(`SUCCESS: Review with ID ${req.query.id} deleted`); // Tested in postcode, working!
             }
-        } catch {
-            Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to delete review with ID ${req.query.id}`);
+        } catch (err){
+            Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to delete review with ID ${req.query.id} ${err}`);
             return res.status(500).send("ERROR: Failed to delete review");
         }
     });

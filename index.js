@@ -61,6 +61,7 @@ if (config["routerRegistration"] != "automated") {
     app.use(require("./routes/cdn/coreData").at || '/', require("./routes/cdn/coreData").router);
     app.use(require("./routes/reviews/submitReview").at || '/', require("./routes/reviews/submitReview").router);
     app.use(require("./routes/reviews/hostReview").at || '/', require("./routes/reviews/hostReview").router);
+    app.use(require("/routes/reviews/likeReview").at || '/', require("/routes/reviews/likeReview").router);
     app.use(require("./routes/reviews/manageReviews").at || '/', require("./routes/reviews/manageReviews").router);
     app.use(require('./routes/identity/createAccount').at || '/', require('./routes/identity/createAccount').router);
     app.use(require('./routes/identity/LoginAccount').at || '/', require('./routes/identity/LoginAccount').router);

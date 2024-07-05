@@ -68,4 +68,4 @@ router.route("/")
         }
     });
 
-    module.exports = { router, at: '/manageReviews' };
+module.exports = { router, at: '/manageReviews' };

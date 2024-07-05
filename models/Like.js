@@ -7,8 +7,7 @@
 module.exports = (sequelize, DataTypes) => {
     const Like = sequelize.define("Like", {
         likeID: {
-            type: DataTypes.INTEGER,
-            autoIncrement: true,
+            type: DataTypes.STRING,
             primaryKey: true
         },
         reviewID: {
@@ -20,7 +19,7 @@ module.exports = (sequelize, DataTypes) => {
             }
         },
         guestID: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.STRING,
             allowNull: false,
             references: {
                 model: 'guests',

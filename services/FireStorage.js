@@ -3,6 +3,9 @@ var serviceAccount;
 require('dotenv').config()
 
 class FireStorage {
+    /**
+     * @type {import('@google-cloud/storage').Bucket}
+     */
     static #bucket = null;
     static #initialized = false;
 

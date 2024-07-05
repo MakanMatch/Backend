@@ -70,4 +70,4 @@ router.get("/getImageForReview", async (req, res) => {
     return;
 });
 
-module.exports = router;
+module.exports = { router, at: '/cdn' };

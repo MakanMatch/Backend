@@ -156,4 +156,4 @@ router.route("/reviews/")
         }
     });
 
-module.exports = router;
+module.exports = { router, at: '/reviews' };

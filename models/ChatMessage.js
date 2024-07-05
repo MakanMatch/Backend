@@ -15,14 +15,14 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: false
         },
-        from: {
+        sender: {
             type: DataTypes.STRING,
             allowNull: false
         },
         datetime: {
             type: DataTypes.STRING,
             allowNull: false
-        }
+        },
     }, { tableName: 'chatMessages' })
 
     // Associations

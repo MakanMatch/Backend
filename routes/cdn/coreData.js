@@ -203,7 +203,7 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
     }
 })
 
-router.get("/reviews", async (req, res) => { // GET review from review id
+router.get("/getReview", async (req, res) => { // GET review from review id
     if (!req.query.id) {
         return res.status(400).send("ERROR: Missing review ID");
     } else {

@@ -10,7 +10,6 @@ const { validateToken } = require("../../middleware/auth");
 
 router.get('/MyAccount', validateToken, (req, res) => {
     const userInfo = req.user;
-    console.log(userInfo)
     res.json(userInfo);
 });
 

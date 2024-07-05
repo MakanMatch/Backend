@@ -159,5 +159,6 @@ if (!SEQUELIZE_ACTIVE) {
         .catch(err => {
             console.log(err)
             console.log(`MAIN: Failed to setup sequelize. Terminating boot.`)
+            process.exit(1)
         })
 }

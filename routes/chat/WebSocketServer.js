@@ -95,6 +95,14 @@ ws.on("message", async (message) => {
 
   async function handleEditMessage(editedMessage) {
     const messageId = editedMessage.id;
+    if (!messageId) {
+      const jsonMessage = {
+        action: "error",
+        message: "ID not provided",
+      };
+      broadcastMessage(JSON.stringify(jsonMessage));
+      return;
+    }
     // Assuming findByPk is asynchronous
     const findMessage = await ChatMessage.findByPk(messageId);
   
@@ -109,10 +117,7 @@ ws.on("message", async (message) => {
     }
     const editMessage = ChatMessage.update({
       message: editedMessage.message,
-      timestamp: `${new Date().getHours()}:${new Date()
-          .getMinutes()
-          .toString()
-          .padStart(2, "0")}`
+      datetime: editedMessage.datetime,
     }, {
       where: {
         messageID: messageId,
@@ -126,9 +131,20 @@ ws.on("message", async (message) => {
 
   function handleDeleteMessage(deletedMessage) {
     const messageId = deletedMessage.id;
+    if (!messageId) {
+      const jsonMessage = {
+        action: "reload",
+      }
+      broadcastMessage(JSON.stringify(jsonMessage));
+      return;
+    }
     const findMessage = ChatMessage.findByPk(messageId);
     if (!findMessage) {
-      console.log("Message not found");
+      const jsonMessage = {
+        action: "reload",
+      }
+      broadcastMessage(JSON.stringify(jsonMessage));
+      return;
     }
     const deleteMessage = ChatMessage.destroy({
       where: {

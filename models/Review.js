@@ -47,6 +47,10 @@ module.exports = (sequelize, DataTypes) => {
         Review.belongsTo(models.Guest, {
             foreignKey: 'guestID',
             as: 'guest'
+        }),
+        Review.hasMany(models.Like, {
+            foreignKey: 'guestID',
+            as: 'likes'
         });
     }
 

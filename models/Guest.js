@@ -66,6 +66,10 @@ module.exports = (sequelize, DataTypes) => {
             as: "reviews",
             onDelete: "cascade"
         })
+        Guest.hasMany(models.Like, {
+            foreignKey: 'guestID',
+            as: 'likes'
+        });
     }
 
     return Guest;

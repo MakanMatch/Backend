@@ -5,42 +5,46 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const FileManager = require('../../services/FileManager');
 const { Universal } = require("../../services")
-const { storeFiles } = require("../../middleware/storeFiles");
+const { storeImages } = require("../../middleware/storeImages");
 const { Review, Host, Guest } = require('../../models');
 const Logger = require('../../services/Logger');
 
 
 router.route("/")
     .post(async (req, res) => {
-        storeFiles(req, res, async (err) => {
-            const hostID = Universal.data["DUMMY_HOST_ID"]
-            const host = await Host.findByPk(hostID)
-            const guestID = Universal.data["DUMMY_GUEST_ID"]
-            const guest = await Guest.findByPk(guestID)
-            const { sender, receiver, foodRating, hygieneRating, comments, dateCreated } = req.body;
+        storeImages(req, res, async (err) => {
 
             if (err instanceof multer.MulterError) {
                 Logger.log(`CDN REVIEWS POST ERROR: Image upload error; error: ${err}.`);
-                res.status(400).send("ERROR: Image upload error");
-                return
+                return res.status(400).send("ERROR: Image upload error");
             } else if (err) {
                 Logger.log(`CDN REVIEWS POST ERROR: Internal server error; error: ${err}.`);
-                res.status(500).send("ERROR: Internal server error");
-                return
+                return res.status(500).send("ERROR: Internal server error");
             }
 
-            if (!sender || !receiver || !foodRating || !hygieneRating || !dateCreated) {
+            const hostID = Universal.data["DUMMY_HOST_ID"]
+            const guestID = Universal.data["DUMMY_GUEST_ID"]
+            const { foodRating, hygieneRating, comments, dateCreated } = req.body;
+          
+            if (!foodRating || !hygieneRating || !dateCreated) {
                 return res.status(400).send("ERROR: Missing required fields");
             }
             try {
-                const fileUrls = [];
+                // const host = await Host.findByPk(hostID)
+                // const guest = await Guest.findByPk(guestID)
+                // if (!host || !guest) {
+                //     return res.status(404).send("ERROR: Host or guest not found");
+                // }
+                // Not using the above code for now as we are hardcoding the hostID and guestID
 
+                const fileUrls = [];
                 for (const file of req.files) {
                     const saveResult = await FileManager.saveFile(file.filename);
                     if (saveResult !== true) {
                         throw new Error(saveResult);
+                    } else {
+                        fileUrls.push(`${file.filename}`);
                     }
-                    fileUrls.push(`${file.filename}`);
                 }
 
                 const reviewID = Universal.generateUniqueID();
@@ -48,8 +52,6 @@ router.route("/")
 
                 const review = {
                     reviewID: reviewID,
-                    sender,
-                    receiver,
                     foodRating: foodRating,
                     hygieneRating: hygieneRating,
                     comments: comments,
@@ -62,10 +64,9 @@ router.route("/")
                 await Review.create(review);
 
                 res.send("SUCCESS: Review submitted successfully");
-                return;
-            } catch {
+            } catch (err) {
                 Logger.log(`CDN REVIEWS POST ERROR: Failed to submit review; error: ${err}.`);
-                res.status(500).send("ERROR: Failed to submit review");
+                return res.status(500).send("ERROR: Failed to submit review");
             }
         });
     });
@@ -101,17 +102,17 @@ router.route("/reviews/")
                 return res.status(404).send(`ERROR: Review not found`);
             }
             res.json(review); // Tested in postcode, working!
-        } catch {
-            Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to retrieve review with ID ${req.query.id}`);
+        } catch (err) {
+            Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to retrieve review with ID ${req.query.id} ${err}`);
             return res.status(500).send("ERROR: Failed to retrieve review");
         }
     })
     .put(async (req, res) => {
         if (!req.query.id) {
             return res.status(400).send("ERROR: Missing review ID");
-            
+
         }
-        const updateFields = ["foodRating", "hygieneRating", "comments", "images"];
+        const updateFields = ["foodRating", "hygieneRating", "comments", "images", "likeCount", "dateCreated", "guestID", "hostID"];
         const updateDict = {};
         updateFields.forEach(field => {
             if (req.query[field]) {
@@ -130,8 +131,8 @@ router.route("/reviews/")
                 } else {
                     res.send(`SUCCESS: Review with ID ${req.query.id} updated`); // Tested in postcode, working!
                 }
-            } catch {
-                Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to update review with ID ${req.query.id}`);
+            } catch (err) {
+                Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to update review with ID ${req.query.id} ${err}`);
                 return res.status(500).send("ERROR: Failed to update review");
             }
         }
@@ -149,10 +150,10 @@ router.route("/reviews/")
             } else {
                 res.send(`SUCCESS: Review with ID ${req.query.id} deleted`); // Tested in postcode, working!
             }
-        } catch {
-            Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to delete review with ID ${req.query.id}`);
+        } catch (err){
+            Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to delete review with ID ${req.query.id} ${err}`);
             return res.status(500).send("ERROR: Failed to delete review");
         }
     });
 
-module.exports = router;
+module.exports = { router, at: '/reviews' };

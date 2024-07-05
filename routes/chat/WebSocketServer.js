@@ -37,6 +37,7 @@ function startWebSocketServer(app) {
         },
         order: [["datetime", "ASC"]], // Order messages by datetime ascending
       });
+      console.log("Previous messages:", previousMessages)
   
       // Prepare the message to broadcast
       const message = JSON.stringify({
@@ -46,7 +47,9 @@ function startWebSocketServer(app) {
   
       // Broadcast the message to all clients
       broadcastMessage(message);
-    } catch (error) {
+      return chatHistory.chatID;
+    } 
+    catch (error) {
       console.error("Error fetching chat history and messages:", error);
     }
   }
@@ -62,7 +65,8 @@ function startWebSocketServer(app) {
     clients.push(ws);
 
     // Initialize chat history and send previous messages
-    chatID = await getChatHistoryAndMessages(user1ID, user2ID, ws);
+    chatID = await getChatHistoryAndMessages(user1ID, user2ID);
+    console.log("Chat ID:", chatID);
 
     // Handle WebSocket message events
     ws.on("message", async (message) => {

@@ -93,11 +93,19 @@ ws.on("message", async (message) => {
     console.error("WebSocket server error:", error);
   });
 
-  function handleEditMessage(editedMessage) {
+  async function handleEditMessage(editedMessage) {
     const messageId = editedMessage.id;
-    const findMessage = ChatMessage.findByPk(messageId);
+    // Assuming findByPk is asynchronous
+    const findMessage = await ChatMessage.findByPk(messageId);
+  
     if (!findMessage) {
       console.log("Message not found");
+      const jsonMessage = {
+        action: "error",
+        message: "Error occured on the server",
+      };
+      broadcastMessage(JSON.stringify(jsonMessage));
+      return;
     }
     const editMessage = ChatMessage.update({
       message: editedMessage.message,
@@ -132,9 +140,6 @@ ws.on("message", async (message) => {
     }
     broadcastMessage(JSON.stringify(jsonMessage));
   }
-
-
-
   function broadcastMessage(message, sender) {
     clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {

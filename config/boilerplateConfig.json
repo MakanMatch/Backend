@@ -13,6 +13,6 @@
             "clearUponBoot": false
         },
         "routeLogging": false,
-        "routerRegistration": "automated"
+        "routerRegistration": "manual"
     }
 }

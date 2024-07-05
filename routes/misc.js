@@ -5,4 +5,4 @@ router.get("/health", (req, res) => {
     res.send("Healthy!")
 })
 
-module.exports = router;
+module.exports = { router, at: '/misc' };

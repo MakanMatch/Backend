@@ -90,4 +90,4 @@ router.get("/verifyEmail", async (req, res) => {
     }
 });
 
-module.exports = router;
+module.exports = { router, at: '/identity/emailVerification' };

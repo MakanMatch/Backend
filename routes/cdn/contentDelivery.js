@@ -3,7 +3,7 @@ const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
 const Logger = require("../../services/Logger");
-const { FoodListing } = require("../../models");
+const { FoodListing,Review } = require("../../models");
 
 router.get("/getImageForListing", async (req, res) => {
     const { listingID, imageName } = req.query;
@@ -36,4 +36,38 @@ router.get("/getImageForListing", async (req, res) => {
     return;
 });
 
-module.exports = router;
+router.get("/getImageForReview", async (req, res) => {
+    const { reviewID, imageName } = req.query;
+    if (!reviewID || !imageName) {
+        res.status(400).send("ERROR: Invalid request parameters.");
+        return;
+    }
+
+    // Find the review
+    const findReview = await Review.findByPk(reviewID);
+    if (!findReview) {
+        Logger.log(`CDN CONTENTDELIVERY GETIMAGEFORREVIEW ERROR: Review not found.`)
+        res.status(404).send("ERROR: Review not found.");
+        return;
+    }
+
+    const findImageName = await FileManager.prepFile(imageName);
+    if (!findImageName.startsWith("SUCCESS")) {
+        Logger.log(`CDN CONTENTDELIVERY GETIMAGEFORREVIEW ERROR: Image not found.`)
+        res.status(404).send("ERROR: Image not found.");
+        return;
+    }
+
+    const reviewImages = findReview.images.split("|");
+
+    if (reviewImages.includes(imageName) !== true) {
+        Logger.log(`CDN CONTENTDELIVERY GETIMAGEFORREVIEW ERROR: Requested image does not belong to its corresponding review.`)
+        res.status(404).send("ERROR: Requested image does not belong to its corresponding review.");
+        return;
+    }
+
+    res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length))
+    return;
+});
+
+module.exports = { router, at: '/cdn' };

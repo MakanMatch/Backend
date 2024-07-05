@@ -10,7 +10,6 @@ const { validateToken } = require("../../middleware/auth");
 
 router.get('/MyAccount', validateToken, (req, res) => {
     const userInfo = req.user;
-    console.log(userInfo)
     res.json(userInfo);
 });
 
@@ -84,6 +83,7 @@ router.get("/getListing", async (req, res) => {
 router.get("/accountInfo", async (req, res) => { // GET account information
     try {
         const targetUserID = req.query.userID;
+        if (!targetUserID) { res.status(400).send("ERROR: One or more required payloads not provided."); }
         let user, userType;
 
         user = await Guest.findOne({ where: { userID: targetUserID } });
@@ -103,7 +103,7 @@ router.get("/accountInfo", async (req, res) => { // GET account information
         }
 
         if (!user) {
-            return res.status(404).send("User does not exist.");
+            return res.status(404).send("ERROR: User does not exist.");
         }
 
         const accountInfo = {
@@ -134,7 +134,8 @@ router.get("/accountInfo", async (req, res) => { // GET account information
         res.status(200).json(accountInfo);
 
     } catch (err) {
-        res.status(500).send("An error occured while fetching the account information.")
+        res.status(500).send("ERROR: An error occured while fetching the account information.")
+        console.log(err)
     }
 })
 
@@ -144,7 +145,7 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
         const order = [];
 
         if (!req.query.hostID) {
-            return res.status(400).send("UERROR: Missing host ID or order.");
+            return res.status(400).send("ERROR: Missing host ID or order.");
         } else {
             where.hostID = req.query.hostID;
         }
@@ -173,6 +174,11 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
                 const reviews = await Review.findAll({
                     where,
                     order,
+                    include: [{
+                        model: Guest,
+                        as: 'guest',
+                        attributes: ['username']
+                    }]
                 })
 
                 if (req.query.order === "images") {
@@ -200,7 +206,7 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
 
 router.get("/reviews", async (req, res) => { // GET review from review id
     if (!req.query.id) {
-        return res.status(400).send("UERROR: Missing review ID");
+        return res.status(400).send("ERROR: Missing review ID");
     } else {
         const review = await Review.findByPk(req.query.id);
         if (review) {
@@ -211,4 +217,4 @@ router.get("/reviews", async (req, res) => { // GET review from review id
     }
 })
 
-module.exports = router;
+module.exports = { router, at: '/cdn' };

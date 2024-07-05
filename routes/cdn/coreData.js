@@ -194,7 +194,6 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
                 }
             }
         } catch (err) {
-            Logger.log(`CDN COREDATA GETREVIEWS ERROR: Failed to retrieve reviews; error: ${err}.`);
             return res.status(404).send("ERROR: No reviews found.");
         }
 

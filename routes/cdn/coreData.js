@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
-const { FoodListing, Host, Guest, Admin, Review } = require("../../models");
+const { FoodListing, Host, Guest, Admin, Review, Reservation } = require("../../models");
 const Logger = require("../../services/Logger");
 const { Sequelize } = require('sequelize');
 const Universal = require("../../services/Universal");
@@ -66,12 +66,19 @@ router.get("/checkFavouriteListing", async (req, res) => { // GET favourite list
 
 router.get("/getListing", async (req, res) => {
     const listingID = req.query.id || req.body.listingID;
+    const includeReservations = req.query.includeReservations;
     if (!listingID) {
         res.status(400).send("ERROR: Listing ID not provided.")
         return
     }
 
-    const listing = await FoodListing.findByPk(listingID)
+    const listing = await FoodListing.findByPk(listingID, {
+        include: includeReservations ? [{
+            model: Reservation,
+            as: "guests"
+        }]: {}
+    })
+
     if (!listing || listing == null) {
         res.status(404).send("ERROR: Listing not found")
         return

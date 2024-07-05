@@ -1,5 +1,3 @@
-const { Timestamp } = require('firebase-admin/firestore');
-
 /**
  * 
  * @param {import('sequelize').Sequelize} sequelize 
@@ -25,10 +23,6 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: false
         },
-        timestamp: {
-            type: DataTypes.STRING,
-            allowNull: false
-        }
     }, { tableName: 'chatMessages' })
 
     // Associations

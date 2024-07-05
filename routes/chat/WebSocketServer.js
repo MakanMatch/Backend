@@ -3,7 +3,6 @@ const http = require("http");
 const WebSocket = require("ws");
 const { ChatHistory, ChatMessage } = require("../../models");
 const Universal = require("../../services/Universal");
-const mysql = require('mysql');
 function startWebSocketServer(app) {
   const PORT = 8080;
   const server = http.createServer(app);
@@ -51,25 +50,24 @@ function startWebSocketServer(app) {
       }));
 
       // Now you can handle further WebSocket message events
-      ws.on("message", async (message) => {
-        const parsedMessage = JSON.parse(message);
-        console.log("Received message:", parsedMessage);
-        if (parsedMessage.action === "edit") {
-          handleEditMessage(parsedMessage);
-        } else if (parsedMessage.action === "delete") {
-          handleDeleteMessage(parsedMessage);
-        }
-        else{
-        try {
-          // Create ChatMessage in the database
-          const createdMessage = await ChatMessage.create({
-            messageID: parsedMessage.messageid,
-            message: parsedMessage.message,
-            sender: parsedMessage.sender,
-            datetime: parsedMessage.datetime,
-            timestamp: parsedMessage.timestamp,
-            chatID: chatHistory.chatID, // Assign the chatID from ChatHistory
-          });
+// Now you can handle further WebSocket message events
+ws.on("message", async (message) => {
+  const parsedMessage = JSON.parse(message);
+  console.log("Received message:", parsedMessage);
+  if (parsedMessage.action === "edit") {
+    handleEditMessage(parsedMessage, chatHistory.chatID, ws);
+  } else if (parsedMessage.action === "delete") {
+    handleDeleteMessage(parsedMessage);
+  } else {
+    try {
+      // Create ChatMessage in the database
+      const createdMessage = await ChatMessage.create({
+        messageID: Universal.generateUniqueID(),
+        message: parsedMessage.message,
+        sender: parsedMessage.sender,
+        datetime: parsedMessage.datetime,
+        chatID: chatHistory.chatID, // Assign the chatID from ChatHistory
+      });
 
           // Broadcast the message to all clients
           broadcastMessage(JSON.stringify(createdMessage), ws);
@@ -139,7 +137,7 @@ function startWebSocketServer(app) {
 
   function broadcastMessage(message, sender) {
     clients.forEach((client) => {
-      if (client !== sender && client.readyState === WebSocket.OPEN) {
+      if (client.readyState === WebSocket.OPEN) {
         client.send(message);
       }
     });

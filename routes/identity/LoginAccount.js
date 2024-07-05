@@ -54,7 +54,7 @@ router.post("/", async (req, res) => {
         }
 
         // User info
-            let userInfo = {
+        let userInfo = {
             userID: user.userID,
             username: user.username,
             email: user.email,

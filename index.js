@@ -56,17 +56,17 @@ app.get("/", (req, res) => {
 app.use(checkHeaders) // Middleware to check Content-Type and API key headers
 if (config["routerRegistration"] != "automated") {
     console.log("MAIN: Route registration mode: MANUAL")
-    app.use("/misc", require("./routes/misc"));
-    app.use("/cdn", require("./routes/cdn/contentDelivery"));
-    app.use("/cdn", require("./routes/cdn/coreData"));
-    app.use("/reviews", require("./routes/reviews/reviews"));
-    app.use("/createAccount", require('./routes/identity/createAccount'));
-    app.use("/loginAccount", require('./routes/identity/LoginAccount'));
-    app.use("/accountRecovery", require('./routes/identity/AccountRecovery'));
-    app.use("/identity/emailVerification", require('./routes/identity/emailVerification'));
-    app.use("/identity/myAccount", require("./routes/identity/myAccount"));
-    app.use("/listings", require("./routes/listings/listings"));
-    app.use("/", require("./routes/orders/listingDetails"));
+    app.use(require("./routes/misc").at || '/', require("./routes/misc").router);
+    app.use(require("./routes/cdn/contentDelivery").at || '/', require("./routes/cdn/contentDelivery").router);
+    app.use(require("./routes/cdn/coreData").at || '/', require("./routes/cdn/coreData").router);
+    app.use(require("./routes/reviews/reviews").at || '/', require("./routes/reviews/reviews").router);
+    app.use(require('./routes/identity/createAccount').at || '/', require('./routes/identity/createAccount').router);
+    app.use(require('./routes/identity/LoginAccount').at || '/', require('./routes/identity/LoginAccount').router);
+    app.use(require('./routes/identity/AccountRecovery').at || '/', require('./routes/identity/AccountRecovery').router);
+    app.use(require('./routes/identity/emailVerification').at || '/', require('./routes/identity/emailVerification').router);
+    app.use(require("./routes/identity/myAccount").at || '/', require("./routes/identity/myAccount").router);
+    app.use(require("./routes/listings/listings").at || '/', require("./routes/listings/listings").router);
+    app.use(require("./routes/orders/listingDetails").at || '/', require("./routes/orders/listingDetails").router);
 } else {
     console.log("MAIN: Route registration mode: AUTOMATED")
     require('./routes').forEach(({ router, at, name }) => {

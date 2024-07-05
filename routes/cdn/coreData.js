@@ -217,4 +217,4 @@ router.get("/reviews", async (req, res) => { // GET review from review id
     }
 })
 
-module.exports = router;
+module.exports = { router, at: '/cdn' };

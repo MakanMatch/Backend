@@ -71,7 +71,6 @@ if (config["routerRegistration"] != "automated") {
     console.log("MAIN: Route registration mode: AUTOMATED")
     require('./routes').forEach(({ router, at, name }) => {
         try {
-            // console.log(`Registering ${name} at '${at}'`)
             app.use(at, router)
         } catch (err) {
             Logger.logAndThrow(`MAIN: Failed to register router auto-loaded from ${name} at '${at}'. Error: ${err}`)

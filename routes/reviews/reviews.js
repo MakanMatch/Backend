@@ -58,7 +58,7 @@ router.route("/")
                     images: fileUrlsString,
                     dateCreated: dateCreated,
                     guestID: guestID, // Hardcoded for now
-                    hostID: hostID, // Hardcoded for now
+                    hostID: hostID // Hardcoded for now
                 };
 
                 await Review.create(review);

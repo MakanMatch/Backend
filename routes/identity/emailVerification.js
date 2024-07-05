@@ -4,7 +4,7 @@ const { Guest, Host, Admin } = require('../../models');
 const { Universal, Emailer, Logger } = require('../../services');
 require('dotenv').config();
 
-router.post("/sendVerificationEmail", async (req, res) => {
+router.post("/send", async (req, res) => {
     // console.log("received at EmailVerification sendVerificationEmail");
     let data = req.body;
     let { email } = req.body;
@@ -52,7 +52,7 @@ router.post("/sendVerificationEmail", async (req, res) => {
     }
 });
 
-router.get("/verifyEmail", async (req, res) => {
+router.get("/verify", async (req, res) => {
     // console.log("received at EmailVerification verifyEmail");
     let { token } = req.query;
 

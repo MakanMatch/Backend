@@ -23,6 +23,10 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: false
         },
+        replyToID: {
+            type: DataTypes.STRING,
+            allowNull: true
+        }
     }, { tableName: 'chatMessages' })
 
     // Associations

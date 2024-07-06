@@ -72,7 +72,7 @@ function startWebSocketServer(app) {
     ws.on("message", async (message) => {
       const parsedMessage = JSON.parse(message);
       console.log("Received message:", parsedMessage);
-
+    
       if (parsedMessage.action === "edit") {
         handleEditMessage(parsedMessage, user1ID, user2ID, ws);
       } else if (parsedMessage.action === "delete") {
@@ -86,10 +86,17 @@ function startWebSocketServer(app) {
             sender: parsedMessage.sender,
             datetime: parsedMessage.datetime,
             chatID: chatID,
+            replyToID: parsedMessage.replyToID || null
           });
-
+    
+          // Include the replyTo message content in the response
+          const responseMessage = {
+            ...createdMessage.get({ plain: true }),
+            replyTo: parsedMessage.replyTo
+          };
+    
           // Broadcast the message to all clients
-          broadcastMessage(JSON.stringify(createdMessage), ws);
+          broadcastMessage(JSON.stringify(responseMessage), ws);
         } catch (error) {
           console.error("Error creating message:", error);
         }

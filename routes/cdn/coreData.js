@@ -191,6 +191,8 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
 
                 if (reviews.length > 0) {
                     res.json(reviews);
+                } else {
+                    return res.status(200).json([]);
                 }
             }
         } catch (err) {

@@ -26,6 +26,10 @@ module.exports = (sequelize, DataTypes) => {
         replyToID: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        repliedMessage: {
+            type: DataTypes.STRING,
+            allowNull: true
         }
     }, { tableName: 'chatMessages' })
 

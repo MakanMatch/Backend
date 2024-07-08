@@ -86,7 +86,8 @@ function startWebSocketServer(app) {
             sender: parsedMessage.sender,
             datetime: parsedMessage.datetime,
             chatID: chatID,
-            replyToID: parsedMessage.replyToID || null
+            replyToID: parsedMessage.replyToID || null,
+            repliedMessage: parsedMessage.replyTo || null,
           });
     
           // Include the replyTo message content in the response

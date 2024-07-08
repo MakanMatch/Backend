@@ -1,8 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
 const FileManager = require('../../services/FileManager');
 const { Universal } = require("../../services")
 const { storeImages } = require("../../middleware/storeImages");
@@ -21,20 +19,17 @@ router.route("/")
                 return res.status(500).send("ERROR: Internal server error");
             }
 
-            const hostID = Universal.data["DUMMY_HOST_ID"]
-            const guestID = Universal.data["DUMMY_GUEST_ID"]
-            const { foodRating, hygieneRating, comments, dateCreated } = req.body;
+            const { foodRating, hygieneRating, comments, dateCreated, guestID, hostID } = req.body;
           
-            if (!foodRating || !hygieneRating || !dateCreated) {
+            if (!foodRating || !hygieneRating || !dateCreated || !guestID || !hostID) {
                 return res.status(400).send("ERROR: Missing required fields");
             }
             try {
-                // const host = await Host.findByPk(hostID)
-                // const guest = await Guest.findByPk(guestID)
-                // if (!host || !guest) {
-                //     return res.status(404).send("ERROR: Host or guest not found");
-                // }
-                // Not using the above code for now as we are hardcoding the hostID and guestID
+                const host = await Host.findByPk(hostID)
+                const guest = await Guest.findByPk(guestID)
+                if (!host || !guest) {
+                    return res.status(404).send("ERROR: Host or guest not found");
+                }
 
                 const fileUrls = [];
                 for (const file of req.files) {
@@ -56,8 +51,8 @@ router.route("/")
                     comments: comments,
                     images: fileUrlsString,
                     dateCreated: dateCreated,
-                    guestID: guestID, // Hardcoded for now
-                    hostID: hostID // Hardcoded for now
+                    guestID: guestID,
+                    hostID: hostID 
                 };
 
                 await Review.create(review);

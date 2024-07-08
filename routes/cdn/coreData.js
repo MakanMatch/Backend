@@ -74,7 +74,7 @@ router.get("/getListing", async (req, res) => {
 
     const listing = await FoodListing.findByPk(listingID, {
         include: includeReservations ? [{
-            model: Reservation,
+            model: Guest,
             as: "guests"
         }]: {}
     })

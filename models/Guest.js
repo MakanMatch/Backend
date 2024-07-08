@@ -58,8 +58,7 @@ module.exports = (sequelize, DataTypes) => {
     // Associations
     Guest.associate = (models) => {
         Guest.belongsToMany(models.FoodListing, {
-            through: models.Reservation,
-            as: "reservations"
+            through: models.Reservation
         })
         Guest.hasMany(models.Review, {
             foreignKey: "guestID",

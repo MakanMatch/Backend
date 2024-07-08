@@ -70,7 +70,7 @@ router.route("/")
         }
     })
 
-router.get("/userLikedReviews", async (req, res) => {
+router.get("/userLiked", async (req, res) => {
     if (!req.query.guestID) {
         return res.status(400).send("ERROR: Missing required fields");
     }
@@ -82,7 +82,6 @@ router.get("/userLikedReviews", async (req, res) => {
         });
         if (likedReviews) {
             res.json(likedReviews);
-            console.log(likedReviews);
         } else {
             return res.status(200).json([]);
         }

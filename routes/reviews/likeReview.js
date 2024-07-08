@@ -33,11 +33,14 @@ router.route("/")
                 });
                 res.send("SUCCESS: Like removed");
             } else {
-                await ReviewLike.create({
+                const createLike = await ReviewLike.create({
                     likeID: likeID,
                     reviewID: reviewID,
                     guestID: guestID,
                 });
+                if (!createLike) {
+                    return res.status(500).send("ERROR: Failed to like review");
+                }
                 await Review.increment('likeCount', {
                     where: {
                         reviewID: reviewID

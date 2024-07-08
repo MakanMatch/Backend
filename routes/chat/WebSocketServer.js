@@ -84,6 +84,7 @@ function startWebSocketServer(app) {
             chatID: chatID,
             replyToID: parsedMessage.replyToID || null,
             repliedMessage: parsedMessage.replyTo || null,
+            edited: false,
           });
     
           // Include the replyTo message content in the response
@@ -138,6 +139,7 @@ function startWebSocketServer(app) {
       {
         message: editedMessage.message,
         datetime: editedMessage.datetime,
+        edited: true,
       },
       {
         where: {

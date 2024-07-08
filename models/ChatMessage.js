@@ -30,6 +30,11 @@ module.exports = (sequelize, DataTypes) => {
         repliedMessage: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        edited: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
         }
     }, { tableName: 'chatMessages' })
 

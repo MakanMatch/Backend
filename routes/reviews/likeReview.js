@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Universal } = require("../../services")
-const { Review, Like } = require('../../models');
+const { Review, ReviewLike } = require('../../models');
 const Logger = require('../../services/Logger');
 
 router.route("/")
@@ -11,14 +11,14 @@ router.route("/")
         }
         const likeID = Universal.generateUniqueID();
         try {
-            const existingLike = await Like.findOne({
+            const existingLike = await ReviewLike.findOne({
                 where: {
                     reviewID: req.query.reviewID,
                     guestID: req.query.guestID
                 }
             });
             if (existingLike) {
-                await Like.destroy({
+                await ReviewLike.destroy({
                     where: {
                         reviewID: req.query.reviewID,
                         guestID: req.query.guestID
@@ -31,7 +31,7 @@ router.route("/")
                 });
                 res.send("SUCCESS: Like removed");
             } else {
-                await Like.create({
+                await ReviewLike.create({
                     likeID: likeID,
                     reviewID: req.query.reviewID,
                     guestID: req.query.guestID,
@@ -53,16 +53,16 @@ router.route("/")
             return res.status(400).send("ERROR: Missing required fields");
         }
         try {
-            const existingLike = await Like.findOne({
+            const existingLike = await ReviewLike.findOne({
                 where: {
                     reviewID: req.query.reviewID,
                     guestID: req.query.guestID
                 }
             });
             if (existingLike) {
-                res.send("true");
+                res.send(true);
             } else {
-                res.send("false");
+                res.send(false);
             }
         } catch (err) {
             Logger.log(`CDN REVIEWS LIKEREVIEW ERROR: Failed to retrieve like status; error: ${err}.`);
@@ -75,7 +75,7 @@ router.get("/userLikedReviews", async (req, res) => {
         return res.status(400).send("ERROR: Missing required fields");
     }
     try {
-        const likedReviews = await Like.findAll({
+        const likedReviews = await ReviewLike.findAll({
             where: {
                 guestID: req.query.guestID
             }

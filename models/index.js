@@ -74,7 +74,7 @@ db.Host = require('./Host')(sequelize, Sequelize.DataTypes);
 db.Reservation = require('./Reservation')(sequelize, Sequelize.DataTypes);
 db.Review = require('./Review')(sequelize, Sequelize.DataTypes);
 db.Warning = require('./Admin')(sequelize, Sequelize.DataTypes);
-db.Like = require('./Like')(sequelize, Sequelize.DataTypes);
+db.ReviewLike = require('./ReviewLike')(sequelize, Sequelize.DataTypes);
 
 // Auto-detect and import other models (intellisense will not work for these models)
 fs

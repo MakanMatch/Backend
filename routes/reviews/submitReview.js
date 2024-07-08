@@ -10,7 +10,6 @@ const Logger = require('../../services/Logger');
 router.route("/")
     .post(async (req, res) => {
         storeImages(req, res, async (err) => {
-
             if (err instanceof multer.MulterError) {
                 Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Image upload error; error: ${err}.`);
                 return res.status(400).send("ERROR: Image upload error");
@@ -32,17 +31,19 @@ router.route("/")
                 }
 
                 const fileUrls = [];
-                for (const file of req.files) {
-                    const saveResult = await FileManager.saveFile(file.filename);
-                    if (saveResult !== true) {
-                        throw new Error(saveResult);
-                    } else {
-                        fileUrls.push(`${file.filename}`);
+                if (req.files) {
+                    for (const file of req.files) {
+                        const saveResult = await FileManager.saveFile(file.filename);
+                        if (saveResult !== true) {
+                            throw new Error(saveResult);
+                        } else {
+                            fileUrls.push(`${file.filename}`);
+                        }
                     }
                 }
+                const fileUrlsString = fileUrls.join("|");
 
                 const reviewID = Universal.generateUniqueID();
-                const fileUrlsString = fileUrls.join("|");
 
                 const review = {
                     reviewID: reviewID,

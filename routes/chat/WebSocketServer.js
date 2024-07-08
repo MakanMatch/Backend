@@ -37,7 +37,6 @@ function startWebSocketServer(app) {
         },
         order: [["datetime", "ASC"]], // Order messages by datetime ascending
       });
-      console.log("Previous messages:", previousMessages)
   
       // Prepare the message to broadcast
       const message = JSON.stringify({
@@ -66,13 +65,10 @@ function startWebSocketServer(app) {
 
     // Initialize chat history and send previous messages
     chatID = await getChatHistoryAndMessages(user1ID, user2ID);
-    console.log("Chat ID:", chatID);
 
     // Handle WebSocket message events
     ws.on("message", async (message) => {
       const parsedMessage = JSON.parse(message);
-      console.log("Received message:", parsedMessage);
-    
       if (parsedMessage.action === "edit") {
         handleEditMessage(parsedMessage, user1ID, user2ID, ws);
       } else if (parsedMessage.action === "delete") {

@@ -52,6 +52,14 @@ module.exports = (sequelize, DataTypes) => {
         resetKeyExpiration: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        emailVerificationToken: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        emailVerificationTokenExpiration: {
+            type: DataTypes.STRING,
+            allowNull: true
         }
     }, { tableName: 'guests' })
 

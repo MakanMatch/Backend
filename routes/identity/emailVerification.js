@@ -22,8 +22,8 @@ router.post("/send", async (req, res) => {
         const verificationToken = Universal.generateUniqueID(6);
 
         // Save verificationToken and expiration to user record
-        user.verificationToken = verificationToken;
-        user.verificationTokenExpiration = Date.now() + 86400000; // 24 hours expiration
+        user.emailVerificationToken = verificationToken;
+        user.emailVerificationTokenExpiration = Date.now() + 86400000; // 24 hours expiration
         
         const saveUser = await user.save();
 
@@ -31,7 +31,9 @@ router.post("/send", async (req, res) => {
             res.status(500).send("ERROR: Failed to save verification token.")
         }
 
-        const verificationLink = `${process.env.FRONTEND_URL}/verifyEmail?token=${verificationToken}`;
+        const origin = req.headers.origin
+        const verificationLink = `${origin}/verifyToken?userID=${user.userID}&token=${verificationToken}`;
+        console.log(verificationLink)
 
         // Send email with verification link using the Emailer service
         const emailSent = await Emailer.sendEmail(
@@ -52,34 +54,29 @@ router.post("/send", async (req, res) => {
     }
 });
 
-router.get("/verify", async (req, res) => {
+router.post("/verify", async (req, res) => {
     // console.log("received at EmailVerification verifyEmail");
-    let { token } = req.query;
+    let { userID, token } = req.body;
 
-    if (!token) {
-        res.status(400).send("UERROR: Token is required for email verification.");
-        return;
+    if (!token || !userID) {
+        return res.status(400).send("ERROR: One or more parameters missing.");
     }
 
     try {
-        let user = await Guest.findOne({ where: { verificationToken: token } }) ||
-            await Host.findOne({ where: { verificationToken: token } }) ||
-            await Admin.findOne({ where: { verificationToken: token } });
+        let user = await Guest.findOne({ where: { userID: userID } }) ||
+            await Host.findOne({ where: { userID: userID } }) ||
+            await Admin.findOne({ where: { userID: userID } });
 
-        if (!user || user.verificationTokenExpiration < Date.now()) {
-            res.status(400).send("UERROR: Invalid or expired verification token.");
-            return;
+        if (!user || token != user.emailVerificationToken || user.emailVerificationTokenExpiration < Date.now()) {
+            return res.status(400).send("UERROR: Invalid or expired verification token.");
         }
 
-        user.isVerified = true; // Add this field to your model if it doesn't exist
-        user.verificationToken = null;
-        user.verificationTokenExpiration = null;
-        
-        const saveUser = await user.save();
+        // Set user as verified (assuming you have an emailVerified attribute)
+        user.emailVerified = true;
+        user.emailVerificationToken = null;
+        user.emailVerificationTokenExpiration = null;
 
-        if (saveUser != 1) {
-            res.status(500).send("ERROR: Failed to save verification token.")
-        }
+        await user.save();
 
         Logger.log(`IDENTITY EMAILVERIFICATION: Email verification for userID ${user.userID} successful.`);
         res.send("SUCCESS: Email verification successful. You can now log in with your verified email.");

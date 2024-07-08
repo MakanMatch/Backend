@@ -1,7 +1,7 @@
 require('./services/BootCheck').check()
 const express = require('express');
 const cors = require('cors');
-const { v4: uuidv4 } = require('uuid')
+const jwt = require('jsonwebtoken')
 const { FoodListing, Guest, Host, Reservation } = require('./models')
 const Encryption = require("./services/Encryption")
 require('dotenv').config()
@@ -80,9 +80,11 @@ if (config["routerRegistration"] != "automated") {
 
 async function onDBSynchronise() {
     const guests = await Guest.findAll()
+    var guestRecord;
     if (guests.length > 0) {
         Universal.data["DUMMY_GUEST_ID"] = guests[0].userID
         Universal.data["DUMMY_GUEST_USERNAME"] = guests[0].username
+        guestRecord = guests[0]
         console.log(`Found existing guest, using as dummy. Guest User ID: ${guests[0].userID}`)
     } else {
         const newGuest = await Guest.create({
@@ -100,8 +102,22 @@ async function onDBSynchronise() {
         })
         Universal.data["DUMMY_GUEST_ID"] = newGuest.userID
         Universal.data["DUMMY_GUEST_USERNAME"] = newGuest.username
+        guestRecord = newGuest
         console.log(`Created dummy guest with User ID: ${newGuest.userID}`)
     }
+
+    jwt.sign({
+        userID: guestRecord.userID,
+        username: guestRecord.username,
+        email: guestRecord.email,
+    }, process.env.JWT_KEY, { expiresIn: '24h' }, (err, token) => {
+        if (err) {
+            console.log("WARNING: Failed to generate dummy guest JWT.")
+        } else {
+            Universal.data["DUMMY_GUEST_TOKEN"] = token
+            console.log("Generated dummy guest token. Token: " + token)
+        }
+    })
 
     const joshuasHost = await Host.findByPk("272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4")
     if (!joshuasHost) {

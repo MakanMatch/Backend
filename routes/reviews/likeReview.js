@@ -44,7 +44,7 @@ router.route("/")
                 res.send("SUCCESS: Like added");
             }
         } catch (err) {
-            Logger.log(`CDN REVIEWS LIKEREVIEW ERROR: Failed to like / unlike review; error: ${err}.`);
+            Logger.log(`REVIEWS LIKEREVIEW POST ERROR: Failed to like / unlike review; error: ${err}.`);
             return res.status(500).send("ERROR: Failed to like review");
         }
     })
@@ -65,7 +65,7 @@ router.route("/")
                 res.send(false);
             }
         } catch (err) {
-            Logger.log(`CDN REVIEWS LIKEREVIEW ERROR: Failed to retrieve like status; error: ${err}.`);
+            Logger.log(`REVIEWS LIKEREVIEW GET ERROR: Failed to retrieve like status; error: ${err}.`);
             return res.status(500).send("ERROR: Failed to retrieve like status");
         }
     })
@@ -87,7 +87,7 @@ router.get("/userLikedReviews", async (req, res) => {
             return res.status(200).json([]);
         }
     } catch (err) {
-        Logger.log(`CDN REVIEWS USERLIKEDREVIEWS ERROR: Failed to retrieve liked reviews by user; error: ${err}.`);
+        Logger.log(`REVIEWS LIKEREVIEW USERLIKEDREVIEWS GET ERROR: Failed to retrieve liked reviews by user; error: ${err}.`);
         return res.status(500).send("ERROR: Failed to retrieve liked reviews");
     }
 })

@@ -17,7 +17,7 @@ router.get("/", async (req, res) => {
             res.json(hostReview);
         }
     } catch (err) {
-        Logger.log(`CDN REVIEWS HOST ERROR: Failed to retrieve host review; error: ${err}.`);
+        Logger.log(`REVIEWS HOSTREVIEW GET ERROR: Failed to retrieve host review; error: ${err}.`);
         return res.status(500).send("ERROR: Failed to retrieve host review");
     }
 });

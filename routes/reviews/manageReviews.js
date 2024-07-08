@@ -15,7 +15,7 @@ router.route("/")
             }
             res.json(review); // Tested in postcode, working!
         } catch (err) {
-            Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to retrieve review with ID ${req.query.id} ${err}`);
+            Logger.log(`REVIEWS MANAGEREVIEWS GET ERROR: Failed to retrieve review with ID ${req.query.id} ${err}`);
             return res.status(500).send("ERROR: Failed to retrieve review");
         }
     })
@@ -44,7 +44,7 @@ router.route("/")
                     res.send(`SUCCESS: Review with ID ${req.query.id} updated`); // Tested in postcode, working!
                 }
             } catch (err) {
-                Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to update review with ID ${req.query.id} ${err}`);
+                Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update review with ID ${req.query.id} ${err}`);
                 return res.status(500).send("ERROR: Failed to update review");
             }
         }
@@ -63,7 +63,7 @@ router.route("/")
                 res.send(`SUCCESS: Review with ID ${req.query.id} deleted`); // Tested in postcode, working!
             }
         } catch (err){
-            Logger.log(`CDN REVIEWS REVIEWS ERROR: Failed to delete review with ID ${req.query.id} ${err}`);
+            Logger.log(`REVIEWS MANAGEREVIEWS DELETE ERROR: Failed to delete review with ID ${req.query.id} ${err}`);
             return res.status(500).send("ERROR: Failed to delete review");
         }
     });

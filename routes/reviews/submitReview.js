@@ -14,10 +14,10 @@ router.route("/")
         storeImages(req, res, async (err) => {
 
             if (err instanceof multer.MulterError) {
-                Logger.log(`CDN REVIEWS POST ERROR: Image upload error; error: ${err}.`);
+                Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Image upload error; error: ${err}.`);
                 return res.status(400).send("ERROR: Image upload error");
             } else if (err) {
-                Logger.log(`CDN REVIEWS POST ERROR: Internal server error; error: ${err}.`);
+                Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Internal server error; error: ${err}.`);
                 return res.status(500).send("ERROR: Internal server error");
             }
 
@@ -64,7 +64,7 @@ router.route("/")
 
                 res.send("SUCCESS: Review submitted successfully");
             } catch (err) {
-                Logger.log(`CDN REVIEWS POST ERROR: Failed to submit review; error: ${err}.`);
+                Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Failed to submit review; error: ${err}.`);
                 return res.status(500).send("ERROR: Failed to submit review");
             }
         });

@@ -8,7 +8,7 @@ const { Sequelize } = require('sequelize');
 const Universal = require("../../services/Universal");
 const { validateToken } = require("../../middleware/auth");
 
-router.get('/MyAccount', validateToken, (req, res) => {
+router.get('/myAccount', validateToken, (req, res) => {
     const userInfo = req.user;
     res.json(userInfo);
 });

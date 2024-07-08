@@ -60,6 +60,9 @@ router.post("/", async (req, res) => {
             email: user.email,
             contactNum: user.contactNum,
             address: user.address,
+            favCuisine: user.favCuisine,
+            mealsMatched: user.mealsMatched,
+            createdAt: user.createdAt,
             emailVerified: user.emailVerified,
             userType: userType
         }

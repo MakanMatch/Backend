@@ -137,7 +137,6 @@ function startWebSocketServer(app) {
     await ChatMessage.update(
       {
         message: editedMessage.message,
-        datetime: editedMessage.datetime,
         edited: true,
       },
       {

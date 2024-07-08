@@ -37,7 +37,7 @@ router.get("/fetchGuestDetails", async (req, res) => {
 
 router.get("/listings", async (req, res) => { // GET all food listings
     try {
-        const foodListings = await FoodListing.findAll();
+        const foodListings = await FoodListing.findAll({ where: { published: true }});
         foodListings.map(listing => (listing.images == null || listing.images == "") ? listing.images = [] : listing.images = listing.images.split("|"));
         res.status(200).json(foodListings);
     } catch (error) {
@@ -76,7 +76,7 @@ router.get("/getListing", async (req, res) => {
         include: includeReservations ? [{
             model: Guest,
             as: "guests"
-        }]: {}
+        }]: []
     })
 
     if (!listing || listing == null) {

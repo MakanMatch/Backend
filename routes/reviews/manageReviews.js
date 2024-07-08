@@ -20,31 +20,37 @@ router.route("/")
         }
     })
     .put(async (req, res) => {
-        if (!req.query.id) {
-            return res.status(400).send("ERROR: Missing review ID");
+        const { reviewID,foodRating, hygieneRating, comments, images, likeCount, dateCreated, guestID, hostID } = req.body;
+        console.log(req.body)
 
+        if (!reviewID) {
+            return res.status(400).send("ERROR: Missing review ID");
         }
-        const updateFields = ["foodRating", "hygieneRating", "comments", "images", "likeCount", "dateCreated", "guestID", "hostID"];
+        
         const updateDict = {};
-        updateFields.forEach(field => {
-            if (req.query[field]) {
-                updateDict[field] = req.query[field];
-            }
-        })
+        if (foodRating) updateDict.foodRating = foodRating;
+        if (hygieneRating) updateDict.hygieneRating = hygieneRating;
+        if (comments) updateDict.comments = comments;
+        if (images) updateDict.images = images;
+        if (likeCount) updateDict.likeCount = likeCount;
+        if (dateCreated) updateDict.dateCreated = dateCreated;
+        if (guestID) updateDict.guestID = guestID;
+        if (hostID) updateDict.hostID = hostID;
+
         if (Object.keys(updateDict).length === 0) {
             return res.send("SUCCESS: No fields to update");
         } else {
             try {
                 const updateReview = await Review.update(updateDict, {
-                    where: { reviewID: req.query.id }
+                    where: { reviewID: reviewID }
                 });
                 if (!updateReview) {
-                    return res.status(404).send(`UERROR: Review with ID ${req.query.id} not found`);
+                    return res.status(404).send(`UERROR: Review with ID ${reviewID} not found`);
                 } else {
-                    res.send(`SUCCESS: Review with ID ${req.query.id} updated`); // Tested in postcode, working!
+                    res.send(`SUCCESS: Review with ID ${reviewID} updated`); // Tested in postcode, working!
                 }
             } catch (err) {
-                Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update review with ID ${req.query.id}; error: ${err}`);
+                Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update review with ID ${reviewID}; error: ${err}`);
                 return res.status(500).send("ERROR: Failed to update review");
             }
         }

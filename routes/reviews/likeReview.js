@@ -6,39 +6,41 @@ const Logger = require('../../services/Logger');
 
 router.route("/")
     .post(async (req, res) => {
-        if (!req.query.reviewID || !req.query.guestID) {
+        const { reviewID, guestID } = req.body;
+        if (!reviewID || !guestID) {
             return res.status(400).send("ERROR: Missing required fields");
         }
         const likeID = Universal.generateUniqueID();
+
         try {
             const existingLike = await ReviewLike.findOne({
                 where: {
-                    reviewID: req.query.reviewID,
-                    guestID: req.query.guestID
+                    reviewID: reviewID,
+                    guestID: guestID
                 }
             });
             if (existingLike) {
                 await ReviewLike.destroy({
                     where: {
-                        reviewID: req.query.reviewID,
-                        guestID: req.query.guestID
+                        reviewID: reviewID,
+                        guestID: guestID
                     }
                 });
                 await Review.decrement('likeCount', {
                     where: {
-                        reviewID: req.query.reviewID
+                        reviewID: reviewID
                     }
                 });
                 res.send("SUCCESS: Like removed");
             } else {
                 await ReviewLike.create({
                     likeID: likeID,
-                    reviewID: req.query.reviewID,
-                    guestID: req.query.guestID,
+                    reviewID: reviewID,
+                    guestID: guestID,
                 });
                 await Review.increment('likeCount', {
                     where: {
-                        reviewID: req.query.reviewID
+                        reviewID: reviewID
                     }
                 });
                 res.send("SUCCESS: Like added");

@@ -150,36 +150,49 @@ function startWebSocketServer(app) {
       });
   }
 
-  function handleDeleteMessage(deletedMessage) {
+  async function handleDeleteMessage(deletedMessage) {
     const messageId = deletedMessage.id;
     if (!messageId) {
       const jsonMessage = {
-        action: "reload",
+        action: "error",
+        message: "ID not provided",
       };
       broadcastMessage(JSON.stringify(jsonMessage));
       return;
     }
-
-    const findMessage = ChatMessage.findByPk(messageId);
-    if (!findMessage) {
+  
+    try {
+      const findMessage = await ChatMessage.findByPk(messageId);
+      if (!findMessage) {
+        const jsonMessage = {
+          action: "error",
+          message: "Message not found",
+        };
+        broadcastMessage(JSON.stringify(jsonMessage));
+        return;
+      }
+  
+      await ChatMessage.destroy({
+        where: {
+          messageID: messageId,
+        },
+      });
+  
       const jsonMessage = {
-        action: "reload",
+        action: "delete",
+        id: messageId,
       };
       broadcastMessage(JSON.stringify(jsonMessage));
-      return;
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      const jsonMessage = {
+        action: "error",
+        message: "Error occurred while deleting message",
+      };
+      broadcastMessage(JSON.stringify(jsonMessage));
     }
-
-    const deleteMessage = ChatMessage.destroy({
-      where: {
-        messageID: messageId,
-      },
-    });
-
-    const jsonMessage = {
-      action: "reload",
-    };
-    broadcastMessage(JSON.stringify(jsonMessage));
   }
+  
 
   function broadcastMessage(message) {
     clients.forEach((client) => {

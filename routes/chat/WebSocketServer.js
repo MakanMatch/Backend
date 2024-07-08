@@ -126,7 +126,6 @@ function startWebSocketServer(app) {
 
     const findMessage = await ChatMessage.findByPk(messageId);
     if (!findMessage) {
-      console.log("Message not found");
       const jsonMessage = {
         action: "error",
         message: "Error occurred on the server",

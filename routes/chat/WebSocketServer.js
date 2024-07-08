@@ -19,7 +19,7 @@ function startWebSocketServer(app) {
           user2ID,
         },
       });
-  
+
       if (!chatHistory) {
         // Create a new ChatHistory if it doesn't exist
         chatHistory = await ChatHistory.create({
@@ -29,7 +29,7 @@ function startWebSocketServer(app) {
           datetime: new Date().toISOString(), // Replace with current datetime logic
         });
       }
-  
+
       // Fetch previous chat messages
       const previousMessages = await ChatMessage.findAll({
         where: {
@@ -37,22 +37,21 @@ function startWebSocketServer(app) {
         },
         order: [["datetime", "ASC"]], // Order messages by datetime ascending
       });
-  
+
       // Prepare the message to broadcast
       const message = JSON.stringify({
         type: "chat_history",
         messages: previousMessages,
       });
-  
+
       // Broadcast the message to all clients
       broadcastMessage(message);
       return chatHistory.chatID;
-    } 
-    catch (error) {
+    } catch (error) {
       console.error("Error fetching chat history and messages:", error);
     }
   }
-  
+
   wss.on("connection", async (ws) => {
     console.log("WS connection arrived");
 
@@ -86,13 +85,13 @@ function startWebSocketServer(app) {
             repliedMessage: parsedMessage.replyTo || null,
             edited: false,
           });
-    
+
           // Include the replyTo message content in the response
           const responseMessage = {
             ...createdMessage.get({ plain: true }),
-            replyTo: parsedMessage.replyTo
+            replyTo: parsedMessage.replyTo,
           };
-    
+
           // Broadcast the message to all clients
           broadcastMessage(JSON.stringify(responseMessage), ws);
         } catch (error) {
@@ -143,7 +142,8 @@ function startWebSocketServer(app) {
         where: {
           messageID: messageId,
         },
-      });
+      }
+    );
   }
 
   async function handleDeleteMessage(deletedMessage) {
@@ -156,7 +156,7 @@ function startWebSocketServer(app) {
       broadcastMessage(JSON.stringify(jsonMessage));
       return;
     }
-  
+
     try {
       const findMessage = await ChatMessage.findByPk(messageId);
       if (!findMessage) {
@@ -167,13 +167,13 @@ function startWebSocketServer(app) {
         broadcastMessage(JSON.stringify(jsonMessage));
         return;
       }
-  
+
       await ChatMessage.destroy({
         where: {
           messageID: messageId,
         },
       });
-  
+
       const jsonMessage = {
         action: "delete",
         id: messageId,
@@ -188,7 +188,6 @@ function startWebSocketServer(app) {
       broadcastMessage(JSON.stringify(jsonMessage));
     }
   }
-  
 
   function broadcastMessage(message) {
     clients.forEach((client) => {

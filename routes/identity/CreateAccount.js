@@ -65,23 +65,8 @@ router.post("/", async (req, res) => {
         } else {
             await Guest.create(accountData);
         }
-
-        const origin = req.headers.origin || 'http://localhost:8500';
-        const verificationLink = `${origin}/verifyEmail?token=${emailVeriToken}&email=${email}`;
-
-        const emailSent = await Emailer.sendEmail(
-            email,
-            'Email Verification',
-            `Click the link to verify your email: ${verificationLink}`,
-            `<p>Click the link to verify your email: <a href="${verificationLink}">${verificationLink}</a></p>`
-        );
-
-        if (emailSent) {
-            Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created`);
-            res.send("SUCCESS: Account created. Please verify your email.");
-        } else {
-            res.status(500).send("ERROR: Failed to send verification email.");
-        }
+        Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created`);
+        res.send("SUCCESS: Account created. Please verify your email.");
     } catch (err) {
         console.error(err);
         res.status(500).send("Internal server error.");

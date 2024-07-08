@@ -9,7 +9,7 @@ router.post("/createReservation", validateToken, async (req, res) => {
     const { listingID, portions } = req.body;
     if (!listingID || !portions) {
         return res.status(400).send("ERROR: One or more payloads not provided.")
-    } else if (!typeof portions === 'number') {
+    } else if (typeof portions !== 'number' || portions <= 0) {
         return res.status(400).send("ERROR: Payloads must be in the right format.")
     }
 

@@ -157,10 +157,9 @@ async function onDBSynchronise() {
     //     totalPrice: 20.00,
     //     markedPaid: false,
     //     paidAndPresent: false,
-    //     listingID: "1df95ced-b271-4547-bc82-c7a267d3d19e",
-    //     FoodListingListingID: "1df95ced-b271-4547-bc82-c7a267d3d19e",
+    //     listingID: "b77d9661-f118-453e-a9cb-2bed5e787e80",
     //     guestID: "47f4497b-1331-4b8a-97a4-095a79a1fd48",
-    //     GuestUserID: "47f4497b-1331-4b8a-97a4-095a79a1fd48"
+    //     referenceNum: "abc123"
     // })
 
     // if (!reservation) {

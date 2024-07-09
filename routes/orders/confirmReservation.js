@@ -2,6 +2,7 @@ const express = require('express');
 const { validateToken } = require('../../middleware/auth');
 const { FoodListing, Guest, Reservation } = require('../../models');
 const Logger = require('../../services/Logger');
+const Universal = require('../../services/Universal');
 const router = express.Router();
 
 router.post("/createReservation", validateToken, async (req, res) => {
@@ -33,7 +34,6 @@ router.post("/createReservation", validateToken, async (req, res) => {
 
     var reservationAlreadyMade = false;
     for (const res of listing.guests) {
-        console.log(res.userID, guestID)
         if (res.userID == guestID) {
             reservationAlreadyMade = true;
             break;
@@ -48,10 +48,13 @@ router.post("/createReservation", validateToken, async (req, res) => {
         return res.status(400).send("UERROR: Not enough portions available.")
     }
 
+    const allReservationReferences = (await Reservation.findAll({ attributes: ['referenceNum'] })).map(r => r.referenceNum)
+
     const totalPrice = portions * listing.portionPrice
     const reservation = await Reservation.create({
         guestID: guestID,
         listingID: listingID,
+        referenceNum: Universal.generateUniqueID(6, allReservationReferences).toUpperCase(),
         datetime: new Date().toISOString(),
         portions: portions,
         totalPrice: totalPrice,
@@ -66,9 +69,10 @@ router.post("/createReservation", validateToken, async (req, res) => {
     Logger.log(`ORDERS CONFIRMRESERVATION CREATERESERVATION: Guest ${guestID} made reservation for listing ${listingID}.`)
     return res.status(200).json({
         message: "SUCCESS: Reservation made successfully.",
-        totalPrice: totalPrice,
-        portions: portions,
         listingID: listingID,
+        referenceNum: reservation.referenceNum,
+        totalPrice: totalPrice,
+        portions: portions
     })
 })
 

@@ -44,10 +44,17 @@ module.exports = (sequelize, DataTypes) => {
             foreignKey: 'hostID',
             as: 'host'
         }),
+
+        // Like relationship (reviews can get many likes from guests)
         Review.belongsToMany(models.Guest, {
             through: models.ReviewLike,
+            as: "likes"
+        })
+
+        // Original poster relationship (a review is posted by a guest)
+        Review.belongsTo(models.Guest, {
             foreignKey: 'guestID',
-            as: 'guest'
+            as: 'reviewPoster'
         })
     }
 

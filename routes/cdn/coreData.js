@@ -176,7 +176,7 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
                     order,
                     include: [{
                         model: Guest,
-                        as: 'guest',
+                        as: 'reviewPoster',
                         attributes: ['username']
                     }]
                 })
@@ -196,6 +196,7 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
                 }
             }
         } catch (err) {
+            console.log(err)
             return res.status(404).send("ERROR: No reviews found.");
         }
 

@@ -38,10 +38,24 @@ function startWebSocketServer(app) {
         order: [["datetime", "ASC"]], // Order messages by datetime ascending
       });
 
+      // Fetch replyTo message content for each message
+      const messagesWithReplies = await Promise.all(
+        previousMessages.map(async (message) => {
+          let replyToMessage = null;
+          if (message.replyToID) {
+            replyToMessage = await ChatMessage.findByPk(message.replyToID);
+          }
+          return {
+            ...message.get({ plain: true }),
+            replyTo: replyToMessage ? replyToMessage.message : null,
+          };
+        })
+      );
+
       // Prepare the message to broadcast
       const message = JSON.stringify({
         type: "chat_history",
-        messages: previousMessages,
+        messages: messagesWithReplies,
       });
 
       // Broadcast the message to all clients
@@ -63,7 +77,7 @@ function startWebSocketServer(app) {
     clients.push(ws);
 
     // Initialize chat history and send previous messages
-    chatID = await getChatHistoryAndMessages(user1ID, user2ID);
+    const chatID = await getChatHistoryAndMessages(user1ID, user2ID);
 
     // Handle WebSocket message events
     ws.on("message", async (message) => {
@@ -82,14 +96,18 @@ function startWebSocketServer(app) {
             datetime: parsedMessage.datetime,
             chatID: chatID,
             replyToID: parsedMessage.replyToID || null,
-            repliedMessage: parsedMessage.replyTo || null,
             edited: false,
           });
+
+          let replyToMessage = null;
+          if (parsedMessage.replyToID) {
+            replyToMessage = await ChatMessage.findByPk(parsedMessage.replyToID);
+          }
 
           // Include the replyTo message content in the response
           const responseMessage = {
             ...createdMessage.get({ plain: true }),
-            replyTo: parsedMessage.replyTo,
+            replyTo: replyToMessage ? replyToMessage.message : null,
           };
 
           // Broadcast the message to all clients

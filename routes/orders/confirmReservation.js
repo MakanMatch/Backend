@@ -76,4 +76,35 @@ router.post("/createReservation", validateToken, async (req, res) => {
     })
 })
 
+router.get("/getReservation", async (req, res) => {
+    const { referenceNum, guestID, listingID } = req.body;
+    var identifierMode = null;
+    if (!referenceNum) {
+        if (!guestID || !listingID) {
+            return res.status(400).send("ERROR: Sufficient payloads not provided to identify reservation.")
+        } else { identifierMode = 'FKIdentifiers' }
+    } else { identifierMode = 'Reference' }
+
+    let whereClause = {};
+    if (identifierMode == 'Reference') { whereClause['referenceNum'] = referenceNum }
+    else { whereClause['guestID'] = guestID, whereClause['listingID'] = listingID }
+
+    var reservation;
+    try {
+        reservation = await Reservation.findOne({ where: whereClause })
+        if (!reservation) {
+            return res.status(404).send("ERROR: Reservation not found.")
+        }
+    } catch (err) {
+        Logger.log(`ORDERS CONFIRMRESERVATION GETRESERVATION ERROR: Failed to find reservation. Error: ${err}`)
+        return res.send(400).send("ERROR: Failed to find reservation.")
+    }
+
+    var processedData = reservation.toJSON();
+    if (processedData['markedPaid']) { delete processedData['markedPaid'] }
+    if (processedData['paidAndPresent']) { delete processedData['paidAndPresent'] }
+
+    return res.status(200).json(processedData)
+})
+
 module.exports = { router }

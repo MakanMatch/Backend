@@ -59,7 +59,8 @@ module.exports = (sequelize, DataTypes) => {
         FoodListing.belongsTo(models.Host)
         FoodListing.belongsToMany(models.Guest, {
             through: models.Reservation,
-            as: "guests"
+            as: "guests",
+            foreignKey: "listingID"
         })
     }
 

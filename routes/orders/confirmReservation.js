@@ -14,10 +14,10 @@ router.post("/createReservation", validateToken, async (req, res) => {
     }
 
     const listing = await FoodListing.findByPk(listingID, {
-        include: {
+        include: [{
             model: Guest,
             as: "guests"
-        }
+        }]
     })
     if (!listing || listing == null) {
         return res.status(400).send("ERROR: Listing does not exist.")
@@ -33,6 +33,7 @@ router.post("/createReservation", validateToken, async (req, res) => {
 
     var reservationAlreadyMade = false;
     for (const res of listing.guests) {
+        console.log(res.userID, guestID)
         if (res.userID == guestID) {
             reservationAlreadyMade = true;
             break;

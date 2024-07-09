@@ -3,6 +3,7 @@ const { validateToken } = require('../../middleware/auth');
 const { FoodListing, Guest, Reservation } = require('../../models');
 const Logger = require('../../services/Logger');
 const Universal = require('../../services/Universal');
+const yup = require('yup');
 const router = express.Router();
 
 router.post("/createReservation", validateToken, async (req, res) => {
@@ -76,11 +77,12 @@ router.post("/createReservation", validateToken, async (req, res) => {
     })
 })
 
-router.get("/getReservation", async (req, res) => {
-    const { referenceNum, guestID, listingID } = req.body;
+router.get("/getReservation", validateToken, async (req, res) => {
+    const guestID = req.user.userID;
+    const { referenceNum, listingID } = req.body;
     var identifierMode = null;
     if (!referenceNum) {
-        if (!guestID || !listingID) {
+        if (!listingID) {
             return res.status(400).send("ERROR: Sufficient payloads not provided to identify reservation.")
         } else { identifierMode = 'FKIdentifiers' }
     } else { identifierMode = 'Reference' }
@@ -105,6 +107,26 @@ router.get("/getReservation", async (req, res) => {
     if (processedData['paidAndPresent']) { delete processedData['paidAndPresent'] }
 
     return res.status(200).json(processedData)
+})
+
+router.put("/updateReservation", validateToken, async (req, res) => {
+    const userID = req.user.userID;
+
+    const validationSchema = yup.object({
+        referenceNum: yup.string().required(),
+        listingID: yup.string().optional(),
+        portions: yup.number().optional(),
+        totalPrice: yup.number().optional()
+    })
+
+    var data;
+    try {
+        data = await validationSchema.validate(req.body)
+        if (data.markedPaid) { delete data.markedPaid };
+        if (data.paidAndPresent) { delete data.paidAndPresent }
+    } catch (err) {
+        return res.status(400).send("ERROR: Invalid payload.")
+    }
 })
 
 module.exports = { router }

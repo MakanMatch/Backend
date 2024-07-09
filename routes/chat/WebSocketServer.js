@@ -3,6 +3,7 @@ const http = require("http");
 const WebSocket = require("ws");
 const { ChatHistory, ChatMessage } = require("../../models");
 const Universal = require("../../services/Universal");
+const Logger = require("../../services/Logger");
 
 function startWebSocketServer(app) {
   const PORT = 8080;
@@ -72,7 +73,7 @@ function startWebSocketServer(app) {
         handleEditMessage(parsedMessage, user1ID, user2ID, ws);
       } else if (parsedMessage.action === "delete") {
         handleDeleteMessage(parsedMessage);
-      } else {
+      } else if (parsedMessage.action === "send") {
         try {
           // Create ChatMessage in the database
           const createdMessage = await ChatMessage.create({
@@ -97,6 +98,12 @@ function startWebSocketServer(app) {
         } catch (error) {
           console.error("Error creating message:", error);
         }
+      } else {
+        const jsonMessage = {
+          action: "error",
+          message: "Invalid action",
+        };
+        broadcastMessage(JSON.stringify(jsonMessage));
       }
     });
 
@@ -110,9 +117,10 @@ function startWebSocketServer(app) {
 
   wss.on("error", (error) => {
     console.error("WebSocket server error:", error);
+    Logger.log("CHAT WEBSOCKETSERVER ERROR: WebSocket server error: " + error);
   });
 
-  async function handleEditMessage(editedMessage, user1ID, user2ID, ws) {
+  async function handleEditMessage(editedMessage) {
     const messageId = editedMessage.id;
     if (!messageId) {
       const jsonMessage = {
@@ -133,17 +141,9 @@ function startWebSocketServer(app) {
       return;
     }
 
-    await ChatMessage.update(
-      {
-        message: editedMessage.message,
-        edited: true,
-      },
-      {
-        where: {
-          messageID: messageId,
-        },
-      }
-    );
+    findMessage.message = editedMessage.message;
+    findMessage.edited = true;
+    findMessage.save();
   }
 
   async function handleDeleteMessage(deletedMessage) {
@@ -167,12 +167,7 @@ function startWebSocketServer(app) {
         broadcastMessage(JSON.stringify(jsonMessage));
         return;
       }
-
-      await ChatMessage.destroy({
-        where: {
-          messageID: messageId,
-        },
-      });
+      findMessage.destroy();
 
       const jsonMessage = {
         action: "delete",
@@ -181,6 +176,7 @@ function startWebSocketServer(app) {
       broadcastMessage(JSON.stringify(jsonMessage));
     } catch (error) {
       console.error("Error deleting message:", error);
+      Logger.log("CHAT WEBSOCKETSERVER ERROR: Error deleting message: " + error);
       const jsonMessage = {
         action: "error",
         message: "Error occurred while deleting message",

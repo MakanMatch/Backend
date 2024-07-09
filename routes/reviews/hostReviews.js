@@ -8,18 +8,18 @@ router.get("/", async (req, res) => {
         return res.status(400).send("ERROR: Missing host ID");
     }
     try {
-        const hostReview = await Review.findAll({
+        const hostReviews = await Review.findAll({
             where: { hostID: req.query.hostID }
         })
-        if (!hostReview) {
+        if (!hostReviews) {
             return res.send([]);
         } else {
-            res.json(hostReview);
+            res.json(hostReviews);
         }
     } catch (err) {
-        Logger.log(`REVIEWS HOSTREVIEW GET ERROR: Failed to retrieve host review; error: ${err}.`);
-        return res.status(500).send("ERROR: Failed to retrieve host review");
+        Logger.log(`REVIEWS HOSTREVIEW GET ERROR: Failed to retrieve host reviews; error: ${err}.`);
+        return res.status(500).send("ERROR: Failed to retrieve host reviews");
     }
 });
 
-module.exports = { router, at: '/hostReview' };
+module.exports = { router, at: '/hostReviews' };

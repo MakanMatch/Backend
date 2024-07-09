@@ -5,18 +5,15 @@
  * @returns 
  */
 module.exports = (sequelize, DataTypes) => {
-    const Like = sequelize.define("Like", {
-        likeID: {
-            type: DataTypes.STRING,
-            primaryKey: true
-        },
+    const ReviewLike = sequelize.define("ReviewLike", {
         reviewID: {
             type: DataTypes.STRING,
             allowNull: false,
             references: {
                 model: 'reviews',
                 key: 'reviewID'
-            }
+            },
+            primaryKey: true
         },
         guestID: {
             type: DataTypes.STRING,
@@ -24,21 +21,12 @@ module.exports = (sequelize, DataTypes) => {
             references: {
                 model: 'guests',
                 key: 'userID'
-            }
+            },
+            primaryKey: true
         }
-    }, { tableName: 'likes' });
+    }, { tableName: 'reviewLikes' });
 
     // Associations
-    Like.associate = (models) => {
-        Like.belongsTo(models.Review, {
-            foreignKey: 'reviewID',
-            as: 'review'
-        });
-        Like.belongsTo(models.Guest, {
-            foreignKey: 'guestID',
-            as: 'user'
-        });
-    }
 
-    return Like;
+    return ReviewLike;
 }

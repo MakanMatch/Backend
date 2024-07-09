@@ -60,16 +60,18 @@ module.exports = (sequelize, DataTypes) => {
         Guest.belongsToMany(models.FoodListing, {
             through: models.Reservation,
             as: "reservations"
-        })
-        Guest.hasMany(models.Review, {
+        }),
+        Guest.belongsToMany(models.Review, {
+            through: models.ReviewLike,
             foreignKey: "guestID",
             as: "reviews",
             onDelete: "cascade"
+        }),
+        Guest.hasMany(models.Review, {
+            foreignKey: "guestID",
+            as: "reviewsGuestID",
+            onDelete: "cascade"
         })
-        Guest.hasMany(models.ReviewLike, {
-            foreignKey: 'guestID',
-            as: 'likes'
-        });
     }
 
     return Guest;

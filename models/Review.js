@@ -44,14 +44,11 @@ module.exports = (sequelize, DataTypes) => {
             foreignKey: 'hostID',
             as: 'host'
         }),
-        Review.belongsTo(models.Guest, {
+        Review.belongsToMany(models.Guest, {
+            through: models.ReviewLike,
             foreignKey: 'guestID',
             as: 'guest'
-        }),
-        Review.hasMany(models.ReviewLike, {
-            foreignKey: 'guestID',
-            as: 'likes'
-        });
+        })
     }
 
     return Review;

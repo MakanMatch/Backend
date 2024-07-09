@@ -27,10 +27,6 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: true
         },
-        repliedMessage: {
-            type: DataTypes.STRING,
-            allowNull: true
-        },
         edited: {
             type: DataTypes.BOOLEAN,
             allowNull: false,

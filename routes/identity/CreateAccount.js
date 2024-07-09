@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
-const { Universal, Emailer, Encryption, Logger } = require('../../services');
+const { Universal, Encryption, Logger } = require('../../services');
 require('dotenv').config();
 
 async function isUniqueUsername(username) {

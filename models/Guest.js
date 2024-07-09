@@ -65,7 +65,8 @@ module.exports = (sequelize, DataTypes) => {
         // Like relationship
         Guest.belongsToMany(models.Review, {
             through: models.ReviewLike,
-            as: "likes"
+            as: "likes",
+            foreignKey: 'guestID'
         })
 
         // Review poster relationship

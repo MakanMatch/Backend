@@ -65,9 +65,9 @@ router.route("/")
                 }
             });
             if (existingLike) {
-                res.send(true);
+                res.json({message: "SUCCESS: Like status retrieved.", liked: true});
             } else {
-                res.send(false);
+                res.json({message: "SUCCESS: Like status retrieved.", liked: false});
             }
         } catch (err) {
             Logger.log(`REVIEWS LIKEREVIEW GET ERROR: Failed to retrieve like status; error: ${err}.`);

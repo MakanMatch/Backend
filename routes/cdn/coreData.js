@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
-const { FoodListing, Host, Guest, Admin, Review } = require("../../models");
+const { FoodListing, Host, Guest, Admin, Review, ReviewLike } = require("../../models");
 const Logger = require("../../services/Logger");
 const { Sequelize } = require('sequelize');
 const Universal = require("../../services/Universal");
@@ -145,9 +145,12 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
         const order = [];
 
         if (!req.query.hostID) {
-            return res.status(400).send("ERROR: Missing host ID or order.");
+            return res.status(400).send("ERROR: Missing host ID.");
         } else {
             where.hostID = req.query.hostID;
+        }
+        if (!req.query.guestID || !req.query.order) {
+            return res.status(400).send("ERROR: Missing guest ID or order.");
         }
 
         if (req.query.order) {
@@ -180,6 +183,11 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
                         attributes: ['username']
                     }]
                 })
+                const likedReviews = await ReviewLike.findAll({
+                    where: {
+                        guestID: req.query.guestID
+                    }
+                });
 
                 if (req.query.order === "images") {
                     reviews.sort((a, b) => {
@@ -188,6 +196,11 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
                         return imageCountB - imageCountA;
                     });
                 }
+
+                const likedReviewIDs = likedReviews.map(likedReview => likedReview.reviewID);
+                reviews.forEach(review => {
+                    review.dataValues.isLiked = likedReviewIDs.includes(review.reviewID);
+                });
 
                 if (reviews.length > 0) {
                     res.json(reviews);

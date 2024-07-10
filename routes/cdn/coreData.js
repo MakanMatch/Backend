@@ -15,6 +15,7 @@ router.get('/MyAccount', validateToken, (req, res) => {
 
 router.get("/fetchHostDetails", async (req, res) => {
     const hostDetails = {
+        hostUserID: Universal.data["DUMMY_HOST_ID"],
         hostUsername: Universal.data["DUMMY_HOST_USERNAME"],
         hostFoodRating: Universal.data["DUMMY_HOST_FOODRATING"]
     }

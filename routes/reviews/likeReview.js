@@ -10,7 +10,6 @@ router.route("/")
         if (!reviewID || !guestID) {
             return res.status(400).send("ERROR: Missing required fields");
         }
-        const likeID = Universal.generateUniqueID();
 
         try {
             const existingLike = await ReviewLike.findOne({
@@ -31,10 +30,20 @@ router.route("/")
                         reviewID: reviewID
                     }
                 });
-                res.send("SUCCESS: Like removed");
+                const updateReview = await Review.findOne({
+                    where: {
+                        reviewID: reviewID
+                    },
+                    attributes: ['likeCount']
+                });
+
+                res.json({
+                    message: "SUCCESS: Review unliked.",
+                    liked: false,
+                    likeCount: updateReview.likeCount
+                })
             } else {
                 const createLike = await ReviewLike.create({
-                    likeID: likeID,
                     reviewID: reviewID,
                     guestID: guestID,
                 });
@@ -46,32 +55,23 @@ router.route("/")
                         reviewID: reviewID
                     }
                 });
-                res.send("SUCCESS: Like added");
+
+                const updateReview = await Review.findOne({
+                    where: {
+                        reviewID: reviewID
+                    },
+                    attributes: ['likeCount']
+                });
+
+                res.json({
+                    message: "SUCCESS: Review liked.",
+                    liked: true,
+                    likeCount: updateReview.likeCount
+                })
             }
         } catch (err) {
             Logger.log(`REVIEWS LIKEREVIEW POST ERROR: Failed to like / unlike review; error: ${err}.`);
             return res.status(500).send("ERROR: Failed to like review");
-        }
-    })
-    .get(async (req, res) => {
-        if (!req.query.guestID || !req.query.reviewID) {
-            return res.status(400).send("ERROR: Missing required fields");
-        }
-        try {
-            const existingLike = await ReviewLike.findOne({
-                where: {
-                    reviewID: req.query.reviewID,
-                    guestID: req.query.guestID
-                }
-            });
-            if (existingLike) {
-                res.json({message: "SUCCESS: Like status retrieved.", liked: true});
-            } else {
-                res.json({message: "SUCCESS: Like status retrieved.", liked: false});
-            }
-        } catch (err) {
-            Logger.log(`REVIEWS LIKEREVIEW GET ERROR: Failed to retrieve like status; error: ${err}.`);
-            return res.status(500).send("ERROR: Failed to retrieve like status");
         }
     })
 

@@ -3,171 +3,222 @@ const http = require("http");
 const WebSocket = require("ws");
 const { ChatHistory, ChatMessage } = require("../../models");
 const Universal = require("../../services/Universal");
+const Logger = require("../../services/Logger");
+
 function startWebSocketServer(app) {
-  const PORT = 8080;
-  const server = http.createServer(app);
-  const wss = new WebSocket.Server({ server });
-  const clients = [];
+    const PORT = 8080;
+    const server = http.createServer(app);
+    const wss = new WebSocket.Server({ server });
+    const clients = [];
 
-  wss.on("connection", async (ws) => {
-    console.log("WS connection arrived");
-    clients.push(ws);
+    async function getChatHistoryAndMessages(user1ID, user2ID) {
+        try {
+            // Check if a ChatHistory exists between user1 and user2
+            let chatHistory = await ChatHistory.findOne({
+                where: {
+                    user1ID,
+                    user2ID,
+                },
+            });
 
-    // Assuming you have some way to identify users, like user IDs
-    const user1ID = "Jamie"; // Replace with actual user IDs
-    const user2ID = "James"; // Replace with actual user IDs
+            if (!chatHistory) {
+                // Create a new ChatHistory if it doesn't exist
+                chatHistory = await ChatHistory.create({
+                    chatID: Universal.generateUniqueID(),
+                    user1ID,
+                    user2ID,
+                    datetime: new Date().toISOString(), // Replace with current datetime logic
+                });
+            }
 
-    try {
-      // Check if a ChatHistory exists between user1 and user2
-      let chatHistory = await ChatHistory.findOne({
-        where: {
-          user1ID,
-          user2ID,
-        },
-      });
+            // Fetch previous chat messages
+            const previousMessages = await ChatMessage.findAll({
+                where: {
+                    chatID: chatHistory.chatID,
+                },
+                order: [["datetime", "ASC"]], // Order messages by datetime ascending
+            });
 
-      if (!chatHistory) {
-        // Create a new ChatHistory if it doesn't exist
-        chatHistory = await ChatHistory.create({
-          chatID: Universal.generateUniqueID(),
-          user1ID,
-          user2ID,
-          datetime: new Date().toISOString(), // Replace with current datetime logic
-        });
-      }
+            // Fetch replyTo message content for each message
+            const messagesWithReplies = await Promise.all(
+                previousMessages.map(async (message) => {
+                    let replyToMessage = null;
+                    if (message.replyToID) {
+                        replyToMessage = await ChatMessage.findByPk(message.replyToID);
+                    }
+                    return {
+                        ...message.get({ plain: true }),
+                        replyTo: replyToMessage ? replyToMessage.message : null,
+                    };
+                })
+            );
 
-      // Fetch and send previous chat messages
-      const previousMessages = await ChatMessage.findAll({
-        where: {
-          chatID: chatHistory.chatID,
-        },
-        order: [['datetime', 'ASC']], // Order messages by datetime ascending
-      });
+            // Prepare the message to broadcast
+            const message = JSON.stringify({
+                type: "chat_history",
+                messages: messagesWithReplies,
+            });
 
-      ws.send(JSON.stringify({
-        type: 'chat_history',
-        messages: previousMessages,
-      }));
-
-      // Now you can handle further WebSocket message events
-// Now you can handle further WebSocket message events
-ws.on("message", async (message) => {
-  const parsedMessage = JSON.parse(message);
-  console.log("Received message:", parsedMessage);
-  if (parsedMessage.action === "edit") {
-    handleEditMessage(parsedMessage, chatHistory.chatID, ws);
-  } else if (parsedMessage.action === "delete") {
-    handleDeleteMessage(parsedMessage);
-  } else {
-    try {
-      // Create ChatMessage in the database
-      const createdMessage = await ChatMessage.create({
-        messageID: Universal.generateUniqueID(),
-        message: parsedMessage.message,
-        sender: parsedMessage.sender,
-        datetime: parsedMessage.datetime,
-        chatID: chatHistory.chatID, // Assign the chatID from ChatHistory
-      });
-
-          // Broadcast the message to all clients
-          broadcastMessage(JSON.stringify(createdMessage), ws);
+            // Broadcast the message to all clients
+            broadcastMessage(message);
+            return chatHistory.chatID;
         } catch (error) {
-          console.error("Error creating message:", error);
+            console.error("Error fetching chat history and messages:", error);
         }
-      }
-      });
-
-    } catch (error) {
-      console.error("Error checking ChatHistory:", error);
     }
 
-    ws.on("close", () => {
-      const index = clients.indexOf(ws);
-      if (index > -1) {
-        clients.splice(index, 1);
-      }
+    wss.on("connection", async (ws) => {
+        console.log("WS connection arrived");
+
+        // Static user IDs for demonstration
+        const user1ID = "Jamie";
+        const user2ID = "James";
+
+        // Store the WebSocket connection in an array
+        clients.push(ws);
+
+        // Initialize chat history and send previous messages
+        const chatID = await getChatHistoryAndMessages(user1ID, user2ID);
+
+        // Handle WebSocket message events
+        ws.on("message", async (message) => {
+            const parsedMessage = JSON.parse(message);
+            if (parsedMessage.action === "edit") {
+                handleEditMessage(parsedMessage);
+            } else if (parsedMessage.action === "delete") {
+                handleDeleteMessage(parsedMessage);
+            } else if (parsedMessage.action === "send") {
+                try {
+                  let replyToMessage = await ChatMessage.findByPk(parsedMessage.replyToID);
+                  if (replyToMessage.messageID === null) {
+                      const jsonMessage = {
+                        action: "error",
+                        message: "Reply to message not found",
+                      };
+                      broadcastMessage(JSON.stringify(jsonMessage));
+                      return;
+                    }
+                    
+                    // Create ChatMessage in the database
+                    const createdMessage = await ChatMessage.create({
+                        messageID: Universal.generateUniqueID(),
+                        message: parsedMessage.message,
+                        sender: parsedMessage.sender,
+                        datetime: parsedMessage.datetime,
+                        chatID: chatID,
+                        replyToID: replyToMessage.messageID,
+                        edited: false,
+                    });
+
+                    // Include the replyTo message content in the response
+                    const responseMessage = {
+                        ...createdMessage.get({ plain: true }),
+                        replyTo: replyToMessage.message,
+                    };
+
+                    // Broadcast the message to all clients
+                    broadcastMessage(JSON.stringify(responseMessage), ws);
+                } catch (error) {
+                    console.error("Error creating message:", error);
+                }
+            } else {
+                const jsonMessage = {
+                    action: "error",
+                    message: "Invalid action",
+                };
+                broadcastMessage(JSON.stringify(jsonMessage));
+            }
+        });
+
+        ws.on("close", () => {
+            const index = clients.indexOf(ws);
+            if (index > -1) {
+                clients.splice(index, 1);
+            }
+        });
     });
-  });
 
-  wss.on("error", (error) => {
-    console.error("WebSocket server error:", error);
-  });
-
-  async function handleEditMessage(editedMessage) {
-    const messageId = editedMessage.id;
-    if (!messageId) {
-      const jsonMessage = {
-        action: "error",
-        message: "ID not provided",
-      };
-      broadcastMessage(JSON.stringify(jsonMessage));
-      return;
-    }
-    // Assuming findByPk is asynchronous
-    const findMessage = await ChatMessage.findByPk(messageId);
-  
-    if (!findMessage) {
-      console.log("Message not found");
-      const jsonMessage = {
-        action: "error",
-        message: "Error occured on the server",
-      };
-      broadcastMessage(JSON.stringify(jsonMessage));
-      return;
-    }
-    const editMessage = ChatMessage.update({
-      message: editedMessage.message,
-      datetime: editedMessage.datetime,
-    }, {
-      where: {
-        messageID: messageId,
-      },
+    wss.on("error", (error) => {
+        console.error("WebSocket server error:", error);
+        Logger.log("CHAT WEBSOCKETSERVER ERROR: WebSocket server error: " + error);
     });
-    const jsonMessage = {
-      action: "reload",
-    }
-    broadcastMessage(JSON.stringify(jsonMessage));
-  }
 
-  function handleDeleteMessage(deletedMessage) {
-    const messageId = deletedMessage.id;
-    if (!messageId) {
-      const jsonMessage = {
-        action: "reload",
-      }
-      broadcastMessage(JSON.stringify(jsonMessage));
-      return;
+    async function handleEditMessage(editedMessage) {
+        const messageId = editedMessage.id;
+        if (!messageId) {
+            const jsonMessage = {
+                action: "error",
+                message: "ID not provided",
+            };
+            broadcastMessage(JSON.stringify(jsonMessage));
+            return;
+        }
+
+        const findMessage = await ChatMessage.findByPk(messageId);
+        if (!findMessage) {
+            const jsonMessage = {
+                action: "error",
+                message: "Error occurred on the server",
+            };
+            broadcastMessage(JSON.stringify(jsonMessage));
+            return;
+        }
+
+        findMessage.message = editedMessage.message;
+        findMessage.edited = true;
+        findMessage.save();
     }
-    const findMessage = ChatMessage.findByPk(messageId);
-    if (!findMessage) {
-      const jsonMessage = {
-        action: "reload",
-      }
-      broadcastMessage(JSON.stringify(jsonMessage));
-      return;
+
+    async function handleDeleteMessage(deletedMessage) {
+        const messageId = deletedMessage.id;
+        if (!messageId) {
+            const jsonMessage = {
+                action: "error",
+                message: "ID not provided",
+            };
+            broadcastMessage(JSON.stringify(jsonMessage));
+            return;
+        }
+
+        try {
+            const findMessage = await ChatMessage.findByPk(messageId);
+            if (!findMessage) {
+                const jsonMessage = {
+                    action: "error",
+                    message: "Message not found",
+                };
+                broadcastMessage(JSON.stringify(jsonMessage));
+                return;
+            }
+            findMessage.destroy();
+
+            const jsonMessage = {
+                action: "delete",
+                id: messageId,
+            };
+            broadcastMessage(JSON.stringify(jsonMessage));
+        } catch (error) {
+            console.error("Error deleting message:", error);
+            Logger.log("CHAT WEBSOCKETSERVER ERROR: Error deleting message: " + error);
+            const jsonMessage = {
+                action: "error",
+                message: "Error occurred while deleting message",
+            };
+            broadcastMessage(JSON.stringify(jsonMessage));
+        }
     }
-    const deleteMessage = ChatMessage.destroy({
-      where: {
-        messageID: messageId,
-      },
+
+    function broadcastMessage(message) {
+        clients.forEach((client) => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(message);
+            }
+        });
+    }
+
+    server.listen(PORT, () => {
+        console.log(`WebSocket Server running on port ${PORT}`);
     });
-    const jsonMessage = {
-      action: "reload",
-    }
-    broadcastMessage(JSON.stringify(jsonMessage));
-  }
-  function broadcastMessage(message, sender) {
-    clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
-  }
-
-
-  server.listen(PORT, () => {
-    console.log(`WebSocket Server running on port ${PORT}`);
-  });
 }
 
 module.exports = startWebSocketServer;

@@ -75,26 +75,4 @@ router.route("/")
         }
     })
 
-router.get("/userLiked", async (req, res) => {
-    if (!req.query.guestID) {
-        return res.status(400).send("ERROR: Missing required fields");
-    }
-    try {
-        const likedReviews = await ReviewLike.findAll({
-            where: {
-                guestID: req.query.guestID
-            }
-        });
-        if (likedReviews) {
-            res.json(likedReviews);
-        } else {
-            return res.status(200).json([]);
-        }
-    } catch (err) {
-        Logger.log(`REVIEWS LIKEREVIEW USERLIKEDREVIEWS GET ERROR: Failed to retrieve liked reviews by user; error: ${err}.`);
-        return res.status(500).send("ERROR: Failed to retrieve liked reviews");
-    }
-})
-
-
 module.exports = { router, at: '/likeReview' };

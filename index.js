@@ -59,7 +59,10 @@ if (config["routerRegistration"] != "automated") {
     app.use(require("./routes/misc").at || '/', require("./routes/misc").router);
     app.use(require("./routes/cdn/contentDelivery").at || '/', require("./routes/cdn/contentDelivery").router);
     app.use(require("./routes/cdn/coreData").at || '/', require("./routes/cdn/coreData").router);
-    app.use(require("./routes/reviews/reviews").at || '/', require("./routes/reviews/reviews").router);
+    app.use(require("./routes/reviews/submitReview").at || '/', require("./routes/reviews/submitReview").router);
+    app.use(require("./routes/reviews/hostReviews").at || '/', require("./routes/reviews/hostReviews").router);
+    app.use(require("/routes/reviews/likeReview").at || '/', require("/routes/reviews/likeReview").router);
+    app.use(require("./routes/reviews/manageReviews").at || '/', require("./routes/reviews/manageReviews").router);
     app.use(require('./routes/identity/createAccount').at || '/', require('./routes/identity/createAccount').router);
     app.use(require('./routes/identity/LoginAccount').at || '/', require('./routes/identity/LoginAccount').router);
     app.use(require('./routes/identity/AccountRecovery').at || '/', require('./routes/identity/AccountRecovery').router);

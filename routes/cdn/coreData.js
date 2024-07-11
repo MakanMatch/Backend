@@ -153,21 +153,19 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
         if (!req.query.guestID || !req.query.order) {
             return res.status(400).send("ERROR: Missing guest ID or order.");
         }
-
-        if (req.query.order) {
-            if (req.query.order === "mostRecent") {
-                order.push(['dateCreated', 'DESC']);
-            } else if (req.query.order === "highestRating") {
-                order.push([
-                    Sequelize.literal('foodRating + hygieneRating'), 'DESC'
-                ])
-            } else if (req.query.order === "lowestRating") {
-                order.push([
-                    Sequelize.literal('foodRating + hygieneRating'), 'ASC'
-                ])
-            } else {
-                order.push(['dateCreated', 'DESC']);
-            }
+        
+        if (req.query.order === "mostRecent") {
+            order.push(['dateCreated', 'DESC']);
+        } else if (req.query.order === "highestRating") {
+            order.push([
+                Sequelize.literal('foodRating + hygieneRating'), 'DESC'
+            ])
+        } else if (req.query.order === "lowestRating") {
+            order.push([
+                Sequelize.literal('foodRating + hygieneRating'), 'ASC'
+            ])
+        } else {
+            order.push(['dateCreated', 'DESC']);
         }
 
         try {

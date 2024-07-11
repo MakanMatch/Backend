@@ -209,8 +209,8 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
                     return res.status(200).json([]);
                 }
             }
-        } catch (err) {
-            console.log(err)
+            } catch (err) {
+                console.log(err)
             return res.status(404).send("ERROR: No reviews found.");
         }
 

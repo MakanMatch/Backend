@@ -21,7 +21,6 @@ router.route("/")
     })
     .put(async (req, res) => {
         const { reviewID,foodRating, hygieneRating, comments, images, likeCount, dateCreated, guestID, hostID } = req.body;
-        console.log(req.body)
 
         if (!reviewID) {
             return res.status(400).send("ERROR: Missing review ID");

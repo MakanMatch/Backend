@@ -89,10 +89,9 @@ function startWebSocketServer(app) {
                 handleDeleteMessage(parsedMessage);
             } else if (parsedMessage.action === "send") {
                 try {
-                  let replyToMessages = null;
-                  if (parsedMessage.replyToID) {
-                    replyToMessages = await ChatMessage.findByPk(parsedMessage.replyToID);
-                    if (!replyToId) {
+                  let replyToMessages = await ChatMessage.findByPk(parsedMessage.replyToID);
+                  console.log(replyToMessages);
+                  if (replyToMessages.messageID === null) {
                       const jsonMessage = {
                         action: "error",
                         message: "Reply to message not found",
@@ -100,7 +99,7 @@ function startWebSocketServer(app) {
                       broadcastMessage(JSON.stringify(jsonMessage));
                       return;
                     }
-                  }
+                    
                     // Create ChatMessage in the database
                     const createdMessage = await ChatMessage.create({
                         messageID: Universal.generateUniqueID(),
@@ -108,19 +107,14 @@ function startWebSocketServer(app) {
                         sender: parsedMessage.sender,
                         datetime: parsedMessage.datetime,
                         chatID: chatID,
-                        replyToID: replyToMessages,
+                        replyToID: replyToMessages.messageID,
                         edited: false,
                     });
-
-                    let replyToMessage = null;
-                    if (parsedMessage.replyToID) {
-                        replyToMessage = await ChatMessage.findByPk(parsedMessage.replyToID);
-                    }
 
                     // Include the replyTo message content in the response
                     const responseMessage = {
                         ...createdMessage.get({ plain: true }),
-                        replyTo: replyToMessage ? replyToMessage.message : null,
+                        replyTo: replyToMessages.message,
                     };
 
                     // Broadcast the message to all clients

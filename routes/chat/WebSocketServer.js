@@ -89,9 +89,8 @@ function startWebSocketServer(app) {
                 handleDeleteMessage(parsedMessage);
             } else if (parsedMessage.action === "send") {
                 try {
-                  let replyToMessages = await ChatMessage.findByPk(parsedMessage.replyToID);
-                  console.log(replyToMessages);
-                  if (replyToMessages.messageID === null) {
+                  let replyToMessage = await ChatMessage.findByPk(parsedMessage.replyToID);
+                  if (replyToMessage.messageID === null) {
                       const jsonMessage = {
                         action: "error",
                         message: "Reply to message not found",
@@ -107,14 +106,14 @@ function startWebSocketServer(app) {
                         sender: parsedMessage.sender,
                         datetime: parsedMessage.datetime,
                         chatID: chatID,
-                        replyToID: replyToMessages.messageID,
+                        replyToID: replyToMessage.messageID,
                         edited: false,
                     });
 
                     // Include the replyTo message content in the response
                     const responseMessage = {
                         ...createdMessage.get({ plain: true }),
-                        replyTo: replyToMessages.message,
+                        replyTo: replyToMessage.message,
                     };
 
                     // Broadcast the message to all clients

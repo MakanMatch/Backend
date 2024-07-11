@@ -153,7 +153,7 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
         if (!req.query.guestID || !req.query.order) {
             return res.status(400).send("ERROR: Missing guest ID or order.");
         }
-        
+
         if (req.query.order === "mostRecent") {
             order.push(['dateCreated', 'DESC']);
         } else if (req.query.order === "highestRating") {
@@ -208,8 +208,8 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
                 }
             }
             } catch (err) {
-                console.log(err)
-            return res.status(404).send("ERROR: No reviews found.");
+                Logger.log(`CDN COREDATA GETREVIEWS GET ERROR: Failed to retrieve reviews; error: ${err}.`);
+                return res.status(404).send("ERROR: No reviews found.");
         }
 
     } catch (err) {

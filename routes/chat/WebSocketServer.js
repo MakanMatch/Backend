@@ -84,11 +84,23 @@ function startWebSocketServer(app) {
         ws.on("message", async (message) => {
             const parsedMessage = JSON.parse(message);
             if (parsedMessage.action === "edit") {
-                handleEditMessage(parsedMessage, user1ID, user2ID, ws);
+                handleEditMessage(parsedMessage);
             } else if (parsedMessage.action === "delete") {
                 handleDeleteMessage(parsedMessage);
             } else if (parsedMessage.action === "send") {
                 try {
+                  let replyToMessages = null;
+                  if (parsedMessage.replyToID) {
+                    replyToMessages = await ChatMessage.findByPk(parsedMessage.replyToID);
+                    if (!replyToId) {
+                      const jsonMessage = {
+                        action: "error",
+                        message: "Reply to message not found",
+                      };
+                      broadcastMessage(JSON.stringify(jsonMessage));
+                      return;
+                    }
+                  }
                     // Create ChatMessage in the database
                     const createdMessage = await ChatMessage.create({
                         messageID: Universal.generateUniqueID(),
@@ -96,7 +108,7 @@ function startWebSocketServer(app) {
                         sender: parsedMessage.sender,
                         datetime: parsedMessage.datetime,
                         chatID: chatID,
-                        replyToID: parsedMessage.replyToID || null,
+                        replyToID: replyToMessages,
                         edited: false,
                     });
 

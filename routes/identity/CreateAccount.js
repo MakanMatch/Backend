@@ -68,7 +68,7 @@ router.post("/", async (req, res) => {
         Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created`);
         res.send("SUCCESS: Account created. Please verify your email.");
     } catch (err) {
-        console.error(err);
+        Logger.log(`IDENTITY CREATEACCOUNT: Fail to create ${isHostAccount ? 'Host' : 'Guest'} account for user email ${email}.`)
         res.status(500).send("Internal server error.");
     }
 });

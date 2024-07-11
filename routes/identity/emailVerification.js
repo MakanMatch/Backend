@@ -32,7 +32,7 @@ router.post("/send", async (req, res) => {
         }
 
         const origin = req.headers.origin
-        const verificationLink = `${origin}/verifyToken?userID=${user.userID}&token=${verificationToken}`;
+        const verificationLink = `${origin}/auth/verifyToken?userID=${user.userID}&token=${verificationToken}`;
         console.log(verificationLink)
 
         // Send email with verification link using the Emailer service
@@ -66,9 +66,20 @@ router.post("/verify", async (req, res) => {
         let user = await Guest.findOne({ where: { userID: userID } }) ||
             await Host.findOne({ where: { userID: userID } }) ||
             await Admin.findOne({ where: { userID: userID } });
-
-        if (!user || token != user.emailVerificationToken || user.emailVerificationTokenExpiration < Date.now()) {
+        if (!user) {
             return res.status(400).send("UERROR: Invalid or expired verification token.");
+        } else if (!user.emailVerificationToken || !user.emailVerificationTokenExpiration) {
+            return res.status(400).send("UERROR: Email already verified.")
+        } else if (user.emailVerificationToken != token) {
+            return res.status(400).send("UERROR: Invalid email verification token.")
+        }
+        
+        const expirationDate = new Date(user.emailVerificationTokenExpiration)
+        if (expirationDate < Date.now()) {
+            // TODO: Remove email verification token and expiration from db and return token expired response
+            user.emailVerificationToken = null;
+            user.emailVerificationTokenExpiration = null;
+            return res.status(400).send("UERROR: Email Verification Token Expired.")
         }
 
         // Set user as verified (assuming you have an emailVerified attribute)

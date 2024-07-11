@@ -68,7 +68,7 @@ router.post("/verify", async (req, res) => {
             await Admin.findOne({ where: { userID: userID } });
         if (!user) {
             return res.status(400).send("UERROR: Invalid or expired verification token.");
-        } else if (!user.emailVerificationToken || !user.emailVerificationTokenExpiration) {
+        } else if (user.emailVerified === true) {
             return res.status(400).send("UERROR: Email already verified.")
         } else if (user.emailVerificationToken != token) {
             return res.status(400).send("UERROR: Invalid email verification token.")
@@ -79,7 +79,13 @@ router.post("/verify", async (req, res) => {
             // TODO: Remove email verification token and expiration from db and return token expired response
             user.emailVerificationToken = null;
             user.emailVerificationTokenExpiration = null;
-            return res.status(400).send("UERROR: Email Verification Token Expired.")
+            const saveUser = await user.save();
+            if (saveUser) {
+                return res.status(400).send("UERROR: Email verification token expired.")
+            } else {
+                Logger.log(`IDENTITY EMAILVERIFICATION ERROR: Failed to remove expired verification token for userID ${user.userID}`)
+                return res.status(500).send("ERROR: Failed to remove expired verification token.")
+            }
         }
 
         // Set user as verified (assuming you have an emailVerified attribute)
@@ -87,10 +93,14 @@ router.post("/verify", async (req, res) => {
         user.emailVerificationToken = null;
         user.emailVerificationTokenExpiration = null;
 
-        await user.save();
-
-        Logger.log(`IDENTITY EMAILVERIFICATION: Email verification for userID ${user.userID} successful.`);
-        res.send("SUCCESS: Email verification successful. You can now log in with your verified email.");
+        const saveUser = await user.save();
+        if (saveUser) {
+            Logger.log(`IDENTITY EMAILVERIFICATION: Email verification for userID ${user.userID} successful.`);
+            res.send("SUCCESS: Email verification successful. You can now log in with your verified email.");
+        } else {
+            Logger.log(`IDENTITY EMAILVERIFICATION ERROR: Failed to remove verification token for userID ${user.userID}`)
+            return res.status(500).send("ERROR: Failed to remove verification token.")
+        }
     } catch (err) {
         console.error(err);
         Logger.log(`IDENTITY EMAILVERIFICATION ERROR: Email verification for userID ${user.userID} unsuccessful.`)

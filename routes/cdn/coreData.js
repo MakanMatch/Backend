@@ -2,13 +2,13 @@ const express = require("express");
 const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
-const { FoodListing, Host, Guest, Admin, Review, ReviewLike } = require("../../models");
+const { FoodListing, Host, Guest, Admin, Review, Reservation, ReviewLike } = require("../../models");
 const Logger = require("../../services/Logger");
 const { Sequelize } = require('sequelize');
 const Universal = require("../../services/Universal");
 const { validateToken } = require("../../middleware/auth");
 
-router.get('/MyAccount', validateToken, (req, res) => {
+router.get('/myAccount', validateToken, (req, res) => {
     const userInfo = req.user;
     res.json(userInfo);
 });
@@ -16,6 +16,7 @@ router.get('/MyAccount', validateToken, (req, res) => {
 router.get("/fetchHostDetails", async (req, res) => {
     const hostDetails = {
         hostUserID: Universal.data["DUMMY_HOST_ID"],
+        hostID: Universal.data["DUMMY_HOST_ID"],
         hostUsername: Universal.data["DUMMY_HOST_USERNAME"],
         hostFoodRating: Universal.data["DUMMY_HOST_FOODRATING"]
     }
@@ -38,7 +39,7 @@ router.get("/fetchGuestDetails", async (req, res) => {
 
 router.get("/listings", async (req, res) => { // GET all food listings
     try {
-        const foodListings = await FoodListing.findAll();
+        const foodListings = await FoodListing.findAll({ where: { published: true }});
         foodListings.map(listing => (listing.images == null || listing.images == "") ? listing.images = [] : listing.images = listing.images.split("|"));
         res.status(200).json(foodListings);
     } catch (error) {
@@ -67,12 +68,19 @@ router.get("/checkFavouriteListing", async (req, res) => { // GET favourite list
 
 router.get("/getListing", async (req, res) => {
     const listingID = req.query.id || req.body.listingID;
+    const includeReservations = req.query.includeReservations;
     if (!listingID) {
         res.status(400).send("ERROR: Listing ID not provided.")
         return
     }
 
-    const listing = await FoodListing.findByPk(listingID)
+    const listing = await FoodListing.findByPk(listingID, {
+        include: includeReservations ? [{
+            model: Guest,
+            as: "guests"
+        }]: []
+    })
+
     if (!listing || listing == null) {
         res.status(404).send("ERROR: Listing not found")
         return

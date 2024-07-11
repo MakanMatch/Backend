@@ -6,6 +6,22 @@
  */
 module.exports = (sequelize, DataTypes) => {
     const Reservation = sequelize.define('Reservation', {
+        guestID: {
+            type: DataTypes.STRING,
+            references: {
+                model: 'guests',
+                key: 'userID'
+            },
+            primaryKey: true
+        },
+        listingID: {
+            type: DataTypes.STRING,
+            references: {
+                model: 'foodListings',
+                key: 'listingID'
+            },
+            primaryKey: true
+        },
         datetime: {
             type: DataTypes.STRING,
             allowNull: false
@@ -31,7 +47,6 @@ module.exports = (sequelize, DataTypes) => {
     }, { tableName: 'reservations' });
 
     // Associations
-    
 
     return Reservation;
 };

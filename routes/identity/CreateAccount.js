@@ -69,6 +69,10 @@ router.post("/", async (req, res) => {
             user = await Guest.create(accountData);
         }
 
+        if (!user) {
+            return res.status(500).send("ERROR: Failed to create user.")
+        }
+
         const origin = req.headers.origin
         const verificationLink = `${origin}/auth/verifyToken?userID=${userID}&token=${emailVeriToken}`;
 

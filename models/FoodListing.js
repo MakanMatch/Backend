@@ -56,11 +56,13 @@ module.exports = (sequelize, DataTypes) => {
 
     // Associations
     FoodListing.associate = (models) => {
-        FoodListing.belongsTo(models.Host)
+        FoodListing.belongsTo(models.Host, {
+            foreignKey: "hostID",
+            onDelete: "cascade"
+        })
         FoodListing.belongsToMany(models.Guest, {
             through: models.Reservation,
-            as: "guests",
-            foreignKey: "listingID",
+            as: "guests"
         })
     }
 

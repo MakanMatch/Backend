@@ -2,7 +2,7 @@ require('./services/BootCheck').check()
 const express = require('express');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid')
-const { FoodListing, Guest, Host } = require('./models')
+const { FoodListing, Guest, Host, Reservation } = require('./models')
 const Encryption = require("./services/Encryption")
 require('dotenv').config()
 
@@ -59,7 +59,9 @@ if (config["routerRegistration"] != "automated") {
     app.use(require("./routes/misc").at || '/', require("./routes/misc").router);
     app.use(require("./routes/cdn/contentDelivery").at || '/', require("./routes/cdn/contentDelivery").router);
     app.use(require("./routes/cdn/coreData").at || '/', require("./routes/cdn/coreData").router);
-    app.use(require("./routes/reviews/reviews").at || '/', require("./routes/reviews/reviews").router);
+    app.use(require("./routes/reviews/submitReview").at || '/', require("./routes/reviews/submitReview").router);
+    app.use(require("./routes/reviews/likeReview").at || '/', require("./routes/reviews/likeReview").router);
+    app.use(require("./routes/reviews/manageReviews").at || '/', require("./routes/reviews/manageReviews").router);
     app.use(require('./routes/identity/createAccount').at || '/', require('./routes/identity/createAccount').router);
     app.use(require('./routes/identity/LoginAccount').at || '/', require('./routes/identity/LoginAccount').router);
     app.use(require('./routes/identity/AccountRecovery').at || '/', require('./routes/identity/AccountRecovery').router);
@@ -134,6 +136,24 @@ async function onDBSynchronise() {
         Universal.data["DUMMY_HOST_FOODRATING"] = joshuasHost.foodRating
         console.log("Found dummy host existing already, skipping creation.")
     }
+
+    // const reservation = await Reservation.create({
+    //     datetime: new Date().toISOString(),
+    //     portions: 2,
+    //     totalPrice: 20.00,
+    //     markedPaid: false,
+    //     paidAndPresent: false,
+    //     listingID: "1df95ced-b271-4547-bc82-c7a267d3d19e",
+    //     FoodListingListingID: "1df95ced-b271-4547-bc82-c7a267d3d19e",
+    //     guestID: "47f4497b-1331-4b8a-97a4-095a79a1fd48",
+    //     GuestUserID: "47f4497b-1331-4b8a-97a4-095a79a1fd48"
+    // })
+
+    // if (!reservation) {
+    //     console.log("WARNING: Failed to create dummy reservation.")
+    // } else {
+    //     console.log("Created dummy reservation associated to listing with ID: " + reservation.listingID)
+    // }
 }
 
 // Start server

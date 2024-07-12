@@ -52,18 +52,32 @@ module.exports = (sequelize, DataTypes) => {
         resetKeyExpiration: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        emailVerificationToken: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        emailVerificationTokenExpiration: {
+            type: DataTypes.STRING,
+            allowNull: true
         }
     }, { tableName: 'guests' })
 
     // Associations
     Guest.associate = (models) => {
         Guest.belongsToMany(models.FoodListing, {
-            through: models.Reservation,
-            as: "reservations"
+            through: models.Reservation
         })
+
+        // Like relationship
+        Guest.belongsToMany(models.Review, {
+            through: models.ReviewLike,
+            as: "likes",
+            foreignKey: 'guestID'
+        })
+
+        // Review poster relationship
         Guest.hasMany(models.Review, {
-            foreignKey: "guestID",
-            as: "reviews",
             onDelete: "cascade"
         })
     }

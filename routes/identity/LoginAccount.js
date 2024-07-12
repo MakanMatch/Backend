@@ -3,7 +3,6 @@ const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
 const { Encryption, Logger } = require('../../services');
 const jwt = require('jsonwebtoken');
-const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 router.post("/", async (req, res) => {
@@ -57,7 +56,7 @@ router.post("/", async (req, res) => {
         let userInfo = {
             userID: user.userID,
             username: user.username,
-            email: user.email
+            userType: user.userType
         }
 
         // Generate jwt

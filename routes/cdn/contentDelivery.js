@@ -46,14 +46,12 @@ router.get("/getImageForReview", async (req, res) => {
     // Find the review
     const findReview = await Review.findByPk(reviewID);
     if (!findReview) {
-        Logger.log(`CDN CONTENTDELIVERY GETIMAGEFORREVIEW ERROR: Review not found.`)
         res.status(404).send("ERROR: Review not found.");
         return;
     }
 
     const findImageName = await FileManager.prepFile(imageName);
     if (!findImageName.startsWith("SUCCESS")) {
-        Logger.log(`CDN CONTENTDELIVERY GETIMAGEFORREVIEW ERROR: Image not found.`)
         res.status(404).send("ERROR: Image not found.");
         return;
     }
@@ -61,7 +59,6 @@ router.get("/getImageForReview", async (req, res) => {
     const reviewImages = findReview.images.split("|");
 
     if (reviewImages.includes(imageName) !== true) {
-        Logger.log(`CDN CONTENTDELIVERY GETIMAGEFORREVIEW ERROR: Requested image does not belong to its corresponding review.`)
         res.status(404).send("ERROR: Requested image does not belong to its corresponding review.");
         return;
     }

@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
-const { Universal, Emailer, Encryption, Logger } = require('../../services');
+const { Emailer, Universal, Encryption, Logger } = require('../../services');
 require('dotenv').config();
 
-// Function to check if the username is unique across all tables
 async function isUniqueUsername(username) {
     const usernameExists = await Guest.findOne({ where: { username } }) ||
         await Host.findOne({ where: { username } }) ||
@@ -12,7 +11,6 @@ async function isUniqueUsername(username) {
     return !usernameExists;
 }
 
-// Function to check if the email is unique across all tables
 async function isUniqueEmail(email) {
     const emailExists = await Guest.findOne({ where: { email } }) ||
         await Host.findOne({ where: { email } }) ||
@@ -20,7 +18,6 @@ async function isUniqueEmail(email) {
     return !emailExists;
 }
 
-// Function to check if the contact number is unique across Host and Admin tables
 async function isUniqueContactNum(contactNum) {
     const contactNumExists = await Host.findOne({ where: { contactNum } }) ||
         await Admin.findOne({ where: { contactNum } });
@@ -28,71 +25,76 @@ async function isUniqueContactNum(contactNum) {
 }
 
 router.post("/", async (req, res) => {
-    console.log("received at CreateAccount");
+    // console.log("Received at CreateAccount");
     const { username, email, password, contactNum, address, isHostAccount } = req.body;
     console.log(req.body);
 
     try {
-        // Check username
         if (!await isUniqueUsername(username)) {
-            return res.status(400).send( "UERROR: Username already exists." );
+            return res.status(400).send("UERROR: Username already exists.");
         }
 
-        // Check email
         if (!await isUniqueEmail(email)) {
             return res.status(400).send("UERROR: Email already exists.");
         }
 
-        // Generate a unique userID
         const userID = Universal.generateUniqueID();
-
-        // Hash password
         const hashedPassword = await Encryption.hash(password);
-
-        // Email verification link generation
         const emailVeriToken = Universal.generateUniqueID(6);
-
-        // Determine account type and validate necessary fields
-        let accountData = {
+        const emailVeriTokenExpiration = new Date(Date.now() + 86400000).toISOString();
+        const accountData = {
             userID,
             username,
             email,
-            password: hashedPassword
+            password: hashedPassword,
+            emailVerificationToken: emailVeriToken,
+            emailVerificationTokenExpiration: emailVeriTokenExpiration
         };
 
+        var user;
         if (isHostAccount) {
-            // Check contact number and address
             if (!contactNum || !address) {
                 return res.status(400).send("UERROR: Contact number and address are required for host accounts.");
             }
 
-            // Check contact number uniqueness
             if (!await isUniqueContactNum(contactNum)) {
-                return res.status(400).send("UERROR: Contact number already exists." );
+                return res.status(400).send("UERROR: Contact number already exists.");
             }
 
-            accountData = {
-                ...accountData,
-                contactNum: parseInt(contactNum),
-                address
-            };
+            accountData.contactNum = parseInt(contactNum);
+            accountData.address = address;
 
-            // Create host
-            await Host.create(accountData);
+            user = await Host.create(accountData);
         } else {
-            // Create guest
-            await Guest.create(accountData);
+            user = await Guest.create(accountData);
         }
 
-        // Send verification email
+        const origin = req.headers.origin
+        const verificationLink = `${origin}/auth/verifyToken?userID=${userID}&token=${emailVeriToken}`;
 
-        // Success message to redirect user to EmailVerification page
-        Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created`)
+        // Send email with verification link using the Emailer service
+        var emailSent = await Emailer.sendEmail(
+            email,
+            'Email Verification',
+            `Click the link to verify your email: ${verificationLink}`,
+            `<p>Click the link to verify your email: <a href="${verificationLink}">${verificationLink}</a></p>`
+        );
+
+        if (!emailSent) {
+            user.emailVerificationToken = null;
+            user.emailVerificationTokenExpiration = null;
+            await user.save();
+
+            Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created. Verification email couldn't be auto-dispatched.`);
+            return res.send('SUCCESS RESENDVERIFICATION: Account created. Verification email could not be dispatched, retry.');
+        }
+
+        Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created. Verification email auto-dispatched.`);
         res.send("SUCCESS: Account created. Please verify your email.");
-    }
-    catch (err) {
-        console.error(err);
-        res.status(500).send("Internal server error." );
+    } catch (err) {
+        console.log(err)
+        Logger.log(`IDENTITY CREATEACCOUNT: Fail to create ${isHostAccount ? 'Host' : 'Guest'} account for user email ${email}.`)
+        res.status(500).send("ERROR: Internal server error.");
     }
 });
 

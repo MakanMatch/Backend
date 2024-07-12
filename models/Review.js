@@ -40,11 +40,23 @@ module.exports = (sequelize, DataTypes) => {
 
     // Associations
     Review.associate = (models) => {
-        Review.belongsTo(models.Host),
+        Review.belongsTo(models.Host, {
+            foreignKey: 'hostID',
+            as: 'host'
+        }),
+
+        // Like relationship (reviews can get many likes from guests)
+        Review.belongsToMany(models.Guest, {
+            through: models.ReviewLike,
+            as: "likes",
+            foreignKey: 'reviewID'
+        })
+
+        // Original poster relationship (a review is posted by a guest)
         Review.belongsTo(models.Guest, {
             foreignKey: 'guestID',
-            as: 'guest'
-        });
+            as: 'reviewPoster'
+        })
     }
 
     return Review;

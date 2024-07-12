@@ -17,6 +17,9 @@ router.post("/addListing", async (req, res) => {
             !req.body.portionPrice ||
             !req.body.totalSlots ||
             !req.body.datetime ||
+            !req.body.approxAddress ||
+            !req.body.address ||
+            !req.body.hostID ||
             req.files.length === 0
         ) {
             res.status(400).send("UERROR: One or more required payloads were not provided");
@@ -49,9 +52,9 @@ router.post("/addListing", async (req, res) => {
                         portionPrice: req.body.portionPrice,
                         totalSlots: req.body.totalSlots,
                         datetime: formattedDatetime,
-                        approxAddress: "Yishun, Singapore", // hardcoded for now
-                        address: "1 North Point Dr, #01-164/165 Northpoint City, Singapore 768019", // hardcoded for now
-                        hostID: "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4", // hardcoded for now
+                        approxAddress: req.body.approxAddress,
+                        address: req.body.address,
+                        hostID: req.body.hostID,
                         published: true,
                     };
                     const addListingResponse = await FoodListing.create(listingDetails);

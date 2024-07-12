@@ -10,6 +10,8 @@ function startWebSocketServer(app) {
     const server = http.createServer(app);
     const wss = new WebSocket.Server({ server });
     const clients = [];
+    const connectedUsers = new Map();
+    const chatID = null;
 
     async function getChatHistoryAndMessages(user1ID, user2ID) {
         try {
@@ -70,20 +72,22 @@ function startWebSocketServer(app) {
     wss.on("connection", async (ws) => {
         console.log("WS connection arrived");
 
-        // Static user IDs for demonstration
-        const user1ID = "Jamie";
-        const user2ID = "James";
-
         // Store the WebSocket connection in an array
         clients.push(ws);
-
-        // Initialize chat history and send previous messages
-        const chatID = await getChatHistoryAndMessages(user1ID, user2ID);
 
         // Handle WebSocket message events
         ws.on("message", async (message) => {
             const parsedMessage = JSON.parse(message);
-            if (parsedMessage.action === "edit") {
+            if (parsedMessage.action === "connect"){
+              const userID = parsedMessage.userID;
+              connectedUsers.set(userID, ws);
+              if (connectedUsers.size === 2) {
+                  const users = Array.from(connectedUsers.keys());
+                  console.log("Users connected:", users);
+                  chatID = await getChatHistoryAndMessages(users[0], users[1]);
+              }
+            }
+            else if (parsedMessage.action === "edit") {
                 handleEditMessage(parsedMessage);
             } else if (parsedMessage.action === "delete") {
                 handleDeleteMessage(parsedMessage);

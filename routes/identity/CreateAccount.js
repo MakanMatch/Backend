@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
-const { Universal, Encryption, Logger } = require('../../services');
+const { Emailer, Universal, Encryption, Logger } = require('../../services');
 require('dotenv').config();
 
 async function isUniqueUsername(username) {
@@ -41,14 +41,17 @@ router.post("/", async (req, res) => {
         const userID = Universal.generateUniqueID();
         const hashedPassword = await Encryption.hash(password);
         const emailVeriToken = Universal.generateUniqueID(6);
+        const emailVeriTokenExpiration = new Date(Date.now() + 86400000).toISOString();
         const accountData = {
             userID,
             username,
             email,
             password: hashedPassword,
-            emailVeriToken
+            emailVerificationToken: emailVeriToken,
+            emailVerificationTokenExpiration: emailVeriTokenExpiration
         };
 
+        var user;
         if (isHostAccount) {
             if (!contactNum || !address) {
                 return res.status(400).send("UERROR: Contact number and address are required for host accounts.");
@@ -61,15 +64,37 @@ router.post("/", async (req, res) => {
             accountData.contactNum = parseInt(contactNum);
             accountData.address = address;
 
-            await Host.create(accountData);
+            user = await Host.create(accountData);
         } else {
-            await Guest.create(accountData);
+            user = await Guest.create(accountData);
         }
-        Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created`);
+
+        const origin = req.headers.origin
+        const verificationLink = `${origin}/auth/verifyToken?userID=${userID}&token=${emailVeriToken}`;
+
+        // Send email with verification link using the Emailer service
+        var emailSent = await Emailer.sendEmail(
+            email,
+            'Email Verification',
+            `Click the link to verify your email: ${verificationLink}`,
+            `<p>Click the link to verify your email: <a href="${verificationLink}">${verificationLink}</a></p>`
+        );
+
+        if (!emailSent) {
+            user.emailVerificationToken = null;
+            user.emailVerificationTokenExpiration = null;
+            await user.save();
+
+            Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created. Verification email couldn't be auto-dispatched.`);
+            return res.send('SUCCESS RESENDVERIFICATION: Account created. Verification email could not be dispatched, retry.');
+        }
+
+        Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created. Verification email auto-dispatched.`);
         res.send("SUCCESS: Account created. Please verify your email.");
     } catch (err) {
+        console.log(err)
         Logger.log(`IDENTITY CREATEACCOUNT: Fail to create ${isHostAccount ? 'Host' : 'Guest'} account for user email ${email}.`)
-        res.status(500).send("Internal server error.");
+        res.status(500).send("ERROR: Internal server error.");
     }
 });
 

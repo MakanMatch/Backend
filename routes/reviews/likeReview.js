@@ -19,13 +19,13 @@ router.route("/")
                 }
             });
             if (existingLike) {
-                await ReviewLike.destroy({
+                const removeLike = await ReviewLike.destroy({
                     where: {
                         reviewID: reviewID,
                         guestID: guestID
                     }
                 });
-                await Review.decrement('likeCount', {
+                const decreaseLikeCount =  await Review.decrement('likeCount', {
                     where: {
                         reviewID: reviewID
                     }
@@ -36,6 +36,10 @@ router.route("/")
                     },
                     attributes: ['likeCount']
                 });
+
+                if (!removeLike || !decreaseLikeCount || !updateReview) {
+                    return res.status(500).send("ERROR: Failed to unlike review");
+                }
 
                 res.json({
                     message: "SUCCESS: Review unliked.",
@@ -47,10 +51,8 @@ router.route("/")
                     reviewID: reviewID,
                     guestID: guestID,
                 });
-                if (!createLike) {
-                    return res.status(500).send("ERROR: Failed to like review");
-                }
-                await Review.increment('likeCount', {
+
+                const addLikeCount = await Review.increment('likeCount', {
                     where: {
                         reviewID: reviewID
                     }
@@ -62,6 +64,10 @@ router.route("/")
                     },
                     attributes: ['likeCount']
                 });
+
+                if (!createLike || !addLikeCount || !updateReview) {
+                    return res.status(500).send("ERROR: Failed to like review");
+                }
 
                 res.json({
                     message: "SUCCESS: Review liked.",

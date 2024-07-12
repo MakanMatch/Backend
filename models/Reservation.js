@@ -22,6 +22,14 @@ module.exports = (sequelize, DataTypes) => {
             },
             primaryKey: true
         },
+        referenceNum: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            primaryKey: true,
+            validate: {
+                isUppercase: true
+            }
+        },
         datetime: {
             type: DataTypes.STRING,
             allowNull: false

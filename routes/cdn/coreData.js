@@ -2,19 +2,21 @@ const express = require("express");
 const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
-const { FoodListing, Host, Guest, Admin, Review } = require("../../models");
+const { FoodListing, Host, Guest, Admin, Review, Reservation, ReviewLike } = require("../../models");
 const Logger = require("../../services/Logger");
 const { Sequelize } = require('sequelize');
 const Universal = require("../../services/Universal");
 const { validateToken } = require("../../middleware/auth");
 
-router.get('/MyAccount', validateToken, (req, res) => {
+router.get('/myAccount', validateToken, (req, res) => {
     const userInfo = req.user;
     res.json(userInfo);
 });
 
 router.get("/fetchHostDetails", async (req, res) => {
     const hostDetails = {
+        hostUserID: Universal.data["DUMMY_HOST_ID"],
+        hostID: Universal.data["DUMMY_HOST_ID"],
         hostUsername: Universal.data["DUMMY_HOST_USERNAME"],
         hostFoodRating: Universal.data["DUMMY_HOST_FOODRATING"]
     }
@@ -37,7 +39,7 @@ router.get("/fetchGuestDetails", async (req, res) => {
 
 router.get("/listings", async (req, res) => { // GET all food listings
     try {
-        const foodListings = await FoodListing.findAll();
+        const foodListings = await FoodListing.findAll({ where: { published: true }});
         foodListings.map(listing => (listing.images == null || listing.images == "") ? listing.images = [] : listing.images = listing.images.split("|"));
         res.status(200).json(foodListings);
     } catch (error) {
@@ -66,12 +68,19 @@ router.get("/checkFavouriteListing", async (req, res) => { // GET favourite list
 
 router.get("/getListing", async (req, res) => {
     const listingID = req.query.id || req.body.listingID;
+    const includeReservations = req.query.includeReservations;
     if (!listingID) {
         res.status(400).send("ERROR: Listing ID not provided.")
         return
     }
 
-    const listing = await FoodListing.findByPk(listingID)
+    const listing = await FoodListing.findByPk(listingID, {
+        include: includeReservations ? [{
+            model: Guest,
+            as: "guests"
+        }]: []
+    })
+
     if (!listing || listing == null) {
         res.status(404).send("ERROR: Listing not found")
         return
@@ -115,6 +124,7 @@ router.get("/accountInfo", async (req, res) => { // GET account information
             emailVerified: user.emailVerified,
             resetKey: user.resetKey,
             resetKeyExpiration: user.resetKeyExpiration,
+            createdAt: user.createdAt,
             userType: userType
         };
 
@@ -145,25 +155,26 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
         const order = [];
 
         if (!req.query.hostID) {
-            return res.status(400).send("ERROR: Missing host ID or order.");
+            return res.status(400).send("ERROR: Missing host ID.");
         } else {
             where.hostID = req.query.hostID;
         }
+        if (!req.query.guestID || !req.query.order) {
+            return res.status(400).send("ERROR: Missing guest ID or order.");
+        }
 
-        if (req.query.order) {
-            if (req.query.order === "mostRecent") {
-                order.push(['dateCreated', 'DESC']);
-            } else if (req.query.order === "highestRating") {
-                order.push([
-                    Sequelize.literal('foodRating + hygieneRating'), 'DESC'
-                ])
-            } else if (req.query.order === "lowestRating") {
-                order.push([
-                    Sequelize.literal('foodRating + hygieneRating'), 'ASC'
-                ])
-            } else {
-                order.push(['dateCreated', 'DESC']);
-            }
+        if (req.query.order === "mostRecent") {
+            order.push(['dateCreated', 'DESC']);
+        } else if (req.query.order === "highestRating") {
+            order.push([
+                Sequelize.literal('foodRating + hygieneRating'), 'DESC'
+            ])
+        } else if (req.query.order === "lowestRating") {
+            order.push([
+                Sequelize.literal('foodRating + hygieneRating'), 'ASC'
+            ])
+        } else {
+            order.push(['dateCreated', 'DESC']);
         }
 
         try {
@@ -176,10 +187,15 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
                     order,
                     include: [{
                         model: Guest,
-                        as: 'guest',
+                        as: 'reviewPoster',
                         attributes: ['username']
                     }]
                 })
+                const likedReviews = await ReviewLike.findAll({
+                    where: {
+                        guestID: req.query.guestID
+                    }
+                });
 
                 if (req.query.order === "images") {
                     reviews.sort((a, b) => {
@@ -189,13 +205,20 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
                     });
                 }
 
+                const likedReviewIDs = likedReviews.map(likedReview => likedReview.reviewID);
+                reviews.forEach(review => {
+                    review.dataValues.isLiked = likedReviewIDs.includes(review.reviewID);
+                });
+
                 if (reviews.length > 0) {
                     res.json(reviews);
+                } else {
+                    return res.status(200).json([]);
                 }
             }
-        } catch (err) {
-            Logger.log(`CDN COREDATA GETREVIEWS ERROR: Failed to retrieve reviews; error: ${err}.`);
-            return res.status(404).send("ERROR: No reviews found.");
+            } catch (err) {
+                Logger.log(`CDN COREDATA GETREVIEWS GET ERROR: Failed to retrieve reviews; error: ${err}.`);
+                return res.status(404).send("ERROR: No reviews found.");
         }
 
     } catch (err) {
@@ -204,7 +227,7 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
     }
 })
 
-router.get("/reviews", async (req, res) => { // GET review from review id
+router.get("/getReview", async (req, res) => { // GET review from review id
     if (!req.query.id) {
         return res.status(400).send("ERROR: Missing review ID");
     } else {

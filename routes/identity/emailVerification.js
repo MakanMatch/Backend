@@ -5,8 +5,6 @@ const { Universal, Emailer, Logger } = require('../../services');
 require('dotenv').config();
 
 router.post("/send", async (req, res) => {
-    // console.log("received at EmailVerification sendVerificationEmail");
-    let data = req.body;
     let { email } = req.body;
 
     try {
@@ -20,18 +18,21 @@ router.post("/send", async (req, res) => {
         }
 
         const verificationToken = Universal.generateUniqueID(6);
+        const verificationTokenExpiration = new Date(Date.now() + 86400000).toISOString();
 
         // Save verificationToken and expiration to user record
-        user.verificationToken = verificationToken;
-        user.verificationTokenExpiration = Date.now() + 86400000; // 24 hours expiration
+        user.emailVerificationToken = verificationToken;
+        user.emailVerificationTokenExpiration = verificationTokenExpiration;
         
         const saveUser = await user.save();
 
         if (!saveUser) {
             res.status(500).send("ERROR: Failed to save verification token.")
+            return
         }
 
-        const verificationLink = `${process.env.FRONTEND_URL}/verifyEmail?token=${verificationToken}`;
+        const origin = req.headers.origin
+        const verificationLink = `${origin}/auth/verifyToken?userID=${user.userID}&token=${verificationToken}`;
 
         // Send email with verification link using the Emailer service
         const emailSent = await Emailer.sendEmail(
@@ -43,46 +44,66 @@ router.post("/send", async (req, res) => {
 
         if (emailSent) {
             res.send('SUCCESS: Verification email sent.');
+            return
         } else {
             res.status(500).send("ERROR: Failed to send verification email.");
+            return
         }
     } catch (err) {
         console.error(err);
         res.status(500).send("ERROR: Internal server error.");
+        return
     }
 });
 
-router.get("/verify", async (req, res) => {
+router.post("/verify", async (req, res) => {
     // console.log("received at EmailVerification verifyEmail");
-    let { token } = req.query;
+    let { userID, token } = req.body;
 
-    if (!token) {
-        res.status(400).send("UERROR: Token is required for email verification.");
-        return;
+    if (!token || !userID) {
+        return res.status(400).send("ERROR: One or more parameters missing.");
     }
 
     try {
-        let user = await Guest.findOne({ where: { verificationToken: token } }) ||
-            await Host.findOne({ where: { verificationToken: token } }) ||
-            await Admin.findOne({ where: { verificationToken: token } });
-
-        if (!user || user.verificationTokenExpiration < Date.now()) {
-            res.status(400).send("UERROR: Invalid or expired verification token.");
-            return;
+        let user = await Guest.findOne({ where: { userID: userID } }) ||
+            await Host.findOne({ where: { userID: userID } }) ||
+            await Admin.findOne({ where: { userID: userID } });
+        if (!user) {
+            return res.status(400).send("UERROR: Invalid or expired verification token.");
+        } else if (user.emailVerified === true) {
+            return res.status(400).send("UERROR: Email already verified.")
+        } else if (user.emailVerificationToken != token) {
+            return res.status(400).send("UERROR: Invalid email verification token.")
         }
-
-        user.isVerified = true; // Add this field to your model if it doesn't exist
-        user.verificationToken = null;
-        user.verificationTokenExpiration = null;
         
-        const saveUser = await user.save();
-
-        if (saveUser != 1) {
-            res.status(500).send("ERROR: Failed to save verification token.")
+        const expirationDate = new Date(user.emailVerificationTokenExpiration)
+        if (expirationDate < Date.now()) {
+            // TODO: Remove email verification token and expiration from db and return token expired response
+            user.emailVerificationToken = null;
+            user.emailVerificationTokenExpiration = null;
+            const saveUser = await user.save();
+            if (saveUser) {
+                Logger.log(`IDENTITY EMAILVERIFICATION: Verification token for userID ${user.userID} expired.`)
+                return res.status(400).send("UERROR: Email verification token expired.")
+            } else {
+                Logger.log(`IDENTITY EMAILVERIFICATION ERROR: Failed to remove expired verification token for userID ${user.userID}`)
+                return res.status(500).send("ERROR: Failed to remove expired verification token.")
+            }
         }
 
-        Logger.log(`IDENTITY EMAILVERIFICATION: Email verification for userID ${user.userID} successful.`);
-        res.send("SUCCESS: Email verification successful. You can now log in with your verified email.");
+        // Set user as verified (assuming you have an emailVerified attribute)
+        user.emailVerified = true;
+        user.emailVerificationToken = null;
+        user.emailVerificationTokenExpiration = null;
+
+        const saveUser = await user.save();
+        if (saveUser) {
+            Logger.log(`IDENTITY EMAILVERIFICATION: Email verification for userID ${user.userID} successful.`);
+            res.send("SUCCESS: Email verification successful. You can now log in with your verified email.");
+        } else {
+            Logger.log(`IDENTITY EMAILVERIFICATION ERROR: Failed to remove verification token for userID ${user.userID}`)
+            return res.status(500).send("ERROR: Failed to remove verification token.")
+        }
     } catch (err) {
         console.error(err);
         Logger.log(`IDENTITY EMAILVERIFICATION ERROR: Email verification for userID ${user.userID} unsuccessful.`)

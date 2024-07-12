@@ -106,18 +106,18 @@ async function onDBSynchronise() {
         console.log(`Created dummy guest with User ID: ${newGuest.userID}`)
     }
 
-    jwt.sign({
-        userID: guestRecord.userID,
-        username: guestRecord.username,
-        email: guestRecord.email,
-    }, process.env.JWT_KEY, { expiresIn: '24h' }, (err, token) => {
-        if (err) {
-            console.log("WARNING: Failed to generate dummy guest JWT.")
-        } else {
-            Universal.data["DUMMY_GUEST_TOKEN"] = token
-            console.log("Generated dummy guest token. Token: " + token)
-        }
-    })
+    // jwt.sign({
+    //     userID: guestRecord.userID,
+    //     username: guestRecord.username,
+    //     email: guestRecord.email,
+    // }, process.env.JWT_KEY, { expiresIn: '24h' }, (err, token) => {
+    //     if (err) {
+    //         console.log("WARNING: Failed to generate dummy guest JWT.")
+    //     } else {
+    //         Universal.data["DUMMY_GUEST_TOKEN"] = token
+    //         console.log("Generated dummy guest token. Token: " + token)
+    //     }
+    // })
 
     const joshuasHost = await Host.findByPk("272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4")
     if (!joshuasHost) {

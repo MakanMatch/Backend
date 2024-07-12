@@ -112,6 +112,8 @@ router.get("/getReservation", validateToken, async (req, res) => {
 router.put("/updateReservation", validateToken, async (req, res) => {
     const userID = req.user.userID;
 
+    res.send("Under construction.")
+
     const validationSchema = yup.object({
         referenceNum: yup.string().required(),
         listingID: yup.string().optional(),

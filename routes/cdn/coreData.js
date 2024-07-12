@@ -124,6 +124,7 @@ router.get("/accountInfo", async (req, res) => { // GET account information
             emailVerified: user.emailVerified,
             resetKey: user.resetKey,
             resetKeyExpiration: user.resetKeyExpiration,
+            createdAt: user.createdAt,
             userType: userType
         };
 

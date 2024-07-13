@@ -11,7 +11,7 @@ function startWebSocketServer(app) {
     const wss = new WebSocket.Server({ server });
     const clients = [];
     const connectedUsers = new Map();
-    const chatID = null;
+    let chatID = null;
 
     async function getChatHistoryAndMessages(user1ID, user2ID) {
         try {

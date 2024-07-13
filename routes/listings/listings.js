@@ -22,6 +22,7 @@ router.post("/addListing", async (req, res) => {
             !req.body.hostID ||
             req.files.length === 0
         ) {
+            console.log(req.body);
             res.status(400).send("UERROR: One or more required payloads were not provided");
             return;
         } else {
@@ -84,14 +85,16 @@ router.post("/addListing", async (req, res) => {
 });
 
 router.put("/toggleFavouriteListing", async (req, res) => {
-    const { userID, listingID } = req.body;
-    if (!userID || !listingID) {
+    const { userID, userType, hostID, listingID } = req.body;
+    if (!userID || !userType || !hostID || !listingID) {
         res.status(400).send("ERROR: One or more required payloads were not provided");
         return;
     }
-    const findGuest = await Guest.findByPk(userID);
-    if (!findGuest) {
-        res.status(404).send("ERROR: Guest not found");
+    // find user from either Guest table or Host table
+    const userModel = userType === "Guest" ? Guest : Host;
+    const findUser = await userModel.findByPk(userID);
+    if (!findUser) {
+        res.status(404).send("ERROR: User not found");
         return;
     }
     const findListing = await FoodListing.findByPk(listingID);
@@ -99,8 +102,13 @@ router.put("/toggleFavouriteListing", async (req, res) => {
         res.status(404).send("ERROR: Listing not found");
         return;
     }
-    if (findGuest.favCuisine.split("|").includes(listingID)) {
-        const removeFavourite = await Guest.update({ favCuisine: findGuest.favCuisine.replace(listingID + "|", "") }, { where: { userID: userID } }); // Removes the listingID from the guest's favCuisine field
+    if (userID == hostID) {
+        res.status(400).send("ERROR: Host cannot favourite their own listing");
+        return;
+    }
+    const favCuisine = findUser.favCuisine || '';
+    if (favCuisine.split("|").includes(listingID)) {
+        const removeFavourite = await userModel.update({ favCuisine: favCuisine.replace(listingID + "|", "") }, { where: { userID: userID } }); // Removes the listingID from the guest's favCuisine field
         if (removeFavourite) {
             res.status(200).json({ message: "SUCCESS: Listing removed from favourites successfully", favourite: false });
             return;
@@ -109,7 +117,7 @@ router.put("/toggleFavouriteListing", async (req, res) => {
             return;
         }
     } else {
-        const addFavourite = await Guest.update({ favCuisine: findGuest.favCuisine + listingID + "|" }, { where: { userID: userID } }); // Adds the listingID to the guest's favCuisine field
+        const addFavourite = await userModel.update({ favCuisine: favCuisine + listingID + "|" }, { where: { userID: userID } }); // Adds the listingID to the guest's favCuisine field
         if (addFavourite) {
             res.status(200).json({ message: "SUCCESS: Listing added to favourites successfully", favourite: true });
             return;

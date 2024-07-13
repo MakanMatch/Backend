@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Logger } = require('../../services');
+const { Logger, Encryption } = require('../../services');
 const { Guest, Host, Admin } = require('../../models');
 
 async function isUniqueUsername(username, currentUser) {
@@ -98,6 +98,7 @@ router.delete('/deleteAccount', async (req, res) => {
         deleteUser = await user.destroy();
         
         if (!deleteUser) {
+            Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT ERROR: Failed to delete user ${userID}`)
             res.status(500).send(`ERROR: Failed to delete user ${userID}`)
         }
 
@@ -109,5 +110,51 @@ router.delete('/deleteAccount', async (req, res) => {
         res.status(500).send(`ERROR: Failed to delete user ${userID}.`);
     }
 });
+
+router.put('/changePassword', async (req, res) => {
+    const { userID, userType, currentPassword, newPassword } = req.body;
+
+    try {
+        let user;
+
+        // Find the user based on userType
+        if (userType === 'Guest') {
+            user = await Guest.findOne({ where: { userID } });
+        } else if (userType === 'Host') {
+            user = await Host.findOne({ where: { userID } });
+        } else if (userType === 'Admin') {
+            user = await Admin.findOne({ where: { userID } });
+        }
+
+        if (!user) {
+            return res.send('UERROR: User not found.');
+        }
+
+        // Verify current password
+        let passwordMatch = await Encryption.compare(currentPassword, user.password);
+        if (!passwordMatch) {
+            return res.send('UERROR: Incorrect current password');
+        }
+
+        // Update user's password
+        newPasswordHashed = await Encryption.hash(newPassword);
+        user.password = newPasswordHashed;
+        
+        saveNewPassword = await user.save();
+
+        if (!saveNewPassword) {
+            Logger.log(`IDENTITY MYACCOUNT CHANGEPASSWORD ERROR: Failed to save new password for user ${userID}`)
+            res.status(500).send(`ERROR: Failed to save new password for user ${userID}`)
+        }
+
+        Logger.log(`IDENTITY MYACCOUNT CHANGEPASSWORD: Password successfully changed for user ${userID}`)
+        res.send('SUCCESS: Password changed successfully');
+    } catch (err) {
+        console.error('Error changing password:', err);
+        Logger.log(`IDENTITY MYACCOUNT CHANGEPASSWORD ERROR: Failed to change password for user ${userID}`)
+        res.status(500).send(`ERROR: Failed to change password for user ${userID}`);
+    }
+});
+
 
 module.exports = { router, at: '/identity/myAccount' };

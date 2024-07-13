@@ -4,6 +4,7 @@ const WebSocket = require("ws");
 const { ChatHistory, ChatMessage } = require("../../models");
 const Universal = require("../../services/Universal");
 const Logger = require("../../services/Logger");
+const { Op } = require('sequelize')
 
 function startWebSocketServer(app) {
     const PORT = 8080;
@@ -18,11 +19,13 @@ function startWebSocketServer(app) {
             // Check if a ChatHistory exists between user1 and user2
             let chatHistory = await ChatHistory.findOne({
                 where: {
-                    user1ID,
-                    user2ID,
+                    [Op.or]: [
+                        { user1ID: user1ID, user2ID: user2ID },
+                        { user1ID: user2ID, user2ID: user1ID }
+                    ]
                 },
             });
-
+    
             if (!chatHistory) {
                 // Create a new ChatHistory if it doesn't exist
                 chatHistory = await ChatHistory.create({
@@ -32,7 +35,7 @@ function startWebSocketServer(app) {
                     datetime: new Date().toISOString(), // Replace with current datetime logic
                 });
             }
-
+    
             // Fetch previous chat messages
             const previousMessages = await ChatMessage.findAll({
                 where: {
@@ -40,7 +43,7 @@ function startWebSocketServer(app) {
                 },
                 order: [["datetime", "ASC"]], // Order messages by datetime ascending
             });
-
+    
             // Fetch replyTo message content for each message
             const messagesWithReplies = await Promise.all(
                 previousMessages.map(async (message) => {
@@ -54,18 +57,24 @@ function startWebSocketServer(app) {
                     };
                 })
             );
-
+    
             // Prepare the message to broadcast
             const message = JSON.stringify({
                 type: "chat_history",
                 messages: messagesWithReplies,
             });
-
+    
             // Broadcast the message to all clients
             broadcastMessage(message);
             return chatHistory.chatID;
         } catch (error) {
             console.error("Error fetching chat history and messages:", error);
+            // Optionally, broadcast an error message to clients if needed
+            const errorMessage = JSON.stringify({
+                action: "error",
+                message: "Error fetching chat history and messages",
+            });
+            broadcastMessage(errorMessage);
         }
     }
 

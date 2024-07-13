@@ -20,6 +20,7 @@ router.post("/addListing", async (req, res) => {
             !req.body.approxAddress ||
             !req.body.address ||
             !req.body.hostID ||
+            !req.body.coordinates ||
             req.files.length === 0
         ) {
             console.log(req.body);
@@ -56,6 +57,7 @@ router.post("/addListing", async (req, res) => {
                         approxAddress: req.body.approxAddress,
                         address: req.body.address,
                         hostID: req.body.hostID,
+                        coordinates: req.body.coordinates,
                         published: true,
                     };
                     const addListingResponse = await FoodListing.create(listingDetails);

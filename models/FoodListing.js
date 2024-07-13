@@ -51,7 +51,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.BOOLEAN,
             alowNull: false,
             defaultValue: false
-        }
+        },
+        coordinates: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
     }, { tableName: 'foodListings' })
 
     // Associations

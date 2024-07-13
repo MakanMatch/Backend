@@ -76,6 +76,38 @@ router.put('/updateAccountDetails', async (req, res) => {
     }
 });
 
+router.delete('/deleteAccount', async (req, res) => {
+    const { userID, userType } = req.body;
 
+    try {
+        let user;
+
+        // Find the user based on userType
+        if (userType === 'Guest') {
+            user = await Guest.findOne({ where: { userID } });
+        } else if (userType === 'Host') {
+            user = await Host.findOne({ where: { userID } });
+        } else if (userType === 'Admin') {
+            user = await Admin.findOne({ where: { userID } });
+        }
+
+        if (!user) {
+            return res.status(400).send('UERROR: User not found.');
+        }
+
+        deleteUser = await user.destroy();
+        
+        if (!deleteUser) {
+            res.status(500).send(`ERROR: Failed to delete user ${userID}`)
+        }
+
+        Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT: ${userType} account ${userID} deleted.`)
+        res.send(`SUCCESS: User ${userID} deleted successfully.`);
+    } catch (err) {
+        console.error('Error deleting user account:', err);
+        Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT ERROR: Failed to delete user ${userID}`)
+        res.status(500).send(`ERROR: Failed to delete user ${userID}.`);
+    }
+});
 
 module.exports = { router, at: '/identity/myAccount' };

@@ -19,7 +19,8 @@ async function isUniqueEmail(email) {
 }
 
 async function isUniqueContactNum(contactNum) {
-    const contactNumExists = await Host.findOne({ where: { contactNum } }) ||
+    const contactNumExists = await Guest.findOne({ where: { contactNum } }) ||
+        await Host.findOne({ where: { contactNum } }) ||
         await Admin.findOne({ where: { contactNum } });
     return !contactNumExists;
 }
@@ -58,7 +59,7 @@ router.post("/", async (req, res) => {
             }
 
             if (!await isUniqueContactNum(contactNum)) {
-                return res.status(400).send("UERROR: Contact number already exists.");
+                return res.send("UERROR: Contact number already exists.");
             }
 
             accountData.contactNum = parseInt(contactNum);

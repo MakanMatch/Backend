@@ -1,23 +1,56 @@
 const express = require('express');
 const router = express.Router();
-const { validateToken } = require('../../middleware/auth');
 const { Logger } = require('../../services');
 const { Guest, Host, Admin } = require('../../models');
 
+async function isUniqueUsername(username, currentUser) {
+    const usernameExists = await Guest.findOne({ where: { username } }) ||
+        await Host.findOne({ where: { username } }) ||
+        await Admin.findOne({ where: { username } });
+
+    return !usernameExists || usernameExists.userID === currentUser.userID;
+}
+
+async function isUniqueEmail(email, currentUser) {
+    const emailExists = await Guest.findOne({ where: { email } }) ||
+        await Host.findOne({ where: { email } }) ||
+        await Admin.findOne({ where: { email } });
+
+    return !emailExists || emailExists.userID === currentUser.userID;
+}
+
+async function isUniqueContactNum(contactNum, currentUser) {
+    const contactNumExists = await Guest.findOne({ where: { contactNum } }) ||
+        await Host.findOne({ where: { contactNum } }) ||
+        await Admin.findOne({ where: { contactNum } });
+
+    return !contactNumExists || contactNumExists.userID === currentUser.userID;
+}
 
 router.put('/updateAccountDetails', async (req, res) => {
     const { userID, username, email, contactNum, address } = req.body;
-    console.log("Received at updateAccountDetails")
 
     try {
         // Find user using userID
-        let user = await Guest.findOne({ where: { email } }) ||
-            await Host.findOne({ where: { email } }) ||
-            await Admin.findOne({ where: { email } });
+        let user = await Guest.findOne({ where: { userID } }) ||
+            await Host.findOne({ where: { userID } }) ||
+            await Admin.findOne({ where: { userID } });
 
         if (!user) {
-            res.status(400).send("UERROR: Email doesn't exist.");
+            res.status(400).send("UERROR: User doesn't exist.");
             return;
+        }
+
+        if (!await isUniqueUsername(username, user)) {
+            return res.send("UERROR: Username already exists.");
+        }
+
+        if (!await isUniqueEmail(email, user)) {
+            return res.send("UERROR: Email already exists.");
+        }
+
+        if (!await isUniqueContactNum(contactNum.replaceAll(" ", ""), user)) {
+            return res.send("UERROR: Contact number already exists.");
         }
 
         // Update user information
@@ -37,10 +70,9 @@ router.put('/updateAccountDetails', async (req, res) => {
         Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS: Updated user details for userID ${userID}`)
         res.send("SUCCESS: Account information updated.");
     } catch (err) {
-        console.log("catch")
         console.error(err);
         Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS ERROR: Failed to update user details for userID ${userID}`)
-        res.status(500).send("ERROR: Internal server error.");
+        res.status(500).send("ERROR: Error updating user details.");
     }
 });
 

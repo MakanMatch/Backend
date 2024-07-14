@@ -77,7 +77,7 @@ router.post("/createReservation", validateToken, async (req, res) => {
     })
 })
 
-router.get("/getReservation", validateToken, async (req, res) => {
+router.post("/getReservation", validateToken, async (req, res) => {
     const guestID = req.user.userID;
     const { referenceNum, listingID } = req.body;
     var identifierMode = null;
@@ -103,32 +103,92 @@ router.get("/getReservation", validateToken, async (req, res) => {
     }
 
     var processedData = reservation.toJSON();
-    if (processedData['markedPaid']) { delete processedData['markedPaid'] }
-    if (processedData['paidAndPresent']) { delete processedData['paidAndPresent'] }
+    if (processedData['markedPaid'] !== undefined) { delete processedData['markedPaid'] }
+    if (processedData['paidAndPresent'] !== undefined) { delete processedData['paidAndPresent'] }
 
     return res.status(200).json(processedData)
 })
 
 router.put("/updateReservation", validateToken, async (req, res) => {
     const userID = req.user.userID;
+    console.log(req.user.username, userID);
+    const { referenceNum, listingID } = req.body;
+    var identifierMode = null;
+    if (!referenceNum) {
+        if (!listingID) {
+            return res.status(400).send("ERROR: Sufficient payloads not provided to identify reservation.")
+        } else { identifierMode = 'FKIdentifiers' }
+    } else { identifierMode = 'Reference' }
 
-    res.send("Under construction.")
+    let whereClause = {};
+    if (identifierMode == 'Reference') { whereClause['referenceNum'] = referenceNum }
+    else { whereClause['guestID'] = userID, whereClause['listingID'] = listingID }
 
-    const validationSchema = yup.object({
-        referenceNum: yup.string().required(),
-        listingID: yup.string().optional(),
-        portions: yup.number().optional(),
-        totalPrice: yup.number().optional()
-    })
-
-    var data;
+    var reservation;
     try {
-        data = await validationSchema.validate(req.body)
-        if (data.markedPaid) { delete data.markedPaid };
-        if (data.paidAndPresent) { delete data.paidAndPresent }
+        reservation = await Reservation.findOne({ where: whereClause })
+        if (!reservation) {
+            return res.status(404).send("ERROR: No reservation found.")
+        }
     } catch (err) {
+        Logger.log(`ORDERS CONFIRMRESERVATION GETRESERVATION ERROR: Failed to find reservation. Error: ${err}`)
+        return res.send(400).send("ERROR: Failed to find reservation.")
+    }
+
+    if (Date(reservation.datetime) < Date.now()) {
+        return res.status(400).send("ERROR: Reservation has already passed.")
+    }
+
+    var listing;
+    try {
+        listing = await FoodListing.findByPk(reservation.listingID, {
+            include: [{
+                model: Guest,
+                as: "guests"
+            }]
+        })
+    } catch (err) {
+        Logger.log(`ORDERS CONFIRMRESERVATION UPDATERESERVATION ERROR: Failed to find listing attached to reservation. Error: ${err}`)
+        return res.status(500).send("ERROR: Unable to fulfill request, try again.")
+    }
+
+    if (listing.published !== true) {
+        return res.status(400).send("UERROR: The listing is not currently accepting reservations.")
+    }
+
+    const { portions } = req.body;
+    if (!portions || typeof portions !== 'number' || portions <= 0) {
         return res.status(400).send("ERROR: Invalid payload.")
     }
+
+    var portionsTaken = 0;
+    for (const guest of listing.guests) {
+        if (guest.userID != userID) {
+            portionsTaken += guest.Reservation.portions
+        }
+    }
+    if (portions > (listing.totalSlots - portionsTaken)) {
+        return res.status(400).send("UERROR: Not enough portions available.")
+    }
+
+    const totalPrice = portions * listing.portionPrice
+    reservation.portions = portions
+    reservation.totalPrice = totalPrice
+    try {
+        await reservation.save()
+    } catch (err) {
+        Logger.log(`ORDERS CONFIRMRESERVATION UPDATERESERVATION ERROR: Failed to update reservation. Error: ${err}`)
+        return res.status(500).send("ERROR: Unable to fulfill request, try again.")
+    }
+
+    Logger.log(`ORDERS CONFIRMRESERVATION UPDATERESERVATION: Reservation ${reservation.referenceNum} updated by guest ${userID}.`)
+    return res.status(200).json({
+        message: "SUCCESS: Reservation updated successfully.",
+        listingID: listingID,
+        referenceNum: reservation.referenceNum,
+        totalPrice: totalPrice,
+        portions: portions
+    })
 })
 
 module.exports = { router }

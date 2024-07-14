@@ -5,17 +5,17 @@ const Logger = require('../../services/Logger');
 
 router.route("/")
     .get(async (req, res) => {
-        if (!req.query.id) {
+        if (!req.query.reviewID) {
             return res.status(400).send("ERROR: Missing review ID");
         }
         try {
-            const review = await Review.findByPk(req.query.id);
+            const review = await Review.findByPk(req.query.reviewID);
             if (!review) {
                 return res.status(404).send(`ERROR: Review not found`);
             }
             res.json(review); // Tested in postcode, working!
         } catch (err) {
-            Logger.log(`REVIEWS MANAGEREVIEWS GET ERROR: Failed to retrieve review with ID ${req.query.id}; error: ${err}`);
+            Logger.log(`REVIEWS MANAGEREVIEWS GET ERROR: Failed to retrieve review with ID ${req.query.reviewID}; error: ${err}`);
             return res.status(500).send("ERROR: Failed to retrieve review");
         }
     })
@@ -55,20 +55,20 @@ router.route("/")
         }
     })
     .delete(async (req, res) => {
-        if (!req.query.id) {
+        if (!req.query.reviewID) {
             return res.status(400).send("ERROR: Missing review ID");
         }
         try {
             const deleteReview = await Review.destroy({
-                where: { reviewID: req.query.id }
+                where: { reviewID: req.query.reviewID }
             });
             if (!deleteReview) {
-                return res.status(404).send(`ERROR: Review with ID ${req.query.id} not found`);
+                return res.status(404).send(`ERROR: Review with ID ${req.query.reviewID} not found`);
             } else {
-                res.send(`SUCCESS: Review with ID ${req.query.id} deleted`); // Tested in postcode, working!
+                res.send(`SUCCESS: Review with ID ${req.query.reviewID} deleted`); // Tested in postcode, working!
             }
         } catch (err){
-            Logger.log(`REVIEWS MANAGEREVIEWS DELETE ERROR: Failed to delete review with ID ${req.query.id}; error: ${err}`);
+            Logger.log(`REVIEWS MANAGEREVIEWS DELETE ERROR: Failed to delete review with ID ${req.query.reviewID}; error: ${err}`);
             return res.status(500).send("ERROR: Failed to delete review");
         }
     });

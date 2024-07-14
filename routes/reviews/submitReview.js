@@ -55,7 +55,7 @@ router.route("/")
                     guestID: guestID,
                     hostID: hostID 
                 };
-
+                
                 await Review.create(review);
 
                 res.send("SUCCESS: Review submitted successfully");

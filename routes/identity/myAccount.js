@@ -45,7 +45,7 @@ router.put('/updateAccountDetails', async (req, res) => {
             return res.send("UERROR: Username already exists.");
         }
 
-        if (!await isUniqueEmail(email, user)) {
+        if (!await isUniqueEmail(email.replaceAll(" ", ""), user)) {
             return res.send("UERROR: Email already exists.");
         }
 
@@ -70,7 +70,7 @@ router.put('/updateAccountDetails', async (req, res) => {
         Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS: Updated user details for userID ${userID}`)
         res.send("SUCCESS: Account information updated.");
     } catch (err) {
-        console.error(err);
+        console.error('ERROR: Error updating user details.', err);
         Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS ERROR: Failed to update user details for userID ${userID}`)
         res.status(500).send("ERROR: Error updating user details.");
     }

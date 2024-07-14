@@ -43,6 +43,7 @@ router.get("/listings", async (req, res) => { // GET all food listings
         foodListings.map(listing => (listing.images == null || listing.images == "") ? listing.images = [] : listing.images = listing.images.split("|"));
         res.status(200).json(foodListings);
     } catch (error) {
+        Logger.log("CDN COREDATA LISTINGS ERROR: Failed to retrieve all published listings; error: " + error)
         res.status(500).send("ERROR: Internal server error");
     }
 });

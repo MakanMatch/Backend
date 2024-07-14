@@ -38,16 +38,25 @@ router.route("/")
             }
 
             var fileUrls = [];
+
             const getImageNames = (urls) => {
+                if (typeof urls === 'string') {
+                    urls = [urls];
+                }
+                if (!Array.isArray(urls)) {
+                    return [];
+                }
                 return urls.map(url => {
-                  const parts = url.split('&imageName=');
-                  return parts.length > 1 ? parts[1] : null;
-                });
-              };
+                    const parts = url.split('&imageName=');
+                    return parts.length > 1 ? parts[1] : null;
+                }).filter(name => name !== null);
+            };
+
+            var imagesName = [];
             if (images) {
-                var imagesName = getImageNames(images);
+                imagesName = getImageNames(images);
             }
-            if (imagesName) {
+            if (imagesName.length > 0) {
                 for (const image of imagesName) {
                     const savePreviousImages = await FileManager.saveFile(image);
                     if (savePreviousImages !== true) {
@@ -66,14 +75,9 @@ router.route("/")
                         fileUrls.push(`${file.filename}`);
                     }
                 }
-            } else {
-                fileUrls = null
             }
-            if (fileUrls != null) {
-                var fileUrlsString = fileUrls.join("|");
-            } else {
-                var fileUrlsString = undefined;
-            }
+
+            const fileUrlsString = fileUrls.length > 0 ? fileUrls.join("|") : null;
 
             const updateDict = {};
             if (foodRating) updateDict.foodRating = foodRating;
@@ -82,7 +86,7 @@ router.route("/")
             if (fileUrlsString) {
                 updateDict.images = fileUrlsString;
             } else {
-                updateDict.images = "";
+                updateDict.images = null;
             }
 
             if (Object.keys(updateDict).length === 0) {

@@ -44,7 +44,9 @@ router.route("/")
                   return parts.length > 1 ? parts[1] : null;
                 });
               };
-            const imagesName = getImageNames(images);
+            if (images) {
+                var imagesName = getImageNames(images);
+            }
             if (imagesName) {
                 for (const image of imagesName) {
                     const savePreviousImages = await FileManager.saveFile(image);

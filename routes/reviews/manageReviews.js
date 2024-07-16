@@ -53,12 +53,12 @@ router.route("/")
                 }).filter(name => name !== null);
             };
 
-            var imagesName = [];
+            var imagesNames = [];
             if (images) {
-                imagesName = getImageNames(images);
+                imagesNames = getImageNames(images);
             }
-            if (imagesName.length > 0) {
-                for (const image of imagesName) {
+            if (imagesNames.length > 0) {
+                for (const image of imagesNames) {
                     try {
                         await FileManager.saveFile(image)
                         fileUrls.push(`${image}`);

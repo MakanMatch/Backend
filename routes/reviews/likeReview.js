@@ -10,12 +10,16 @@ router.route("/")
         if (!guestID) {
             return res.status(400).send("ERROR: Missing guest ID");
         }
-        const { reviewID} = req.body;
+        const { reviewID } = req.body;
         if (!reviewID || !guestID) {
             return res.status(400).send("ERROR: Missing required fields");
         }
 
         try {
+            const review = await Review.findByPk(reviewID)
+            if (!review) {
+                return res.status(404).send("ERROR: Review not found");
+            }
             const existingLike = await ReviewLike.findOne({
                 where: {
                     reviewID: reviewID,

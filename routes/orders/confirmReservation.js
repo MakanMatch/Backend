@@ -27,6 +27,9 @@ router.post("/createReservation", validateToken, async (req, res) => {
     if (listing.published !== true) {
         return res.status(400).send("UERROR: The listing is not currently accepting reservations.")
     }
+    if (listing.hostID == guestID) {
+        return res.status(400).send("UERROR: You cannot make a reservation for your own listing.")
+    }
 
     const guest = await Guest.findByPk(guestID)
     if (!guest || guest == null) {
@@ -44,8 +47,13 @@ router.post("/createReservation", validateToken, async (req, res) => {
         return res.status(400).send("UERROR: You have already made a reservation for this listing.")
     }
 
-    const slotsTaken = listing.guests.length;
-    if ((listing.totalSlots - slotsTaken) < portions) {
+    var portionsTaken = 0;
+    for (const guest of listing.guests) {
+        if (guest.userID != guestID) {
+            portionsTaken += guest.Reservation.portions
+        }
+    }
+    if (portions > (listing.totalSlots - portionsTaken)) {
         return res.status(400).send("UERROR: Not enough portions available.")
     }
 
@@ -111,7 +119,6 @@ router.post("/getReservation", validateToken, async (req, res) => {
 
 router.put("/updateReservation", validateToken, async (req, res) => {
     const userID = req.user.userID;
-    console.log(req.user.username, userID);
     const { referenceNum, listingID } = req.body;
     var identifierMode = null;
     if (!referenceNum) {

@@ -26,7 +26,7 @@ router.route("/")
                     guestID: guestID
                 }
             });
-            if (existingLike) {
+            if (review && existingLike) {
                 const removeLike = await ReviewLike.destroy({
                     where: {
                         reviewID: reviewID,

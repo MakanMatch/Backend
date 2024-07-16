@@ -118,10 +118,11 @@ async function createGuest() {
 }
 
 async function signJWT() {
+    console.log("")
     if (!process.env.JWT_KEY) { console.log("JWT_KEY not found in .env; aborting..."); return; }
     var signMore = true;
     while (signMore) {
-        var username = prompt("Account username: ")
+        var username = prompt("Username of account for JWT: ")
         var user = null;
         var userType = null;
 

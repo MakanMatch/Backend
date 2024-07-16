@@ -59,21 +59,23 @@ router.route("/")
             }
             if (imagesName.length > 0) {
                 for (const image of imagesName) {
-                    const savePreviousImages = await FileManager.saveFile(image);
-                    if (savePreviousImages !== true) {
-                        throw new Error(savePreviousImages);
-                    } else {
+                    try {
+                        await FileManager.saveFile(image)
                         fileUrls.push(`${image}`);
+                    } catch (err) {
+                        Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload file; error: ${err}.`);
+                        return res.status(500).send("ERROR: Failed to upload file");
                     }
                 }
             }
             if (req.files) {
                 for (const file of req.files) {
-                    const saveNewFile = await FileManager.saveFile(file.filename);
-                    if (saveNewFile !== true) {
-                        throw new Error(saveResult);
-                    } else {
-                        fileUrls.push(`${file.filename}`);
+                    try {
+                        await FileManager.saveFile(file.filename)
+                        fileUrls.push(`${file.filename}`)
+                    } catch (err) {
+                        Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload file; error: ${err}.`);
+                        return res.status(500).send("ERROR: Failed to upload file");
                     }
                 }
             }

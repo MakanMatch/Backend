@@ -55,10 +55,10 @@ router.route("/")
                     guestID: guestID,
                     hostID: hostID 
                 };
-                
+
                 await Review.create(review);
 
-                res.send("SUCCESS: Review submitted successfully");
+                return res.send("SUCCESS: Review submitted successfully");
             } catch (err) {
                 Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Failed to submit review; error: ${err}.`);
                 return res.status(500).send("ERROR: Failed to submit review");

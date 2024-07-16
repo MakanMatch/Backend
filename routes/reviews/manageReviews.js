@@ -16,7 +16,7 @@ router.route("/")
             if (!review) {
                 return res.status(404).send(`ERROR: Review not found`);
             }
-            res.json(review); // Tested in postcode, working!
+            return res.json(review); // Tested in postcode, working!
         } catch (err) {
             Logger.log(`REVIEWS MANAGEREVIEWS GET ERROR: Failed to retrieve review with ID ${req.query.reviewID}; error: ${err}`);
             return res.status(500).send("ERROR: Failed to retrieve review");
@@ -99,7 +99,7 @@ router.route("/")
                     if (!updateReview) {
                         return res.status(404).send(`UERROR: Review with ID ${reviewID} not found`);
                     } else {
-                        res.send(`SUCCESS: Review with ID ${reviewID} updated`); // Tested in postcode, working!
+                        return res.send(`SUCCESS: Review with ID ${reviewID} updated`); // Tested in postcode, working!
                     }
                 } catch (err) {
                     Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update review with ID ${reviewID}; error: ${err}`);
@@ -119,7 +119,7 @@ router.route("/")
             if (!deleteReview) {
                 return res.status(404).send(`ERROR: Review with ID ${req.query.reviewID} not found`);
             } else {
-                res.send(`SUCCESS: Review with ID ${req.query.reviewID} deleted`); // Tested in postcode, working!
+                return res.send(`SUCCESS: Review with ID ${req.query.reviewID} deleted`); // Tested in postcode, working!
             }
         } catch (err) {
             Logger.log(`REVIEWS MANAGEREVIEWS DELETE ERROR: Failed to delete review with ID ${req.query.reviewID}; error: ${err}`);

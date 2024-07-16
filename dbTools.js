@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid')
 const prompt = require("prompt-sync")({ sigint: true });
+const jwt = require('jsonwebtoken');
 const { Admin, ChatHistory, ChatMessage, FoodListing, Guest, Host, Reservation, Review, Warning, sequelize } = require('./models');
 const Encryption = require('./services/Encryption');
 require('dotenv').config()
@@ -116,6 +117,55 @@ async function createGuest() {
     console.log(createdGuestIDs.length + " guests created successfully.")
 }
 
+async function signJWT() {
+    if (!process.env.JWT_KEY) { console.log("JWT_KEY not found in .env; aborting..."); return; }
+    var signMore = true;
+    while (signMore) {
+        var username = prompt("Account username: ")
+        var user = null;
+        var userType = null;
+
+        while (user == null) {
+            console.log("Locating user...")
+            // Check in Guest
+            user = await Guest.findOne({ where: { username: username } })
+            userType = 'Guest';
+
+            // Check in Host if not found in Guest
+            if (!user) {
+                user = await Host.findOne({ where: { username: username } });
+                userType = 'Host';
+            }
+
+            // Check in Admin if not found in Guest or Host
+            if (!user) {
+                user = await Admin.findOne({ where: { username: username } })
+                userType = 'Admin';
+            }
+
+            if (!user) {
+                console.log("User not found. Please try again.")
+                username = prompt("Account username: ")
+            }
+            console.log("")
+        }
+
+        console.log("Signing JWT...")
+        const accessToken = jwt.sign(
+            {
+                userID: user.userID,
+                username: user.username,
+                userType: userType
+            },
+            process.env.JWT_KEY,
+            { expiresIn: '24h' }
+        );
+        console.log("Signed JWT: " + accessToken)
+        console.log("")
+        signMore = prompt("Sign another? (y/n): ").toLowerCase() === 'y'
+    }
+}
+
 sequelize.sync({ alter: true })
     .then(async () => {
         const tools = (process.argv.slice(2)).map(t => t.toLowerCase())
@@ -140,6 +190,10 @@ sequelize.sync({ alter: true })
 
         if (tools.includes("createguest")) {
             await createGuest()
+        }
+
+        if (tools.includes("signjwt")) {
+            await signJWT()
         }
     })
     .catch(err => {

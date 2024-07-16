@@ -1,12 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { Universal } = require("../../services")
 const { Review, ReviewLike } = require('../../models');
 const Logger = require('../../services/Logger');
+const { validateToken } = require('../../middleware/auth');
 
 router.route("/")
-    .post(async (req, res) => {
-        const { reviewID, guestID } = req.body;
+    .post(validateToken, async (req, res) => {
+        const guestID = req.user.userID;
+        if (!guestID) {
+            return res.status(400).send("ERROR: Missing guest ID");
+        }
+        const { reviewID} = req.body;
         if (!reviewID || !guestID) {
             return res.status(400).send("ERROR: Missing required fields");
         }

@@ -6,9 +6,10 @@ const { Universal } = require("../../services")
 const { storeImages } = require("../../middleware/storeImages");
 const { Review, Host, Guest } = require('../../models');
 const Logger = require('../../services/Logger');
+const { validateToken } = require('../../middleware/auth');
 
 router.route("/")
-    .post(async (req, res) => {
+    .post(validateToken, async (req, res) => {
         storeImages(req, res, async (err) => {
             if (err instanceof multer.MulterError) {
                 Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Image upload error; error: ${err}.`);
@@ -18,9 +19,14 @@ router.route("/")
                 return res.status(500).send("ERROR: Internal server error");
             }
 
-            const { foodRating, hygieneRating, comments, dateCreated, guestID, hostID } = req.body;
+            const guestID = req.user.userID;
+            if (!guestID) {
+                return res.status(400).send("ERROR: Missing guest ID");
+            }
+
+            const { foodRating, hygieneRating, comments, dateCreated, hostID } = req.body;
           
-            if (!foodRating || !hygieneRating || !dateCreated || !guestID || !hostID) {
+            if (!foodRating || !hygieneRating || !dateCreated || !hostID) {
                 return res.status(400).send("ERROR: Missing required fields");
             }
             try {

@@ -149,18 +149,22 @@ router.get("/accountInfo", async (req, res) => { // GET account information
     }
 })
 
-router.get("/getReviews", async (req, res) => { // GET full reviews list
+router.get("/getReviews",validateToken, async (req, res) => { // GET full reviews list
     try {
         const where = {};
         const order = [];
+        const guestID = req.user.userID;
 
         if (!req.query.hostID) {
             return res.status(400).send("ERROR: Missing host ID.");
         } else {
             where.hostID = req.query.hostID;
         }
-        if (!req.query.guestID || !req.query.order) {
-            return res.status(400).send("ERROR: Missing guest ID or order.");
+        if (!guestID) {
+            return res.status(400).send("ERROR: Missing guest ID.");
+        }
+        if (!req.query.order) {
+            return res.status(400).send("ERROR: Missing order.");
         }
 
         if (req.query.order === "mostRecent") {
@@ -193,7 +197,7 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
                 })
                 const likedReviews = await ReviewLike.findAll({
                     where: {
-                        guestID: req.query.guestID
+                        guestID: guestID
                     }
                 });
 

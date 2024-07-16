@@ -9,6 +9,10 @@ class Extensions {
     static filterDictionary = (dictionary, predicate) => {
         return Object.fromEntries(Object.entries(dictionary).filter(([k, v]) => predicate(k, v)))
     }
+
+    static timeDiffInSeconds(beforeDate, afterDate) {
+        return (afterDate.getTime() - beforeDate.getTime()) / 1000;
+    }
 }
 
 module.exports = Extensions;

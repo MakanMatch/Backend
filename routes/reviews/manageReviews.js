@@ -33,6 +33,9 @@ router.route("/")
                 return res.status(500).send("ERROR: Internal server error");
             }
             let { reviewID, foodRating, hygieneRating, comments, images } = req.body;
+            console.log(req.body)
+            console.log("0----0")
+            console.log(req.files)
 
             if (!reviewID) {
                 return res.status(400).send("ERROR: Missing review ID");
@@ -40,25 +43,8 @@ router.route("/")
 
             var fileUrls = [];
 
-            const getImageNames = (urls) => {
-                if (typeof urls === 'string') {
-                    urls = [urls];
-                }
-                if (!Array.isArray(urls)) {
-                    return [];
-                }
-                return urls.map(url => {
-                    const parts = url.split('&imageName=');
-                    return parts.length > 1 ? parts[1] : null;
-                }).filter(name => name !== null);
-            };
-
-            var imagesNames = [];
-            if (images) {
-                imagesNames = getImageNames(images);
-            }
-            if (imagesNames.length > 0) {
-                for (const image of imagesNames) {
+            if (images && images.length > 0) {
+                for (const image of images) {
                     try {
                         await FileManager.saveFile(image)
                         fileUrls.push(`${image}`);

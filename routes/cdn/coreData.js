@@ -155,16 +155,13 @@ router.get("/getReviews",validateToken, async (req, res) => { // GET full review
         const order = [];
         const guestID = req.user.userID;
 
-        if (!req.query.hostID) {
-            return res.status(400).send("ERROR: Missing host ID.");
+        if (!req.query.hostID || !req.query.order) {
+            return res.status(400).send("ERROR: Missing host ID and sorting order.");
         } else {
             where.hostID = req.query.hostID;
         }
         if (!guestID) {
             return res.status(400).send("ERROR: Missing guest ID.");
-        }
-        if (!req.query.order) {
-            return res.status(400).send("ERROR: Missing order.");
         }
 
         if (req.query.order === "mostRecent") {

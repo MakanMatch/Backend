@@ -33,9 +33,6 @@ router.route("/")
                 return res.status(500).send("ERROR: Internal server error");
             }
             let { reviewID, foodRating, hygieneRating, comments, images } = req.body;
-            console.log(req.body)
-            console.log("0----0")
-            console.log(req.files)
 
             if (!reviewID) {
                 return res.status(400).send("ERROR: Missing review ID");
@@ -54,7 +51,7 @@ router.route("/")
                     }
                 }
             }
-            if (req.files) {
+            if (req.files && req.files.length > 0) {
                 for (const file of req.files) {
                     try {
                         await FileManager.saveFile(file.filename)

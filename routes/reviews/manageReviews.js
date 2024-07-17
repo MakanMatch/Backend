@@ -38,6 +38,11 @@ router.route("/")
                 return res.status(400).send("ERROR: Missing review ID");
             }
 
+            const review = await Review.findByPk(reviewID);
+            if (!review) {
+                return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
+            }
+
             var fileUrls = [];
 
             if (images && images.length > 0) {
@@ -79,11 +84,9 @@ router.route("/")
                 return res.send("SUCCESS: No fields to update");
             } else {
                 try {
-                    const updateReview = await Review.update(updateDict, {
-                        where: { reviewID: reviewID }
-                    });
+                    const updateReview = await review.update(updateDict);
                     if (!updateReview) {
-                        return res.status(404).send(`UERROR: Review with ID ${reviewID} not found`);
+                        return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
                     } else {
                         return res.send(`SUCCESS: Review with ID ${reviewID} updated`); // Tested in postcode, working!
                     }

@@ -7,8 +7,9 @@ const { storeFile } = require('../../middleware/storeFile');
 const Logger = require('../../services/Logger');
 const yup = require('yup');
 const Extensions = require('../../services/Extensions');
+const { validateToken } = require('../../middleware/auth');
 
-router.post("/uploadListingImage", async (req, res) => {
+router.post("/uploadListingImage", validateToken, async (req, res) => {
     storeFile(req, res, async (err) => {
         if (!req.body.listingID) {
             res.status(400).send("ERROR: Listing ID not provided.")
@@ -96,7 +97,7 @@ router.post("/deleteListingImage", async (req, res) => {
     return
 })
 
-router.post("/updateListing", async (req, res) => {
+router.post("/updateListing", validateToken, async (req, res) => {
     if (!req.body.listingID) {
         res.status(400).send("ERROR: Listing ID not provided.")
         return

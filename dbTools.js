@@ -159,7 +159,7 @@ async function signJWT() {
                 userType: userType
             },
             process.env.JWT_KEY,
-            { expiresIn: '24h' }
+            { expiresIn: '1h' }
         );
         console.log("Signed JWT: " + accessToken)
         console.log("")

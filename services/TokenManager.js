@@ -48,7 +48,7 @@ class TokenManager {
     }
 
     static default() {
-        return new TokenManager(process.env.JWT_KEY, 60 * 10 , { expiresIn: '24h' });
+        return new TokenManager(process.env.JWT_KEY, 60 * 10, { expiresIn: '1h' });
     }
 }
 

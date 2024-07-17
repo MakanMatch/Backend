@@ -41,7 +41,7 @@ const validateToken = (req, res, next) => {
     if (refreshed) {
         // Inform client of new token so that they can replace through RefreshedToken header
         Logger.log(`AUTH VALIDATETOKEN: Token refreshed for user with ID ${req.user.userID || "NOTFOUND"}.`);
-        res.setHeader('RefreshedToken', latestToken); // THIS IS THE PROBLEM
+        res.setHeader('refreshedtoken', latestToken);
     }
 
     // Continue to next middleware

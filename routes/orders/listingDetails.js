@@ -23,6 +23,12 @@ router.post("/uploadListingImage", validateToken, async (req, res) => {
             return
         }
 
+        const userID = req.user.userID
+        if (listing.hostID != userID) {
+            res.status(403).send("ERROR: You are not the host of this listing.")
+            return
+        }
+
         if (err) {
             res.status(400).send("ERROR: Failed to upload file. Error: " + err)
             return
@@ -50,7 +56,7 @@ router.post("/uploadListingImage", validateToken, async (req, res) => {
     })
 })
 
-router.post("/deleteListingImage", async (req, res) => {
+router.post("/deleteListingImage", validateToken, async (req, res) => {
     if (!req.body.listingID || !req.body.imageName) {
         res.status(400).send("ERROR: One or more required payloads were not provided.")
         return
@@ -58,10 +64,16 @@ router.post("/deleteListingImage", async (req, res) => {
 
     const listingID = req.body.listingID
     const imageName = req.body.imageName
+    const userID = req.user.userID;
 
     const listing = await FoodListing.findByPk(listingID)
     if (!listing) {
         res.status(404).send("ERROR: Listing not found.")
+        return
+    }
+
+    if (listing.hostID != userID) {
+        res.status(403).send("ERROR: You are not the host of this listing.")
         return
     }
 
@@ -107,6 +119,12 @@ router.post("/updateListing", validateToken, async (req, res) => {
     const listing = await FoodListing.findByPk(listingID)
     if (!listing) {
         res.status(404).send("ERROR: Listing not found.")
+        return
+    }
+
+    const userID = req.user.userID
+    if (listing.hostID != userID) {
+        res.status(403).send("ERROR: You are not the host of this listing.")
         return
     }
 

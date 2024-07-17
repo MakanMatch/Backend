@@ -14,23 +14,25 @@ class Extensions {
         return (afterDate.getTime() - beforeDate.getTime()) / 1000;
     }
 
-    static sanitiseData(data, keys) {
+    static sanitiseData(data, allowedKeys, allowedTopLevelKeys=[]) {
         var dataToReturn = {}
         for (let attribute of Object.keys(data)) {
-            if (Array.isArray(data[attribute])) {
+            if (allowedTopLevelKeys.includes(attribute)) {
+                dataToReturn[attribute] = data[attribute]
+            } else if (Array.isArray(data[attribute])) {
                 var sanitisedArray = []
                 for (let item of data[attribute]) {
                     if (item instanceof Object) {
-                        sanitisedArray.push(Extensions.sanitiseData(item, keys))
+                        sanitisedArray.push(Extensions.sanitiseData(item, allowedKeys, allowedTopLevelKeys))
                     } else {
                         sanitisedArray.push(item)
                     }
                 }
                 dataToReturn[attribute] = sanitisedArray
             } else if (data[attribute] instanceof Object) {
-                dataToReturn[attribute] = Extensions.sanitiseData(data[attribute], keys)
+                dataToReturn[attribute] = Extensions.sanitiseData(data[attribute], allowedKeys, allowedTopLevelKeys)
             } else {
-                if (keys.includes(attribute)) {
+                if (allowedKeys.includes(attribute)) {
                     dataToReturn[attribute] = data[attribute]
                 }
             }

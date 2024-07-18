@@ -12,7 +12,7 @@ router.route("/")
         }
         const { reviewID } = req.body;
         if (!reviewID || !guestID) {
-            return res.status(400).send("ERROR: Missing required fields");
+            return res.status(400).send("ERROR: Missing reviewID");
         }
 
         try {

@@ -129,13 +129,13 @@ router.put("/toggleFavouriteListing", async (req, res) => {
         res.status(400).send("ERROR: One or more required payloads were not provided");
         return;
     }
-    // user may be a guest or a host
-    const findUser = await Guest.findByPk(userID) || await Host.findByPk(userID);
 
+    const findUser = await Guest.findByPk(userID) || await Host.findByPk(userID);
     if (!findUser) {
         res.status(404).send("ERROR: User not found");
         return;
     }
+
     const findListing = await FoodListing.findByPk(listingID);
     if (!findListing) {
         res.status(404).send("ERROR: Listing not found");
@@ -144,26 +144,26 @@ router.put("/toggleFavouriteListing", async (req, res) => {
         res.status(400).send("ERROR: Host cannot favourite their own listing");
         return;
     }
-    const favCuisine = findUser.favCuisine || '';
+
+    let favCuisine = findUser.favCuisine || '';
+
     if (favCuisine.split("|").includes(listingID)) {
-        // if the user is a guest, update Guest. If the user is a host, update Host
-        const removeFavourite = await findUser.update({ favCuisine: favCuisine.replace(listingID + "|", "") }, { where: { userID: userID } }); // Removes the listingID from the guest's favCuisine field
-        if (removeFavourite) {
-            res.status(200).json({ message: "SUCCESS: Listing removed from favourites successfully", favourite: false });
-            return;
-        } else {
-            res.status(400).send("ERROR: Failed to remove listing from favourites");
-            return;
-        }
+        favCuisine = favCuisine.replace(listingID + "|", "");
     } else {
-        const addFavourite = await findUser.update({ favCuisine: favCuisine + listingID + "|" }, { where: { userID: userID } }); // Adds the listingID to the guest's favCuisine field
-        if (addFavourite) {
-            res.status(200).json({ message: "SUCCESS: Listing added to favourites successfully", favourite: true });
-            return;
-        } else {
-            res.status(400).send("ERROR: Failed to add listing to favourites");
-            return;
-        }
+        favCuisine += listingID + "|";
+    }
+
+    try {
+        findUser.favCuisine = favCuisine;
+        await findUser.save();
+        const favourite = favCuisine.split("|").includes(listingID);
+        res.status(200).json({
+            message: `SUCCESS: Listing ${favourite ? 'added to' : 'removed from'} favourites successfully`,
+            favourite: favourite
+        });
+    } catch (error) {
+        console.error("Failed to update user's favourites:", error);
+        res.status(400).send("ERROR: Failed to update user's favourites");
     }
 });
 

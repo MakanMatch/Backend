@@ -156,7 +156,7 @@ router.get("/getReviews",validateToken, async (req, res) => { // GET full review
         const guestID = req.user.userID;
 
         if (!req.query.hostID || !req.query.order) {
-            return res.status(400).send("ERROR: Missing host ID and sorting order.");
+            return res.status(400).send("ERROR: Missing host ID or sorting order.");
         } else {
             where.hostID = req.query.hostID;
         }

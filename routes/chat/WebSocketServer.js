@@ -4,19 +4,19 @@ const WebSocket = require("ws");
 const { ChatHistory, ChatMessage } = require("../../models");
 const Universal = require("../../services/Universal");
 const Logger = require("../../services/Logger");
-const { Op } = require('sequelize')
+const { Op } = require('sequelize');
 
 function startWebSocketServer(app) {
     const PORT = 8080;
     const server = http.createServer(app);
     const wss = new WebSocket.Server({ server });
-    const clients = [];
-    const connectedUsers = new Map();
-    let chatID = null;
+    const connectedUsers = new Map(); // Map to store user connections and their WebSocket instances
+    const userRooms = new Map(); // Map to store user IDs and their associated room IDs
+    const chatRooms = new Map(); // Map to store chatID and userIDs in the room
+    let chatIDCounter = 1; // Counter for generating unique chatIDs
 
     async function getChatHistoryAndMessages(user1ID, user2ID) {
         try {
-            // Check if a ChatHistory exists between user1 and user2
             let chatHistory = await ChatHistory.findOne({
                 where: {
                     [Op.or]: [
@@ -27,24 +27,19 @@ function startWebSocketServer(app) {
             });
     
             if (!chatHistory) {
-                // Create a new ChatHistory if it doesn't exist
                 chatHistory = await ChatHistory.create({
                     chatID: Universal.generateUniqueID(),
                     user1ID,
                     user2ID,
-                    datetime: new Date().toISOString(), // Replace with current datetime logic
+                    datetime: new Date().toISOString(),
                 });
             }
     
-            // Fetch previous chat messages
             const previousMessages = await ChatMessage.findAll({
-                where: {
-                    chatID: chatHistory.chatID,
-                },
-                order: [["datetime", "ASC"]], // Order messages by datetime ascending
+                where: { chatID: chatHistory.chatID },
+                order: [["datetime", "ASC"]],
             });
     
-            // Fetch replyTo message content for each message
             const messagesWithReplies = await Promise.all(
                 previousMessages.map(async (message) => {
                     let replyToMessage = null;
@@ -57,100 +52,87 @@ function startWebSocketServer(app) {
                     };
                 })
             );
-    
-            // Prepare the message to broadcast
             const message = JSON.stringify({
                 type: "chat_history",
                 messages: messagesWithReplies,
             });
     
-            // Broadcast the message to all clients
-            broadcastMessage(message);
+            broadcastMessage(message, [user1ID, user2ID]);
             return chatHistory.chatID;
         } catch (error) {
             console.error("Error fetching chat history and messages:", error);
-            // Optionally, broadcast an error message to clients if needed
             const errorMessage = JSON.stringify({
                 action: "error",
                 message: "Error fetching chat history and messages",
             });
-            broadcastMessage(errorMessage);
+            broadcastMessage(errorMessage, [user1ID, user2ID]);
         }
     }
 
-    wss.on("connection", async (ws) => {
-        console.log("WS connection arrived");
+    wss.on("connection", (ws) => {
+        ws.id = Universal.generateUniqueID();
 
-        // Store the WebSocket connection in an array
-        clients.push(ws);
-
-        // Handle WebSocket message events
         ws.on("message", async (message) => {
             const parsedMessage = JSON.parse(message);
-            if (parsedMessage.action === "connect"){
-              const userID = parsedMessage.userID;
-              connectedUsers.set(userID, ws);
-              if (connectedUsers.size === 2) {
-                  const users = Array.from(connectedUsers.keys());
-                  console.log("Users connected:", users);
-                  chatID = await getChatHistoryAndMessages(users[0], users[1]);
-              }
-            }
-            else if (parsedMessage.action === "edit") {
+
+            if (parsedMessage.action === "connect") {
+                const userID = parsedMessage.userID;
+                connectedUsers.set(userID, ws);
+
+                // Determine if user joins an existing room or creates a new one
+                let roomID;
+                if (userRooms.size === 0 || userRooms.size % 2 === 0) {
+                    // Create a new room
+                    roomID = Universal.generateUniqueID();
+                } else {
+                    // Join existing room
+                    roomID = Array.from(userRooms.values()).pop();
+                }
+                
+                userRooms.set(userID, roomID);
+
+                // Get all users in the current room
+                const usersInRoom = Array.from(userRooms.entries())
+                    .filter(([_, room]) => room === roomID)
+                    .map(([user, _]) => user);
+
+                // Check if the room has exactly two users, then fetch or create chat history
+                if (usersInRoom.length === 2) {
+                    chatID = await getChatHistoryAndMessages(usersInRoom[0], usersInRoom[1]);
+                    chatRooms.set(chatID, usersInRoom); // Store chatID and users in the room
+                }
+
+            } else if (parsedMessage.action === "edit") {
                 handleEditMessage(parsedMessage);
             } else if (parsedMessage.action === "delete") {
                 handleDeleteMessage(parsedMessage);
             } else if (parsedMessage.action === "send") {
-                try {
-                    var replyToMessage;
-                    if (parsedMessage.replyToID) {
-                        replyToMessage = await ChatMessage.findByPk(parsedMessage.replyToID);
-                        if (replyToMessage.messageID === null) {
-                            const jsonMessage = {
-                                action: "error",
-                                message: "Reply to message not found",
-                            };
-                            broadcastMessage(JSON.stringify(jsonMessage));
-                            return;
-                        }
-                    }
-
-                    // Create ChatMessage in the database
-                    const createdMessage = await ChatMessage.create({
-                        messageID: Universal.generateUniqueID(),
-                        message: parsedMessage.message,
-                        sender: parsedMessage.sender,
-                        datetime: parsedMessage.datetime,
-                        chatID: chatID,
-                        replyToID: parsedMessage.replyToID ? replyToMessage.messageID: null,
-                        edited: false,
-                    });
-
-                    // Include the replyTo message content in the response
-                    const responseMessage = {
-                        ...createdMessage.get({ plain: true }),
-                        replyTo: parsedMessage.replyToID ? replyToMessage.message: null,
-                    };
-
-                    // Broadcast the message to all clients
-                    broadcastMessage(JSON.stringify(responseMessage), ws);
-                } catch (error) {
-                    console.error("Error creating message:", error);
-                }
+                handleMessageSend(parsedMessage);
             } else {
-                const jsonMessage = {
-                    action: "error",
-                    message: "Invalid action",
-                };
-                broadcastMessage(JSON.stringify(jsonMessage));
+                const jsonMessage = { action: "error", message: "Invalid action" };
+                ws.send(JSON.stringify(jsonMessage));
             }
         });
 
         ws.on("close", () => {
-            const index = clients.indexOf(ws);
-            if (index > -1) {
-                clients.splice(index, 1);
-            }
+            connectedUsers.forEach((connection, userID) => {
+                if (connection === ws) {
+                    connectedUsers.delete(userID);
+                    userRooms.delete(userID);
+
+                    // Remove the user from the chat room
+                    chatRooms.forEach((users, chatID) => {
+                        if (users.includes(userID)) {
+                            users.splice(users.indexOf(userID), 1);
+                            if (users.length === 0) {
+                                chatRooms.delete(chatID); // Remove the chat room if no users are left
+                            } else {
+                                broadcastMessage(JSON.stringify({ action: "user_left", userID }), users);
+                            }
+                        }
+                    });
+                }
+            });
         });
     });
 
@@ -162,78 +144,107 @@ function startWebSocketServer(app) {
     async function handleEditMessage(editedMessage) {
         const messageId = editedMessage.id;
         if (!messageId) {
-            const jsonMessage = {
-                action: "error",
-                message: "ID not provided",
-            };
-            broadcastMessage(JSON.stringify(jsonMessage));
-            return;
-        }
-
-        const findMessage = await ChatMessage.findByPk(messageId);
-        if (!findMessage) {
-            const jsonMessage = {
-                action: "error",
-                message: "Error occurred on the server",
-            };
-            broadcastMessage(JSON.stringify(jsonMessage));
-            return;
-        }
-
-        findMessage.message = editedMessage.message;
-        findMessage.edited = true;
-        findMessage.save();
-    }
-
-    async function handleDeleteMessage(deletedMessage) {
-        const messageId = deletedMessage.id;
-        if (!messageId) {
-            const jsonMessage = {
-                action: "error",
-                message: "ID not provided",
-            };
-            broadcastMessage(JSON.stringify(jsonMessage));
+            const jsonMessage = { action: "error", message: "ID not provided" };
+            broadcastMessage(jsonMessage);
             return;
         }
 
         try {
             const findMessage = await ChatMessage.findByPk(messageId);
             if (!findMessage) {
-                const jsonMessage = {
-                    action: "error",
-                    message: "Message not found",
-                };
-                broadcastMessage(JSON.stringify(jsonMessage));
+                const jsonMessage = { action: "error", message: "Message not found" };
+                broadcastMessage(jsonMessage);
                 return;
             }
-            findMessage.destroy();
 
-            const jsonMessage = {
-                action: "delete",
-                id: messageId,
-            };
-            broadcastMessage(JSON.stringify(jsonMessage));
+            findMessage.message = editedMessage.message;
+            findMessage.edited = true;
+            await findMessage.save();
+
+            const responseMessage = { action: "edit", message: findMessage };
+            const users = chatRooms.get(findMessage.chatID);
+            broadcastMessage(JSON.stringify(responseMessage), users);
+
         } catch (error) {
-            console.error("Error deleting message:", error);
-            Logger.log("CHAT WEBSOCKETSERVER ERROR: Error deleting message: " + error);
-            const jsonMessage = {
-                action: "error",
-                message: "Error occurred while deleting message",
-            };
-            broadcastMessage(JSON.stringify(jsonMessage));
+            console.error("Error editing message:", error);
         }
     }
 
-    function broadcastMessage(message) {
-        clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(message);
+    async function handleDeleteMessage(deletedMessage) {
+        const messageId = deletedMessage.id;
+        if (!messageId) {
+            const jsonMessage = { action: "error", message: "ID not provided" };
+            broadcastMessage(jsonMessage);
+            return;
+        }
+
+        try {
+            const findMessage = await ChatMessage.findByPk(messageId);
+            if (!findMessage) {
+                const jsonMessage = { action: "error", message: "Message not found" };
+                broadcastMessage(jsonMessage);
+                return;
+            }
+            await findMessage.destroy();
+
+            const jsonMessage = { action: "delete", id: messageId };
+            const users = chatRooms.get(findMessage.chatID);
+            broadcastMessage(JSON.stringify(jsonMessage), users);
+
+        } catch (error) {
+            console.error("Error deleting message:", error);
+            Logger.log("CHAT WEBSOCKETSERVER ERROR: Error deleting message: " + error);
+            const jsonMessage = { action: "error", message: "Error occurred while deleting message" };
+            broadcastMessage(jsonMessage);
+        }
+    }
+
+    async function handleMessageSend(parsedMessage) {
+        try {
+            let replyToMessage = null;
+            if (parsedMessage.replyToID) {
+                replyToMessage = await ChatMessage.findByPk(parsedMessage.replyToID);
+                if (!replyToMessage) {
+                    const jsonMessage = { action: "error", message: "Reply to message not found" };
+                    ws.send(JSON.stringify(jsonMessage));
+                    return;
+                }
+            }
+
+            const createdMessage = await ChatMessage.create({
+                messageID: Universal.generateUniqueID(),
+                message: parsedMessage.message,
+                sender: parsedMessage.sender,
+                datetime: parsedMessage.datetime,
+                chatID: chatID,
+                replyToID: replyToMessage ? replyToMessage.messageID : null,
+                edited: false,
+            });
+
+            const responseMessage = {
+                ...createdMessage.get({ plain: true }),
+                replyTo: replyToMessage ? replyToMessage.message : null,
+            };
+
+            const users = chatRooms.get(createdMessage.chatID);
+            broadcastMessage(JSON.stringify(responseMessage), users);
+        } catch (error) {
+            console.error("Error creating message:", error);
+        }
+    }
+
+    function broadcastMessage(message, userIDs = []) {
+        connectedUsers.forEach((ws, userID) => {
+            if (userIDs.length === 0 || userIDs.includes(userID)) {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(message);
+                }
             }
         });
     }
 
     server.listen(PORT, () => {
-        console.log(`WebSocket Server running on port ${PORT}`);
+        console.log("WebSocket Server running on port ${PORT}");
     });
 }
 

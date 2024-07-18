@@ -39,7 +39,7 @@ router.get("/fetchGuestDetails", async (req, res) => {
 
 router.get("/listings", async (req, res) => { // GET all food listings
     try {
-        const foodListings = await FoodListing.findAll({ where: { published: true }});
+        const foodListings = await FoodListing.findAll({ where: { published: true } });
         foodListings.map(listing => (listing.images == null || listing.images == "") ? listing.images = [] : listing.images = listing.images.split("|"));
         res.status(200).json(foodListings);
     } catch (error) {
@@ -78,7 +78,7 @@ router.get("/getListing", async (req, res) => {
         include: includeReservations ? [{
             model: Guest,
             as: "guests"
-        }]: []
+        }] : []
     })
 
     if (!listing || listing == null) {
@@ -149,56 +149,65 @@ router.get("/accountInfo", async (req, res) => { // GET account information
     }
 })
 
-router.get("/getReviews",validateToken, async (req, res) => { // GET full reviews list
+router.get("/getReviews", async (req, res) => { // GET full reviews list
     try {
+        const { hostID, guestID, order } = req.query;
         const where = {};
-        const order = [];
-        const guestID = req.user.userID;
+        const reviewOrder = [];
+        var checkGuest = false
 
-        if (!req.query.hostID || !req.query.order) {
+        if (!hostID || !order) {
             return res.status(400).send("ERROR: Missing host ID or sorting order.");
         } else {
-            where.hostID = req.query.hostID;
+            where.hostID = hostID;
         }
-        if (!guestID) {
-            return res.status(400).send("ERROR: Missing guest ID.");
+        if (guestID === null) {
+            checkGuest = true
+        } else {
+            checkGuest = false
         }
 
-        if (req.query.order === "mostRecent") {
-            order.push(['dateCreated', 'DESC']);
-        } else if (req.query.order === "highestRating") {
-            order.push([
+        if (order === "mostRecent") {
+            reviewOrder.push(['dateCreated', 'DESC']);
+        } else if (order === "highestRating") {
+            reviewOrder.push([
                 Sequelize.literal('foodRating + hygieneRating'), 'DESC'
             ])
-        } else if (req.query.order === "lowestRating") {
-            order.push([
+        } else if (order === "lowestRating") {
+            reviewOrder.push([
                 Sequelize.literal('foodRating + hygieneRating'), 'ASC'
             ])
         } else {
-            order.push(['dateCreated', 'DESC']);
+            reviewOrder.push(['dateCreated', 'DESC']);
         }
 
         try {
-            const host = await Host.findByPk(req.query.hostID);
+            const host = await Host.findByPk(hostID);
             if (!host) {
                 return res.status(404).send("UERROR: Host not found.");
             } else {
                 const reviews = await Review.findAll({
                     where,
-                    order,
+                    reviewOrder,
                     include: [{
                         model: Guest,
                         as: 'reviewPoster',
                         attributes: ['username']
                     }]
                 })
-                const likedReviews = await ReviewLike.findAll({
-                    where: {
-                        guestID: guestID
-                    }
-                });
+                if (!checkGuest) {
+                    const likedReviews = await ReviewLike.findAll({
+                        where: {
+                            guestID: guestID
+                        }
+                    });
+                    const likedReviewIDs = likedReviews.map(likedReview => likedReview.reviewID);
+                    reviews.forEach(review => {
+                        review.dataValues.isLiked = likedReviewIDs.includes(review.reviewID);
+                    });
+                }
 
-                if (req.query.order === "images") {
+                if (order === "images") {
                     reviews.sort((a, b) => {
                         const imageCountA = a.images ? a.images.split("|").length : 0;
                         const imageCountB = b.images ? b.images.split("|").length : 0;
@@ -206,20 +215,15 @@ router.get("/getReviews",validateToken, async (req, res) => { // GET full review
                     });
                 }
 
-                const likedReviewIDs = likedReviews.map(likedReview => likedReview.reviewID);
-                reviews.forEach(review => {
-                    review.dataValues.isLiked = likedReviewIDs.includes(review.reviewID);
-                });
-
                 if (reviews.length > 0) {
                     res.json(reviews);
                 } else {
                     return res.status(200).json([]);
                 }
             }
-            } catch (err) {
-                Logger.log(`CDN COREDATA GETREVIEWS GET ERROR: Failed to retrieve reviews; error: ${err}.`);
-                return res.status(404).send("ERROR: No reviews found.");
+        } catch (err) {
+            Logger.log(`CDN COREDATA GETREVIEWS GET ERROR: Failed to retrieve reviews; error: ${err}.`);
+            return res.status(404).send("ERROR: No reviews found.");
         }
 
     } catch (err) {

@@ -7,6 +7,7 @@ const Universal = require("../../services/Universal");
 const FileManager = require("../../services/FileManager");
 const Logger = require("../../services/Logger")
 const { storeImages } = require("../../middleware/storeImages");
+const axios = require("axios");
 
 router.post("/addListing", async (req, res) => {
     storeImages(req, res, async (err) => {
@@ -17,10 +18,7 @@ router.post("/addListing", async (req, res) => {
             !req.body.portionPrice ||
             !req.body.totalSlots ||
             !req.body.datetime ||
-            !req.body.approxAddress ||
-            !req.body.address ||
             !req.body.hostID ||
-            !req.body.coordinates ||
             req.files.length === 0
         ) {
             console.log(req.body);
@@ -44,32 +42,71 @@ router.post("/addListing", async (req, res) => {
                     }
                 }
                 if (allImagesSuccess === true) {
-                    const formattedDatetime = req.body.datetime + ":00.000Z";
-                    const listingDetails = {
-                        listingID: Universal.generateUniqueID(),
-                        title: req.body.title,
-                        images: req.files.map(file => file.filename).join("|"),
-                        shortDescription: req.body.shortDescription,
-                        longDescription: req.body.longDescription,
-                        portionPrice: req.body.portionPrice,
-                        totalSlots: req.body.totalSlots,
-                        datetime: formattedDatetime,
-                        approxAddress: req.body.approxAddress,
-                        address: req.body.address,
-                        hostID: req.body.hostID,
-                        coordinates: req.body.coordinates,
-                        published: true,
-                    };
-                    const addListingResponse = await FoodListing.create(listingDetails);
-                    if (addListingResponse) {
-                        res.status(200).json({
-                            message: "SUCCESS: Food listing created successfully",
-                            listingDetails,
-                        });
-                        Logger.log(`LISTINGS ADDLISTING: Listing with listingID ${listingDetails.listingID} created successfully.`)
+                    const hostInfo = await Host.findByPk(req.body.hostID);
+                    if (!hostInfo) {
+                        res.status(404).send("ERROR: Host not found");
                         return;
-                    } else {
-                        res.status(400).send("ERROR: Failed to create food listing");
+                    }
+                    try {
+                        const encodedAddress = encodeURIComponent(String(hostInfo.address));
+                        const apiKey = process.env.GMAPS_API_KEY;
+                        const url = `https://maps.googleapis.com/maps/api/geocode/json?address="${encodedAddress}"&key=${apiKey}`;
+                        const response = await axios.get(url);
+                        const location = response.data.results[0].geometry.location;
+                        const coordinates = { lat: location.lat, lng: location.lng };
+
+                        const components = response.data.results[0].address_components;
+                        let street = '';
+                        let city = '';
+                        let state = '';
+
+                        components.forEach(component => {
+                            if (component.types.includes('route')) {
+                                street = component.long_name;
+                            }
+                            if (component.types.includes('locality')) {
+                                city = component.long_name;
+                            }
+                            if (component.types.includes('administrative_area_level_1')) {
+                                state = component.long_name;
+                            }
+                        });
+                        let approximateAddress = `${street}, ${city}`;
+                        if (state) {
+                            approximateAddress += `, ${state}`; // For contexts outside of Singapore
+                        }
+                        
+                        const formattedDatetime = req.body.datetime + ":00.000Z";
+                        const listingDetails = {
+                            listingID: Universal.generateUniqueID(),
+                            title: req.body.title,
+                            images: req.files.map(file => file.filename).join("|"),
+                            shortDescription: req.body.shortDescription,
+                            longDescription: req.body.longDescription,
+                            portionPrice: req.body.portionPrice,
+                            totalSlots: req.body.totalSlots,
+                            datetime: formattedDatetime,
+                            approxAddress: approximateAddress,
+                            address: hostInfo.address,
+                            hostID: req.body.hostID,
+                            coordinates: coordinates.lat + "," + coordinates.lng,
+                            published: true,
+                        };
+                        const addListingResponse = await FoodListing.create(listingDetails);
+                        if (addListingResponse) {
+                            res.status(200).json({
+                                message: "SUCCESS: Food listing created successfully",
+                                listingDetails,
+                            });
+                            Logger.log(`LISTINGS ADDLISTING: Listing with listingID ${listingDetails.listingID} created successfully.`)
+                            return;
+                        } else {
+                            res.status(400).send("ERROR: Failed to create food listing");
+                            return;
+                        }
+                    } catch (error) {
+                        res.status(500).send("ERROR: Internal server error");
+                        Logger.log(`LISTINGS ADDLISTING: Internal server error: ${error}`);
                         return;
                     }
                 } else {
@@ -87,14 +124,14 @@ router.post("/addListing", async (req, res) => {
 });
 
 router.put("/toggleFavouriteListing", async (req, res) => {
-    const { userID, userType, hostID, listingID } = req.body;
-    if (!userID || !userType || !hostID || !listingID) {
+    const { userID, listingID } = req.body;
+    if (!userID || !listingID) {
         res.status(400).send("ERROR: One or more required payloads were not provided");
         return;
     }
-    // find user from either Guest table or Host table
-    const userModel = userType === "Guest" ? Guest : Host;
-    const findUser = await userModel.findByPk(userID);
+    // user may be a guest or a host
+    const findUser = await Guest.findByPk(userID) || await Host.findByPk(userID);
+
     if (!findUser) {
         res.status(404).send("ERROR: User not found");
         return;
@@ -103,14 +140,14 @@ router.put("/toggleFavouriteListing", async (req, res) => {
     if (!findListing) {
         res.status(404).send("ERROR: Listing not found");
         return;
-    }
-    if (userID == hostID) {
+    } else if (userID === findListing.hostID) {
         res.status(400).send("ERROR: Host cannot favourite their own listing");
         return;
     }
     const favCuisine = findUser.favCuisine || '';
     if (favCuisine.split("|").includes(listingID)) {
-        const removeFavourite = await userModel.update({ favCuisine: favCuisine.replace(listingID + "|", "") }, { where: { userID: userID } }); // Removes the listingID from the guest's favCuisine field
+        // if the user is a guest, update Guest. If the user is a host, update Host
+        const removeFavourite = await findUser.update({ favCuisine: favCuisine.replace(listingID + "|", "") }, { where: { userID: userID } }); // Removes the listingID from the guest's favCuisine field
         if (removeFavourite) {
             res.status(200).json({ message: "SUCCESS: Listing removed from favourites successfully", favourite: false });
             return;
@@ -119,7 +156,7 @@ router.put("/toggleFavouriteListing", async (req, res) => {
             return;
         }
     } else {
-        const addFavourite = await userModel.update({ favCuisine: favCuisine + listingID + "|" }, { where: { userID: userID } }); // Adds the listingID to the guest's favCuisine field
+        const addFavourite = await findUser.update({ favCuisine: favCuisine + listingID + "|" }, { where: { userID: userID } }); // Adds the listingID to the guest's favCuisine field
         if (addFavourite) {
             res.status(200).json({ message: "SUCCESS: Listing added to favourites successfully", favourite: true });
             return;

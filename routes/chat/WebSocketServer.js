@@ -136,12 +136,6 @@ function startWebSocketServer(app) {
                 // Store chatID and users in the chatRooms map
                 chatRooms.set(chatID, [userID, hostID]);
 
-                // Optionally send confirmation message to both users
-                const jsonMessage = { action: "connected", chatID: chatID };
-                ws.send(JSON.stringify(jsonMessage));
-                if (connectedUsers.get(hostID) && connectedUsers.get(hostID).readyState === WebSocket.OPEN) {
-                    connectedUsers.get(hostID).send(JSON.stringify(jsonMessage));
-                }
 
             } else if (parsedMessage.action === "edit") {
                 handleEditMessage(parsedMessage);

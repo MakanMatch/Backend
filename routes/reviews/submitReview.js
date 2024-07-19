@@ -24,15 +24,16 @@ router.route("/")
                 return res.status(400).send("ERROR: Missing guest ID");
             }
 
-            if (guestID == hostID) {
-                return res.status(400).send("UERROR: You cannot create a review for yourself.");
-            }
-
             const { foodRating, hygieneRating, comments, dateCreated, hostID } = req.body;
           
             if (!foodRating || !hygieneRating || !dateCreated || !hostID) {
                 return res.status(400).send("ERROR: Missing required fields");
             }
+
+            if (guestID == hostID) {
+                return res.status(400).send("UERROR: You cannot create a review for yourself.");
+            }
+            
             try {
                 const host = await Host.findByPk(hostID)
                 const guest = await Guest.findByPk(guestID)

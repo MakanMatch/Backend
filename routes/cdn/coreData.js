@@ -203,10 +203,12 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
                             guestID: guestID
                         }
                     });
-                    const likedReviewIDs = likedReviews.map(likedReview => likedReview.reviewID);
-                    reviews.forEach(review => {
-                        review.dataValues.isLiked = likedReviewIDs.includes(review.reviewID);
-                    });
+                    if (likedReviews.length > 0) {
+                        const likedReviewIDs = likedReviews.map(likedReview => likedReview.reviewID);
+                        reviews.forEach(review => {
+                            review.dataValues.isLiked = likedReviewIDs.includes(review.reviewID);
+                        });
+                    }
                 }
 
                 if (order === "images") {

@@ -47,34 +47,34 @@ router.route("/")
             console.log(images)
             console.log(req.files)
 
-            if (images && Array.isArray(images) && Array.isArray(images)) {
+            if (images && Array.isArray(images)) {
                 for (const image of images) {
                     try {
                         const saveImages = await FileManager.saveFile(image)
                         if (saveImages) {
                             fileUrls.push(`${image}`);
                         } else {
-                            Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload images; error: ${saveImages}.`);
-                            return res.status(500).send("ERROR: Failed to upload file");
+                            return res.status(500).send("ERROR: Failed to upload images");
                         }
                     } catch (err) {
                         Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload images; error: ${err}.`);
                         return res.status(500).send("ERROR: Failed to upload file");
                     }
                 }
-            } else {
+            } else if (images && typeof images === 'string') {
                 try {
                     const saveSingleImage = await FileManager.saveFile(images)
                     if (saveSingleImage) {
                         fileUrls.push(`${images}`);
                     } else {
-                        Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload image; error: ${saveSingleImage}.`);
-                        return res.status(500).send("ERROR: Failed to upload file");
+                        return res.status(500).send("ERROR: Failed to upload image");
                     }
                 } catch (err) {
                     Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload image; error: ${err}.`);
                     return res.status(500).send("ERROR: Failed to upload file");
                 }
+            } else {
+                fileUrls = [];
             }
             if (req.files && req.files.length > 0) {
                 for (const file of req.files) {
@@ -83,8 +83,7 @@ router.route("/")
                         if (saveFiles) {
                             fileUrls.push(`${file.filename}`)
                         } else {
-                            Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload file; error: ${saveFiles}.`);
-                            return res.status(500).send("ERROR: Failed to upload file");
+                            return res.status(500).send("ERROR: Failed to upload files");
                         }
                     } catch (err) {
                         Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload file; error: ${err}.`);

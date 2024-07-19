@@ -6,9 +6,6 @@ const Universal = require("../../services/Universal");
 const Logger = require("../../services/Logger");
 const { Op } = require('sequelize');
 
-
-
-
 function startWebSocketServer(app) {
     const PORT = 8080;
     const server = http.createServer(app);
@@ -50,6 +47,7 @@ function startWebSocketServer(app) {
                     }
                     return {
                         ...message.get({ plain: true }),
+                        datetime: new Date(message.datetime).toISOString(), // Ensure proper date formatting
                         replyTo: replyToMessage ? replyToMessage.message : null,
                     };
                 })
@@ -78,67 +76,80 @@ function startWebSocketServer(app) {
             const parsedMessage = JSON.parse(message);
 
             if (parsedMessage.action === "connect") {
-                co
                 const userID = parsedMessage.userID;
-                const findGuest = await Reservation.findByPk(userID);
-            
-                if (!findGuest) {
-                    const jsonMessage = { action: "error", message: "User not found" };
+
+                // Check if the user is a guest
+                const findGuest = await Reservation.findOne({
+                    where: { guestID: userID }
+                });
+
+                // Check if the user is a host
+                const findHost = await FoodListing.findOne({
+                    where: { hostID: userID }
+                });
+
+                // Determine if the user is neither a guest nor a host
+                if (!findGuest && !findHost) {
+                    const jsonMessage = { action: "error", message: "User not found as guest or host" };
                     ws.send(JSON.stringify(jsonMessage));
                     return;
                 }
-            
-                // Fetch the listing ID using the guest ID
-                const reservations = await Reservation.findAll({
-                    where: { guestID: userID }
-                });
-            
-                if (reservations.length === 0) {
+
+                // If user is a guest, find the listing ID
+                let listingID = null;
+                if (findGuest) {
+                    listingID = findGuest.listingID;
+                }
+
+                // If user is a host, find their listing ID (assuming a host has only one listing)
+                if (findHost && !listingID) {
+                    listingID = findHost.listingID;
+                }
+
+                // Ensure listingID is valid
+                if (!listingID) {
                     const jsonMessage = { action: "error", message: "Listing not found" };
                     ws.send(JSON.stringify(jsonMessage));
                     return;
                 }
-            
-                // Assuming there is only one reservation per guest, otherwise modify this accordingly
-                const listingID = reservations[0].listingID;
-            
+
                 // Find the host ID from the food listing using the listing ID
                 const foodListing = await FoodListing.findOne({
                     where: { listingID: listingID }
                 });
-            
+
                 if (!foodListing) {
                     const jsonMessage = { action: "error", message: "Host not found" };
                     ws.send(JSON.stringify(jsonMessage));
                     return;
                 }
-            
+
                 const hostID = foodListing.hostID;
-            
-                // Connect the guest to the host
+
+                // Connect the user (guest or host) to the host
                 connectedUsers.set(userID, ws);
                 connectedUsers.set(hostID, ws);
-            
+
                 // Determine chatID using guestID and hostID
                 let chatID = await getChatHistoryAndMessages(userID, hostID);
-            
+
                 // Store chatID and users in the chatRooms map
                 chatRooms.set(chatID, [userID, hostID]);
-            
+
                 // Optionally send confirmation message to both users
                 const jsonMessage = { action: "connected", chatID: chatID };
                 ws.send(JSON.stringify(jsonMessage));
-                if (connectedUsers.get(hostID)) {
+                if (connectedUsers.get(hostID) && connectedUsers.get(hostID).readyState === WebSocket.OPEN) {
                     connectedUsers.get(hostID).send(JSON.stringify(jsonMessage));
                 }
-                        
 
             } else if (parsedMessage.action === "edit") {
                 handleEditMessage(parsedMessage);
             } else if (parsedMessage.action === "delete") {
                 handleDeleteMessage(parsedMessage);
             } else if (parsedMessage.action === "send") {
-                handleMessageSend(parsedMessage);
+                const chatID = parsedMessage.chatID; // Get chatID from the parsed message
+                handleMessageSend(parsedMessage, chatID);
             } else {
                 const jsonMessage = { action: "error", message: "Invalid action" };
                 ws.send(JSON.stringify(jsonMessage));
@@ -230,14 +241,14 @@ function startWebSocketServer(app) {
         }
     }
 
-    async function handleMessageSend(parsedMessage) {
+    async function handleMessageSend(parsedMessage, chatID) { // Add chatID as a parameter
         try {
             let replyToMessage = null;
             if (parsedMessage.replyToID) {
                 replyToMessage = await ChatMessage.findByPk(parsedMessage.replyToID);
                 if (!replyToMessage) {
                     const jsonMessage = { action: "error", message: "Reply to message not found" };
-                    ws.send(JSON.stringify(jsonMessage));
+                    connectedUsers.get(parsedMessage.sender).send(JSON.stringify(jsonMessage)); // Send to sender
                     return;
                 }
             }
@@ -246,14 +257,15 @@ function startWebSocketServer(app) {
                 messageID: Universal.generateUniqueID(),
                 message: parsedMessage.message,
                 sender: parsedMessage.sender,
-                datetime: parsedMessage.datetime,
-                chatID: chatID,
+                datetime: new Date().toISOString(), // Ensure proper date formatting
+                chatID: chatID, // Use the passed chatID
                 replyToID: replyToMessage ? replyToMessage.messageID : null,
                 edited: false,
             });
 
             const responseMessage = {
                 ...createdMessage.get({ plain: true }),
+                datetime: new Date(createdMessage.datetime).toISOString(), // Ensure proper date formatting
                 replyTo: replyToMessage ? replyToMessage.message : null,
             };
 
@@ -275,7 +287,7 @@ function startWebSocketServer(app) {
     }
 
     server.listen(PORT, () => {
-        console.log("WebSocket Server running on port ${PORT}");
+        console.log(`WebSocket Server running on port ${PORT}`);
     });
 }
 

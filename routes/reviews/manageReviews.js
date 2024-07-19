@@ -44,8 +44,6 @@ router.route("/")
             }
 
             var fileUrls = [];
-            console.log(images)
-            console.log(req.files)
 
             if (images && Array.isArray(images)) {
                 for (const image of images) {
@@ -86,7 +84,7 @@ router.route("/")
                             return res.status(500).send("ERROR: Failed to upload files");
                         }
                     } catch (err) {
-                        Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload file; error: ${err}.`);
+                        Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload files; error: ${err}.`);
                         return res.status(500).send("ERROR: Failed to upload file");
                     }
                 }

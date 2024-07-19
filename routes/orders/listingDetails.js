@@ -7,8 +7,9 @@ const { storeFile } = require('../../middleware/storeFile');
 const Logger = require('../../services/Logger');
 const yup = require('yup');
 const Extensions = require('../../services/Extensions');
+const { validateToken } = require('../../middleware/auth');
 
-router.post("/uploadListingImage", async (req, res) => {
+router.post("/uploadListingImage", validateToken, async (req, res) => {
     storeFile(req, res, async (err) => {
         if (!req.body.listingID) {
             res.status(400).send("ERROR: Listing ID not provided.")
@@ -19,6 +20,12 @@ router.post("/uploadListingImage", async (req, res) => {
         const listing = await FoodListing.findByPk(listingID)
         if (!listing) {
             res.status(404).send("ERROR: Listing not found.")
+            return
+        }
+
+        const userID = req.user.userID
+        if (listing.hostID != userID) {
+            res.status(403).send("ERROR: You are not the host of this listing.")
             return
         }
 
@@ -49,7 +56,7 @@ router.post("/uploadListingImage", async (req, res) => {
     })
 })
 
-router.post("/deleteListingImage", async (req, res) => {
+router.post("/deleteListingImage", validateToken, async (req, res) => {
     if (!req.body.listingID || !req.body.imageName) {
         res.status(400).send("ERROR: One or more required payloads were not provided.")
         return
@@ -57,10 +64,16 @@ router.post("/deleteListingImage", async (req, res) => {
 
     const listingID = req.body.listingID
     const imageName = req.body.imageName
+    const userID = req.user.userID;
 
     const listing = await FoodListing.findByPk(listingID)
     if (!listing) {
         res.status(404).send("ERROR: Listing not found.")
+        return
+    }
+
+    if (listing.hostID != userID) {
+        res.status(403).send("ERROR: You are not the host of this listing.")
         return
     }
 
@@ -96,7 +109,7 @@ router.post("/deleteListingImage", async (req, res) => {
     return
 })
 
-router.post("/updateListing", async (req, res) => {
+router.post("/updateListing", validateToken, async (req, res) => {
     if (!req.body.listingID) {
         res.status(400).send("ERROR: Listing ID not provided.")
         return
@@ -106,6 +119,12 @@ router.post("/updateListing", async (req, res) => {
     const listing = await FoodListing.findByPk(listingID)
     if (!listing) {
         res.status(404).send("ERROR: Listing not found.")
+        return
+    }
+
+    const userID = req.user.userID
+    if (listing.hostID != userID) {
+        res.status(403).send("ERROR: You are not the host of this listing.")
         return
     }
 

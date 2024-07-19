@@ -34,7 +34,7 @@ const logRoutes = require('./middleware/logRoutes');
 
 // Configure express app and chat web socket server
 const app = express();
-app.use(cors())
+app.use(cors({ exposedHeaders: ['refreshedtoken'] }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 // app.use(express.static('public'))

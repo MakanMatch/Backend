@@ -95,7 +95,7 @@ router.route("/")
             const updateDict = {};
             if (foodRating) updateDict.foodRating = foodRating;
             if (hygieneRating) updateDict.hygieneRating = hygieneRating;
-            if (comments) updateDict.comments = comments.trim();
+            updateDict.comments = comments.trim();
             if (fileUrlsString) {
                 updateDict.images = fileUrlsString;
             } else {

@@ -57,7 +57,7 @@ router.post("/", async (req, res) => {
         let userInfo = {
             userID: user.userID,
             username: user.username,
-            userType: user.userType
+            userType: userType
         }
 
         // Generate jwt

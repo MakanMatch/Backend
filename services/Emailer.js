@@ -5,7 +5,6 @@ class Emailer {
     static contextChecked = false;
 
     static checkPermission() {
-        return true;
         return process.env.EMAILING_ENABLED === "True";
     }
 

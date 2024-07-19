@@ -19,7 +19,8 @@ async function isUniqueEmail(email) {
 }
 
 async function isUniqueContactNum(contactNum) {
-    const contactNumExists = await Host.findOne({ where: { contactNum } }) ||
+    const contactNumExists = await Guest.findOne({ where: { contactNum } }) ||
+        await Host.findOne({ where: { contactNum } }) ||
         await Admin.findOne({ where: { contactNum } });
     return !contactNumExists;
 }
@@ -67,6 +68,10 @@ router.post("/", async (req, res) => {
             user = await Host.create(accountData);
         } else {
             user = await Guest.create(accountData);
+        }
+
+        if (!user) {
+            return res.status(500).send("ERROR: Failed to create user.")
         }
 
         const origin = req.headers.origin

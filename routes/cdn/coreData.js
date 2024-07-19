@@ -13,36 +13,20 @@ router.get('/myAccount', validateToken, (req, res) => {
     res.json(userInfo);
 });
 
-router.get("/fetchHostDetails", async (req, res) => {
-    const hostDetails = {
-        hostUserID: Universal.data["DUMMY_HOST_ID"],
-        hostID: Universal.data["DUMMY_HOST_ID"],
-        hostUsername: Universal.data["DUMMY_HOST_USERNAME"],
-        hostFoodRating: Universal.data["DUMMY_HOST_FOODRATING"]
-    }
-    res.status(200).json(hostDetails);
-})
-
-router.get("/fetchGuestDetails", async (req, res) => {
-    const targetGuest = await Guest.findByPk(Universal.data["DUMMY_GUEST_ID"])
-    if (!targetGuest) {
-        return res.status(404).send("Dummy Guest not found.");
-    }
-    const guestFavCuisine = targetGuest.favCuisine;
-    const guestDetails = {
-        guestUserID: Universal.data["DUMMY_GUEST_ID"],
-        guestUsername: Universal.data["DUMMY_GUEST_USERNAME"],
-        guestFavCuisine: guestFavCuisine
-    }
-    res.status(200).json(guestDetails);
-})
-
 router.get("/listings", async (req, res) => { // GET all food listings
     try {
-        const foodListings = await FoodListing.findAll({ where: { published: true } });
+        const foodListings = await FoodListing.findAll({
+            where: { published: true },
+            include: [{
+                model: Host,
+                as: "Host",
+                attributes: ["userID", "username", "foodRating"]
+            }]
+        });
         foodListings.map(listing => (listing.images == null || listing.images == "") ? listing.images = [] : listing.images = listing.images.split("|"));
         res.status(200).json(foodListings);
     } catch (error) {
+        Logger.log("CDN COREDATA LISTINGS ERROR: Failed to retrieve all published listings; error: " + error)
         res.status(500).send("ERROR: Internal server error");
     }
 });

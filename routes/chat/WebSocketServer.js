@@ -1,10 +1,13 @@
 const express = require("express");
 const http = require("http");
 const WebSocket = require("ws");
-const { ChatHistory, ChatMessage } = require("../../models");
+const { ChatHistory, ChatMessage, Host, Guest, Reservation, FoodListing } = require("../../models");
 const Universal = require("../../services/Universal");
 const Logger = require("../../services/Logger");
 const { Op } = require('sequelize');
+
+
+
 
 function startWebSocketServer(app) {
     const PORT = 8080;
@@ -75,31 +78,60 @@ function startWebSocketServer(app) {
             const parsedMessage = JSON.parse(message);
 
             if (parsedMessage.action === "connect") {
+                co
                 const userID = parsedMessage.userID;
+                const findGuest = await Reservation.findByPk(userID);
+            
+                if (!findGuest) {
+                    const jsonMessage = { action: "error", message: "User not found" };
+                    ws.send(JSON.stringify(jsonMessage));
+                    return;
+                }
+            
+                // Fetch the listing ID using the guest ID
+                const reservations = await Reservation.findAll({
+                    where: { guestID: userID }
+                });
+            
+                if (reservations.length === 0) {
+                    const jsonMessage = { action: "error", message: "Listing not found" };
+                    ws.send(JSON.stringify(jsonMessage));
+                    return;
+                }
+            
+                // Assuming there is only one reservation per guest, otherwise modify this accordingly
+                const listingID = reservations[0].listingID;
+            
+                // Find the host ID from the food listing using the listing ID
+                const foodListing = await FoodListing.findOne({
+                    where: { listingID: listingID }
+                });
+            
+                if (!foodListing) {
+                    const jsonMessage = { action: "error", message: "Host not found" };
+                    ws.send(JSON.stringify(jsonMessage));
+                    return;
+                }
+            
+                const hostID = foodListing.hostID;
+            
+                // Connect the guest to the host
                 connectedUsers.set(userID, ws);
-
-                // Determine if user joins an existing room or creates a new one
-                let roomID;
-                if (userRooms.size === 0 || userRooms.size % 2 === 0) {
-                    // Create a new room
-                    roomID = Universal.generateUniqueID();
-                } else {
-                    // Join existing room
-                    roomID = Array.from(userRooms.values()).pop();
+                connectedUsers.set(hostID, ws);
+            
+                // Determine chatID using guestID and hostID
+                let chatID = await getChatHistoryAndMessages(userID, hostID);
+            
+                // Store chatID and users in the chatRooms map
+                chatRooms.set(chatID, [userID, hostID]);
+            
+                // Optionally send confirmation message to both users
+                const jsonMessage = { action: "connected", chatID: chatID };
+                ws.send(JSON.stringify(jsonMessage));
+                if (connectedUsers.get(hostID)) {
+                    connectedUsers.get(hostID).send(JSON.stringify(jsonMessage));
                 }
-                
-                userRooms.set(userID, roomID);
-
-                // Get all users in the current room
-                const usersInRoom = Array.from(userRooms.entries())
-                    .filter(([_, room]) => room === roomID)
-                    .map(([user, _]) => user);
-
-                // Check if the room has exactly two users, then fetch or create chat history
-                if (usersInRoom.length === 2) {
-                    chatID = await getChatHistoryAndMessages(usersInRoom[0], usersInRoom[1]);
-                    chatRooms.set(chatID, usersInRoom); // Store chatID and users in the room
-                }
+                        
 
             } else if (parsedMessage.action === "edit") {
                 handleEditMessage(parsedMessage);

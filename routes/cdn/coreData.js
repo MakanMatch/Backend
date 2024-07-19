@@ -6,7 +6,7 @@ const { FoodListing, Host, Guest, Admin, Review, Reservation, ReviewLike } = req
 const Logger = require("../../services/Logger");
 const { Sequelize } = require('sequelize');
 const Universal = require("../../services/Universal");
-const { validateToken } = require("../../middleware/auth");
+const { validateToken, checkUser } = require("../../middleware/auth");
 
 router.get('/myAccount', validateToken, (req, res) => {
     const userInfo = req.user;
@@ -149,9 +149,10 @@ router.get("/accountInfo", async (req, res) => { // GET account information
     }
 })
 
-router.get("/getReviews", async (req, res) => { // GET full reviews list
+router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews list
     try {
-        const { hostID, guestID, order } = req.query;
+        const { hostID, order } = req.query;
+        const guestID = req.user.userID
         const where = {};
         const reviewOrder = [];
         var checkGuest = false

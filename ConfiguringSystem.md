@@ -110,7 +110,7 @@ There's quite a few places you can store data in this codebase. Here's a list of
 - `./FileStore`
     - Used to store files uploaded by users
     - Managed by `FileManager` service at `./services/FileManager.js`
-    - Is programmtically enforced to have a `context.json`, a representation of all files currently in the store
+    - Is programmatically enforced to have a `context.json`, a representation of all files currently in the store
 - `./cache.json`
     - Used to store byte-sized data for small persistence needs
     - A local JSON file, so data integrity is not maintained in the situation of snapshot-based boots in the cloud
@@ -127,7 +127,7 @@ There's quite a few places you can store data in this codebase. Here's a list of
 
 ### Backend View
 
-The system uses JWT for authentication. The JWT secret is stored in the `.env` file as `JWT_SECRET`.
+The system uses JWT for authentication. The JWT secret is stored in the `.env` file as `JWT_KEY`.
 
 JWTs should be signed, refreshed and verified with the `TokenManager` service at `./services/TokenManager.js`.
 

@@ -83,8 +83,6 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS: Updated user details for userID ${userID}`)
         res.send("SUCCESS: Account information updated.");
     } catch (err) {
-        console.log(err)
-        console.error('ERROR: Error updating user details.', err);
         Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS ERROR: Failed to update user details for userID ${userID}; error: ${err}`)
         res.status(500).send("ERROR: Error updating user details.");
     }

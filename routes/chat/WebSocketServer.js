@@ -13,7 +13,6 @@ function startWebSocketServer(app) {
     const connectedUsers = new Map(); // Map to store user connections and their WebSocket instances
     const userRooms = new Map(); // Map to store user IDs and their associated room IDs
     const chatRooms = new Map(); // Map to store chatID and userIDs in the room
-    let chatIDCounter = 1; // Counter for generating unique chatIDs
 
     async function getChatHistoryAndMessages(user1ID, user2ID) {
         try {

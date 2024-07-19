@@ -148,7 +148,7 @@ async function createReservation() {
         console.log("Reservation created!")
         console.log(`Food Listing ID: ${referenceNum}`)
         console.log("")
-        createdReservationIDs.push(userID)
+        createdReservationIDs.push(referenceNum)
 
         if (prompt("Create another reservations? (y/n): ").toLowerCase() !== 'y') {
             creating = false;

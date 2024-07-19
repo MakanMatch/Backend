@@ -7,113 +7,173 @@ const Universal = require("../../services/Universal");
 const FileManager = require("../../services/FileManager");
 const Logger = require("../../services/Logger")
 const { storeImages } = require("../../middleware/storeImages");
+const axios = require("axios");
+const yup = require("yup");
+const { validateToken } = require("../../middleware/auth");
 
-router.post("/addListing", async (req, res) => {
+router.post("/addListing", validateToken, async (req, res) => {
     storeImages(req, res, async (err) => {
-        if (
-            !req.body.title ||
-            !req.body.shortDescription ||
-            !req.body.longDescription ||
-            !req.body.portionPrice ||
-            !req.body.totalSlots ||
-            !req.body.datetime ||
-            req.files.length === 0
-        ) {
-            res.status(400).send("UERROR: One or more required payloads were not provided");
+        const addListingSchema = yup.object().shape({
+            title: yup.string().trim().required(),
+            shortDescription: yup.string().trim().required(),
+            longDescription: yup.string().trim().required(),
+            portionPrice: yup.number().required(),
+            totalSlots: yup.number().required(),
+            datetime: yup.date().required()
+        });
+
+        if (req.files.length === 0) {
+            res.status(400).send("ERROR: No image uploaded");
             return;
         } else {
+            var validatedData;
+            try {
+                validatedData = await addListingSchema.validate(req.body, { abortEarly: false });
+            } catch (validationError) {
+                res.status(400).send(`ERROR: ${validationError.errors.join(', ')}`);
+                return;
+            }
+
             if (err instanceof multer.MulterError) {
+                Logger.log(`LISTINGS ADDLISTING: Image upload error: ${err}`);
                 res.status(400).send("ERROR: Image upload error");
             } else if (err) {
+                Logger.log(`LISTINGS ADDLISTING: Internal server error: ${err}`);
                 res.status(500).send("ERROR: Internal server error");
-            } else {
-                var allImagesSuccess = false;
-                for (let i=0; i<req.files.length; i++) {
-                    const imageFile = req.files[i];
-                    const uploadImageResponse = await FileManager.saveFile(imageFile.filename);
-                    if (uploadImageResponse) {
-                        allImagesSuccess = true;
-                    } else {
-                        allImagesSuccess = false;
-                        break;
-                    }
-                }
-                if (allImagesSuccess === true) {
-                    const formattedDatetime = req.body.datetime + ":00.000Z";
-                    const listingDetails = {
-                        listingID: Universal.generateUniqueID(),
-                        title: req.body.title,
-                        images: req.files.map(file => file.filename).join("|"),
-                        shortDescription: req.body.shortDescription,
-                        longDescription: req.body.longDescription,
-                        portionPrice: req.body.portionPrice,
-                        totalSlots: req.body.totalSlots,
-                        datetime: formattedDatetime,
-                        approxAddress: "Yishun, Singapore", // hardcoded for now
-                        address: "1 North Point Dr, #01-164/165 Northpoint City, Singapore 768019", // hardcoded for now
-                        hostID: "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4", // hardcoded for now
-                        published: true,
-                    };
-                    const addListingResponse = await FoodListing.create(listingDetails);
-                    if (addListingResponse) {
-                        res.status(200).json({
-                            message: "SUCCESS: Food listing created successfully",
-                            listingDetails,
-                        });
-                        Logger.log(`LISTINGS ADDLISTING: Listing with listingID ${listingDetails.listingID} created successfully.`)
-                        return;
-                    } else {
-                        res.status(400).send("ERROR: Failed to create food listing");
-                        return;
-                    }
+            }
+            var allImagesSuccess = false;
+            for (let i = 0; i < req.files.length; i++) {
+                const imageFile = req.files[i];
+                const uploadImageResponse = await FileManager.saveFile(imageFile.filename);
+                if (uploadImageResponse) {
+                    allImagesSuccess = true;
                 } else {
-                    // Delete all images if one of them fails to upload
-                    for (let i=0; i<req.files.length; i++) {
-                        await FileManager.deleteFile(req.files[i].filename);
-                        Logger.log(`LISTINGS ADDLISTING: One or more image checks failed. Image ${req.files[i].filename} deleted successfully.`)
+                    allImagesSuccess = false;
+                    break;
+                }
+            }
+            if (!allImagesSuccess) {
+                // Delete all images if one or more images failed to upload
+                for (let i = 0; i < req.files.length; i++) {
+                    await FileManager.deleteFile(req.files[i].filename);
+                }
+                Logger.log(`LISTINGS ADDLISTING: One or more image checks failed. ${req.files.length} image(s) deleted successfully.`)
+                res.status(400).send("ERROR: Failed to upload image");
+                return;
+            }
+
+            const hostInfo = await Host.findByPk(req.user.userID);
+            if (!hostInfo) {
+                res.status(404).send("ERROR: Host not found");
+                return;
+            }
+            try {
+                const encodedAddress = encodeURIComponent(String(hostInfo.address));
+                const apiKey = process.env.GMAPS_API_KEY;
+                const url = `https://maps.googleapis.com/maps/api/geocode/json?address="${encodedAddress}"&key=${apiKey}`;
+                const response = await axios.get(url);
+                const location = response.data.results[0].geometry.location;
+                const coordinates = { lat: location.lat, lng: location.lng };
+
+                const components = response.data.results[0].address_components;
+                let street = '';
+                let city = '';
+                let state = '';
+
+                components.forEach(component => {
+                    if (component.types.includes('route')) {
+                        street = component.long_name;
                     }
-                    res.status(400).send("ERROR: Failed to upload image");
+                    if (component.types.includes('locality')) {
+                        city = component.long_name;
+                    }
+                    if (component.types.includes('administrative_area_level_1')) {
+                        state = component.long_name;
+                    }
+                });
+                let approximateAddress = `${street}, ${city}`;
+                if (state) {
+                    approximateAddress += `, ${state}`; // For contexts outside of Singapore
+                }
+
+                const formattedDatetime = validatedData.datetime + ":00.000Z";
+                const listingDetails = {
+                    listingID: Universal.generateUniqueID(),
+                    title: validatedData.title,
+                    images: req.files.map(file => file.filename).join("|"),
+                    shortDescription: validatedData.shortDescription,
+                    longDescription: validatedData.longDescription,
+                    portionPrice: validatedData.portionPrice,
+                    totalSlots: validatedData.totalSlots,
+                    datetime: formattedDatetime,
+                    approxAddress: approximateAddress,
+                    address: hostInfo.address,
+                    hostID: req.user.userID,
+                    coordinates: coordinates.lat + "," + coordinates.lng,
+                    published: true,
+                };
+                const addListingResponse = await FoodListing.create(listingDetails);
+                if (addListingResponse) {
+                    res.status(200).json({
+                        message: "SUCCESS: Food listing created successfully",
+                        listingDetails,
+                    });
+                    Logger.log(`LISTINGS ADDLISTING ERROR: Listing with listingID ${listingDetails.listingID} created successfully.`)
+                    return;
+                } else {
+                    res.status(400).send("ERROR: Failed to create food listing");
                     return;
                 }
+            } catch (error) {
+                res.status(500).send("ERROR: Internal server error");
+                Logger.log(`LISTINGS ADDLISTING ERROR: Internal server error: ${error}`);
+                return;
             }
         }
     });
 });
 
-router.put("/toggleFavouriteListing", async (req, res) => {
-    const { userID, listingID } = req.body;
+router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
+    const { userID } = req.user;
+    const { listingID } = req.body;
     if (!userID || !listingID) {
         res.status(400).send("ERROR: One or more required payloads were not provided");
         return;
     }
-    const findGuest = await Guest.findByPk(userID);
-    if (!findGuest) {
-        res.status(404).send("ERROR: Guest not found");
+
+    const findUser = await Guest.findByPk(userID) || await Host.findByPk(userID);
+    if (!findUser) {
+        res.status(404).send("ERROR: User not found");
         return;
     }
+
     const findListing = await FoodListing.findByPk(listingID);
     if (!findListing) {
         res.status(404).send("ERROR: Listing not found");
         return;
+    } else if (userID === findListing.hostID) {
+        res.status(400).send("ERROR: Host cannot favourite their own listing");
+        return;
     }
-    if (findGuest.favCuisine.split("|").includes(listingID)) {
-        const removeFavourite = await Guest.update({ favCuisine: findGuest.favCuisine.replace(listingID + "|", "") }, { where: { userID: userID } }); // Removes the listingID from the guest's favCuisine field
-        if (removeFavourite) {
-            res.status(200).json({ message: "SUCCESS: Listing removed from favourites successfully", favourite: false });
-            return;
-        } else {
-            res.status(400).send("ERROR: Failed to remove listing from favourites");
-            return;
-        }
+
+    let favCuisine = findUser.favCuisine || '';
+
+    if (favCuisine.split("|").includes(listingID)) {
+        favCuisine = favCuisine.replace(listingID + "|", "");
     } else {
-        const addFavourite = await Guest.update({ favCuisine: findGuest.favCuisine + listingID + "|" }, { where: { userID: userID } }); // Adds the listingID to the guest's favCuisine field
-        if (addFavourite) {
-            res.status(200).json({ message: "SUCCESS: Listing added to favourites successfully", favourite: true });
-            return;
-        } else {
-            res.status(400).send("ERROR: Failed to add listing to favourites");
-            return;
-        }
+        favCuisine += listingID + "|";
+    }
+
+    try {
+        findUser.favCuisine = favCuisine;
+        await findUser.save();
+        const favourite = favCuisine.split("|").includes(listingID);
+        res.status(200).json({
+            message: `SUCCESS: Listing ${favourite ? 'added to' : 'removed from'} favourites successfully`,
+            favourite: favourite
+        });
+    } catch (error) {
+        res.status(400).send("ERROR: Failed to update user's favourites");
     }
 });
 
@@ -129,7 +189,7 @@ router.delete("/deleteListing", async (req, res) => {
         return;
     }
     const listingImages = findListing.images.split("|");
-    for (let i=0; i<listingImages.length; i++) {
+    for (let i = 0; i < listingImages.length; i++) {
         await FileManager.deleteFile(listingImages[i]);
         Logger.log(`LISTINGS DELETELISTING: Image ${listingImages[i]} deleted successfully.`)
     }

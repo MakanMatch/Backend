@@ -188,7 +188,7 @@ router.get("/getReviews", async (req, res) => { // GET full reviews list
             } else {
                 const reviews = await Review.findAll({
                     where,
-                    reviewOrder,
+                    order: reviewOrder,
                     include: [{
                         model: Guest,
                         as: 'reviewPoster',

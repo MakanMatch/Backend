@@ -9,6 +9,7 @@ const Logger = require("../../services/Logger")
 const { storeImages } = require("../../middleware/storeImages");
 const axios = require("axios");
 const yup = require("yup");
+const { validateToken } = require("../../middleware/auth");
 
 router.post("/addListing", async (req, res) => {
     storeImages(req, res, async (err) => {
@@ -131,8 +132,9 @@ router.post("/addListing", async (req, res) => {
     });
 });
 
-router.put("/toggleFavouriteListing", async (req, res) => {
-    const { userID, listingID } = req.body;
+router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
+    const { userID } = req.user;
+    const { listingID } = req.body;
     if (!userID || !listingID) {
         res.status(400).send("ERROR: One or more required payloads were not provided");
         return;
@@ -170,7 +172,6 @@ router.put("/toggleFavouriteListing", async (req, res) => {
             favourite: favourite
         });
     } catch (error) {
-        console.error("Failed to update user's favourites:", error);
         res.status(400).send("ERROR: Failed to update user's favourites");
     }
 });

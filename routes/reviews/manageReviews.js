@@ -26,10 +26,10 @@ router.route("/")
     .put(async (req, res) => {
         storeImages(req, res, async (err) => {
             if (err instanceof multer.MulterError) {
-                Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Image upload error; error: ${err}.`);
+                Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Image upload error; error: ${err}.`);
                 return res.status(400).send("ERROR: Image upload error");
             } else if (err) {
-                Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Internal server error; error: ${err}.`);
+                Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Internal server error; error: ${err}.`);
                 return res.status(500).send("ERROR: Internal server error");
             }
             let { reviewID, foodRating, hygieneRating, comments, images } = req.body;
@@ -44,23 +44,48 @@ router.route("/")
             }
 
             var fileUrls = [];
+            console.log(images)
+            console.log(req.files)
 
-            if (images && images.length > 0) {
+            if (images && Array.isArray(images) && Array.isArray(images)) {
                 for (const image of images) {
                     try {
-                        await FileManager.saveFile(image)
-                        fileUrls.push(`${image}`);
+                        const saveImages = await FileManager.saveFile(image)
+                        if (saveImages) {
+                            fileUrls.push(`${image}`);
+                        } else {
+                            Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload images; error: ${saveImages}.`);
+                            return res.status(500).send("ERROR: Failed to upload file");
+                        }
                     } catch (err) {
-                        Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload file; error: ${err}.`);
+                        Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload images; error: ${err}.`);
                         return res.status(500).send("ERROR: Failed to upload file");
                     }
+                }
+            } else {
+                try {
+                    const saveSingleImage = await FileManager.saveFile(images)
+                    if (saveSingleImage) {
+                        fileUrls.push(`${images}`);
+                    } else {
+                        Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload image; error: ${saveSingleImage}.`);
+                        return res.status(500).send("ERROR: Failed to upload file");
+                    }
+                } catch (err) {
+                    Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload image; error: ${err}.`);
+                    return res.status(500).send("ERROR: Failed to upload file");
                 }
             }
             if (req.files && req.files.length > 0) {
                 for (const file of req.files) {
                     try {
-                        await FileManager.saveFile(file.filename)
-                        fileUrls.push(`${file.filename}`)
+                        const saveFiles = await FileManager.saveFile(file.filename)
+                        if (saveFiles) {
+                            fileUrls.push(`${file.filename}`)
+                        } else {
+                            Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload file; error: ${saveFiles}.`);
+                            return res.status(500).send("ERROR: Failed to upload file");
+                        }
                     } catch (err) {
                         Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload file; error: ${err}.`);
                         return res.status(500).send("ERROR: Failed to upload file");

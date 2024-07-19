@@ -162,8 +162,6 @@ function startWebSocketServer(app) {
                             users.splice(users.indexOf(userID), 1);
                             if (users.length === 0) {
                                 chatRooms.delete(chatID); // Remove the chat room if no users are left
-                            } else {
-                                broadcastMessage(JSON.stringify({ action: "user_left", userID }), users);
                             }
                         }
                     });

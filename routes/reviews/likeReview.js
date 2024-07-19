@@ -11,7 +11,7 @@ router.route("/")
             return res.status(400).send("ERROR: Missing guest ID");
         }
         const { reviewID } = req.body;
-        if (!reviewID || !guestID) {
+        if (!reviewID) {
             return res.status(400).send("ERROR: Missing review ID");
         }
 

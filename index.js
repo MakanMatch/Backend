@@ -81,36 +81,58 @@ if (config["routerRegistration"] != "automated") {
 }
 
 async function onDBSynchronise() {
+    const guests = await Guest.findAll()
+    var guestRecord;
+    if (guests.length > 0) {
+        guestRecord = guests[0]
+        console.log(`Found existing guest, using as dummy. Guest User ID: ${guests[0].userID}`)
+    } else {
+        const newGuest = await Guest.create({
+            userID: "47f4497b-1331-4b8a-97a4-095a79a1fd48",
+            username: "susiejones",
+            email: "susie_jones@gmail.com",
+            password: await Encryption.hash("SusieJones123"),
+            contactNum: "82228111",
+            address: "Block 321, Hougang Avenue 10, #10-567",
+            emailVerified: false,
+            favCuisine: "",
+            mealsMatched: 0,
+            resetKey: "265c18",
+            resetKeyExpiration: "2024-06-22T14:30:00.000Z"
+        })
+        if (!newGuest) {
+            console.log("WARNING: Failed to create dummy guest.")
+        } else {
+            guestRecord = newGuest
+            console.log(`Created dummy guest with User ID: ${newGuest.userID}`)
+        }
+    }
 
-    // jwt.sign({
-    //     userID: guestRecord.userID,
-    //     username: guestRecord.username,
-    //     email: guestRecord.email,
-    // }, process.env.JWT_KEY, { expiresIn: '24h' }, (err, token) => {
-    //     if (err) {
-    //         console.log("WARNING: Failed to generate dummy guest JWT.")
-    //     } else {
-    //         Universal.data["DUMMY_GUEST_TOKEN"] = token
-    //         console.log("Generated dummy guest token. Token: " + token)
-    //     }
-    // })
+    const sampleHost = await Host.findByPk("272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4")
+    if (!sampleHost) {
+        const newHost = await Host.create({
+            "userID": "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4",
+            "username": "jamieoliver",
+            "email": "jamie_oliver@gmail.com",
+            "password": await Encryption.hash("123456789"),
+            "contactNum": "81118222",
+            "address": "10 Jln Arnap, Singapore 249316",
+            "emailVerified": false,
+            "favCuisine": "Mexican",
+            "mealsMatched": "0",
+            "foodRating": "4",
+            "hygieneGrade": "5",
+            "paymentImage": "https://savh.org.sg/wp-content/uploads/2020/05/QRCodeS61SS0119JDBS.png"
+        })
 
-    // const reservation = await Reservation.create({
-    //     datetime: new Date().toISOString(),
-    //     portions: 2,
-    //     totalPrice: 20.00,
-    //     markedPaid: false,
-    //     paidAndPresent: false,
-    //     listingID: "b77d9661-f118-453e-a9cb-2bed5e787e80",
-    //     guestID: "47f4497b-1331-4b8a-97a4-095a79a1fd48",
-    //     referenceNum: "abc123"
-    // })
-
-    // if (!reservation) {
-    //     console.log("WARNING: Failed to create dummy reservation.")
-    // } else {
-    //     console.log("Created dummy reservation associated to listing with ID: " + reservation.listingID)
-    // }
+        if (!newHost) {
+            console.log("WARNING: Failed to create dummy host.")
+        } else {
+            console.log("Created dummy host with ID: " + newHost.userID)
+        }
+    } else {
+        console.log("Found dummy host existing already; ID: " + sampleHost.userID)
+    }
 }
 
 // Start server

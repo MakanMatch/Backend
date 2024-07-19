@@ -8,7 +8,7 @@ const multer = require('multer');
 
 router.route("/")
     .get(async (req, res) => {
-        const { reviewID } = req.body
+        const { reviewID } = req.query
         if (!reviewID) {
             return res.status(400).send("ERROR: Missing review ID");
         }
@@ -19,7 +19,7 @@ router.route("/")
             }
             return res.json(review); // Tested in postcode, working!
         } catch (err) {
-            Logger.log(`REVIEWS MANAGEREVIEWS GET ERROR: Failed to retrieve review with ID ${reviewID}; error: ${err}`);
+            Logger.log(`REVIEWS MANAGEREVIEWS GET ERROR: Failed to retrieve review; error: ${err}`);
             return res.status(500).send("ERROR: Failed to retrieve review");
         }
     })
@@ -113,7 +113,7 @@ router.route("/")
                         return res.send(`SUCCESS: Review with ID ${reviewID} updated`); // Tested in postcode, working!
                     }
                 } catch (err) {
-                    Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update review with ID ${reviewID}; error: ${err}`);
+                    Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update review; error: ${err}`);
                     return res.status(500).send("ERROR: Failed to update review");
                 }
             }
@@ -134,7 +134,7 @@ router.route("/")
                 return res.send(`SUCCESS: Review with ID ${reviewID} deleted`); // Tested in postcode, working!
             }
         } catch (err) {
-            Logger.log(`REVIEWS MANAGEREVIEWS DELETE ERROR: Failed to delete review with ID ${reviewID}; error: ${err}`);
+            Logger.log(`REVIEWS MANAGEREVIEWS DELETE ERROR: Failed to delete review; error: ${err}`);
             return res.status(500).send("ERROR: Failed to delete review");
         }
     });

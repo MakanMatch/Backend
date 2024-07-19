@@ -163,10 +163,10 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
         }
         if (req.user) {
             var guestID = req.user.userID;
-            checkGuest = true
+            checkGuest = false
         } else {
             var guestID = null;
-            checkGuest = false
+            checkGuest = true
         }
 
         if (order === "mostRecent") {

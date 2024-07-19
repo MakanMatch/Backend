@@ -77,7 +77,7 @@ function startWebSocketServer(app) {
 
             if (parsedMessage.action === "connect") {
                 const userID = parsedMessage.userID;
-
+                const username = parsedMessage.username;
                 // Check if the user is a guest
                 const findGuest = await Reservation.findOne({
                     where: { guestID: userID }
@@ -135,6 +135,8 @@ function startWebSocketServer(app) {
 
                 // Store chatID and users in the chatRooms map
                 chatRooms.set(chatID, [userID, hostID]);
+                userRooms.set(username, chatID);
+
 
 
             } else if (parsedMessage.action === "edit") {
@@ -142,7 +144,7 @@ function startWebSocketServer(app) {
             } else if (parsedMessage.action === "delete") {
                 handleDeleteMessage(parsedMessage);
             } else if (parsedMessage.action === "send") {
-                const chatID = parsedMessage.chatID; // Get chatID from the parsed message
+                const chatID = userRooms.get(parsedMessage.sender);
                 handleMessageSend(parsedMessage, chatID);
             } else {
                 const jsonMessage = { action: "error", message: "Invalid action" };
@@ -234,6 +236,7 @@ function startWebSocketServer(app) {
     }
 
     async function handleMessageSend(parsedMessage, chatID) { // Add chatID as a parameter
+        console.log(chatID);
         try {
             let replyToMessage = null;
             if (parsedMessage.replyToID) {

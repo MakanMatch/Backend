@@ -146,7 +146,7 @@ async function createReservation() {
         }
 
         console.log("Reservation created!")
-        console.log(`Food Listing ID: ${reservation.listingID}`)
+        console.log(`Food Listing ID: ${referenceNum}`)
         console.log("")
         createdReservationIDs.push(userID)
 

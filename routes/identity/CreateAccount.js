@@ -59,7 +59,7 @@ router.post("/", async (req, res) => {
             }
 
             if (!await isUniqueContactNum(contactNum)) {
-                return resres.status(400).send("UERROR: Contact number already exists.");
+                return res.status(400).send("UERROR: Contact number already exists.");
             }
 
             accountData.contactNum = parseInt(contactNum);

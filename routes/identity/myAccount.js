@@ -29,18 +29,20 @@ async function isUniqueContactNum(contactNum, currentUser) {
     return !contactNumExists || contactNumExists.userID === currentUser.userID;
 }
 
-router.put('/updateAccountDetails', async (req, res) => {
+router.put('/updateAccountDetails', validateToken, async (req, res) => {
     const schema = yup.object().shape({
-        userID: yup.string().required(),
         username: yup.string().required().trim().min(1).max(50),
         email: yup.string().required().email(),
-        contactNum: yup.string().required().matches(/^\d{8}$/),
-        address: yup.string().required().trim()
+        contactNum: yup.string().matches(/^\d{8}$/),
+        address: yup.string().trim()
     });
-    const { userID, username, email, contactNum, address } = req.body;
+
+    const userID = req.user.userID;
 
     try {
-        await schema.validate(req.body, { abortEarly: false });
+        const data = await schema.validate(req.body, { abortEarly: false });
+
+        const { username, email, contactNum, address } = data
 
         // Find user using userID
         let user = await Guest.findOne({ where: { userID } }) ||
@@ -81,8 +83,9 @@ router.put('/updateAccountDetails', async (req, res) => {
         Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS: Updated user details for userID ${userID}`)
         res.send("SUCCESS: Account information updated.");
     } catch (err) {
+        console.log(err)
         console.error('ERROR: Error updating user details.', err);
-        Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS ERROR: Failed to update user details for userID ${userID}, ${err}`)
+        Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS ERROR: Failed to update user details for userID ${userID}; error: ${err}`)
         res.status(500).send("ERROR: Error updating user details.");
     }
 });
@@ -116,22 +119,24 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
         Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT: ${userType} account ${userID} deleted.`)
         res.send(`SUCCESS: User ${userID} deleted successfully.`);
     } catch (err) {
-        Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT ERROR: Failed to delete user ${userID}, ${err}`)
+        Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT ERROR: Failed to delete user ${userID}; error: ${err}`)
         res.status(500).send(`ERROR: Failed to delete user ${userID}.`);
     }
 });
 
-router.put('/changePassword', async (req, res) => {
+router.put('/changePassword', validateToken, async (req, res) => {
     const changePasswordSchema = yup.object().shape({
-        userID: yup.string().required(),
         userType: yup.string().required().oneOf(['Guest', 'Host', 'Admin']),
         currentPassword: yup.string().required(),
         newPassword: yup.string().required().min(6),
     });
-    const { userID, userType, currentPassword, newPassword } = req.body;
+
+    const { userID, userType } = req.user;
 
     try {
-        await changePasswordSchema.validate(req.body);
+        const data = await changePasswordSchema.validate(req.body, { abortEarly: false });
+
+        const { currentPassword, newPassword } = data
 
         let user;
 

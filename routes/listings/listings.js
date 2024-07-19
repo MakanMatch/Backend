@@ -11,7 +11,7 @@ const axios = require("axios");
 const yup = require("yup");
 const { validateToken } = require("../../middleware/auth");
 
-router.post("/addListing", async (req, res) => {
+router.post("/addListing", validateToken, async (req, res) => {
     storeImages(req, res, async (err) => {
         const addListingSchema = yup.object().shape({
             title: yup.string().trim().required(),
@@ -19,8 +19,7 @@ router.post("/addListing", async (req, res) => {
             longDescription: yup.string().trim().required(),
             portionPrice: yup.number().required(),
             totalSlots: yup.number().required(),
-            datetime: yup.date().required(),
-            hostID: yup.string().trim().required()
+            datetime: yup.date().required()
         });
 
         if (req.files.length === 0) {
@@ -28,104 +27,103 @@ router.post("/addListing", async (req, res) => {
             return;
         } else {
             try {
-                await addListingSchema.validate(req.body, { abortEarly: false });
+                const validatedData = await addListingSchema.validate(req.body, { abortEarly: false });
+                if (err instanceof multer.MulterError) {
+                    res.status(400).send("ERROR: Image upload error");
+                } else if (err) {
+                    res.status(500).send("ERROR: Internal server error");
+                } else {
+                    var allImagesSuccess = false;
+                    for (let i=0; i<req.files.length; i++) {
+                        const imageFile = req.files[i];
+                        const uploadImageResponse = await FileManager.saveFile(imageFile.filename);
+                        if (uploadImageResponse) {
+                            allImagesSuccess = true;
+                        } else {
+                            allImagesSuccess = false;
+                            break;
+                        }
+                    }
+                    if (allImagesSuccess === true) {
+                        const hostInfo = await Host.findByPk(req.user.userID);
+                        if (!hostInfo) {
+                            res.status(404).send("ERROR: Host not found");
+                            return;
+                        }
+                        try {
+                            const encodedAddress = encodeURIComponent(String(hostInfo.address));
+                            const apiKey = process.env.GMAPS_API_KEY;
+                            const url = `https://maps.googleapis.com/maps/api/geocode/json?address="${encodedAddress}"&key=${apiKey}`;
+                            const response = await axios.get(url);
+                            const location = response.data.results[0].geometry.location;
+                            const coordinates = { lat: location.lat, lng: location.lng };
+        
+                            const components = response.data.results[0].address_components;
+                            let street = '';
+                            let city = '';
+                            let state = '';
+        
+                            components.forEach(component => {
+                                if (component.types.includes('route')) {
+                                    street = component.long_name;
+                                }
+                                if (component.types.includes('locality')) {
+                                    city = component.long_name;
+                                }
+                                if (component.types.includes('administrative_area_level_1')) {
+                                    state = component.long_name;
+                                }
+                            });
+                            let approximateAddress = `${street}, ${city}`;
+                            if (state) {
+                                approximateAddress += `, ${state}`; // For contexts outside of Singapore
+                            }
+                            
+                            const formattedDatetime = validatedData.datetime + ":00.000Z";
+                            const listingDetails = {
+                                listingID: Universal.generateUniqueID(),
+                                title: validatedData.title,
+                                images: req.files.map(file => file.filename).join("|"),
+                                shortDescription: validatedData.shortDescription,
+                                longDescription: validatedData.longDescription,
+                                portionPrice: validatedData.portionPrice,
+                                totalSlots: validatedData.totalSlots,
+                                datetime: formattedDatetime,
+                                approxAddress: approximateAddress,
+                                address: hostInfo.address,
+                                hostID: req.user.userID,
+                                coordinates: coordinates.lat + "," + coordinates.lng,
+                                published: true,
+                            };
+                            const addListingResponse = await FoodListing.create(listingDetails);
+                            if (addListingResponse) {
+                                res.status(200).json({
+                                    message: "SUCCESS: Food listing created successfully",
+                                    listingDetails,
+                                });
+                                Logger.log(`LISTINGS ADDLISTING: Listing with listingID ${listingDetails.listingID} created successfully.`)
+                                return;
+                            } else {
+                                res.status(400).send("ERROR: Failed to create food listing");
+                                return;
+                            }
+                        } catch (error) {
+                            res.status(500).send("ERROR: Internal server error");
+                            Logger.log(`LISTINGS ADDLISTING: Internal server error: ${error}`);
+                            return;
+                        }
+                    } else {
+                        // Delete all images if one or more images failed to upload
+                        for (let i=0; i<req.files.length; i++) {
+                            await FileManager.deleteFile(req.files[i].filename);
+                            Logger.log(`LISTINGS ADDLISTING: One or more image checks failed. Image ${req.files[i].filename} deleted successfully.`)
+                        }
+                        res.status(400).send("ERROR: Failed to upload image");
+                        return;
+                    }
+                }
             } catch (validationError) {
                 res.status(400).send(`Validation Error: ${validationError.errors.join(', ')}`);
-                return;
-            }
-        }
-
-        if (err instanceof multer.MulterError) {
-            res.status(400).send("ERROR: Image upload error");
-        } else if (err) {
-            res.status(500).send("ERROR: Internal server error");
-        } else {
-            var allImagesSuccess = false;
-            for (let i=0; i<req.files.length; i++) {
-                const imageFile = req.files[i];
-                const uploadImageResponse = await FileManager.saveFile(imageFile.filename);
-                if (uploadImageResponse) {
-                    allImagesSuccess = true;
-                } else {
-                    allImagesSuccess = false;
-                    break;
-                }
-            }
-            if (allImagesSuccess === true) {
-                const hostInfo = await Host.findByPk(req.body.hostID);
-                if (!hostInfo) {
-                    res.status(404).send("ERROR: Host not found");
-                    return;
-                }
-                try {
-                    const encodedAddress = encodeURIComponent(String(hostInfo.address));
-                    const apiKey = process.env.GMAPS_API_KEY;
-                    const url = `https://maps.googleapis.com/maps/api/geocode/json?address="${encodedAddress}"&key=${apiKey}`;
-                    const response = await axios.get(url);
-                    const location = response.data.results[0].geometry.location;
-                    const coordinates = { lat: location.lat, lng: location.lng };
-
-                    const components = response.data.results[0].address_components;
-                    let street = '';
-                    let city = '';
-                    let state = '';
-
-                    components.forEach(component => {
-                        if (component.types.includes('route')) {
-                            street = component.long_name;
-                        }
-                        if (component.types.includes('locality')) {
-                            city = component.long_name;
-                        }
-                        if (component.types.includes('administrative_area_level_1')) {
-                            state = component.long_name;
-                        }
-                    });
-                    let approximateAddress = `${street}, ${city}`;
-                    if (state) {
-                        approximateAddress += `, ${state}`; // For contexts outside of Singapore
-                    }
-                    
-                    const formattedDatetime = req.body.datetime + ":00.000Z";
-                    const listingDetails = {
-                        listingID: Universal.generateUniqueID(),
-                        title: req.body.title,
-                        images: req.files.map(file => file.filename).join("|"),
-                        shortDescription: req.body.shortDescription,
-                        longDescription: req.body.longDescription,
-                        portionPrice: req.body.portionPrice,
-                        totalSlots: req.body.totalSlots,
-                        datetime: formattedDatetime,
-                        approxAddress: approximateAddress,
-                        address: hostInfo.address,
-                        hostID: req.body.hostID,
-                        coordinates: coordinates.lat + "," + coordinates.lng,
-                        published: true,
-                    };
-                    const addListingResponse = await FoodListing.create(listingDetails);
-                    if (addListingResponse) {
-                        res.status(200).json({
-                            message: "SUCCESS: Food listing created successfully",
-                            listingDetails,
-                        });
-                        Logger.log(`LISTINGS ADDLISTING: Listing with listingID ${listingDetails.listingID} created successfully.`)
-                        return;
-                    } else {
-                        res.status(400).send("ERROR: Failed to create food listing");
-                        return;
-                    }
-                } catch (error) {
-                    res.status(500).send("ERROR: Internal server error");
-                    Logger.log(`LISTINGS ADDLISTING: Internal server error: ${error}`);
-                    return;
-                }
-            } else {
-                // Delete all images if one or more images failed to upload
-                for (let i=0; i<req.files.length; i++) {
-                    await FileManager.deleteFile(req.files[i].filename);
-                    Logger.log(`LISTINGS ADDLISTING: One or more image checks failed. Image ${req.files[i].filename} deleted successfully.`)
-                }
-                res.status(400).send("ERROR: Failed to upload image");
                 return;
             }
         }

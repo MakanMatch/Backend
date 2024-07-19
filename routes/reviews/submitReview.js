@@ -29,6 +29,11 @@ router.route("/")
             if (!foodRating || !hygieneRating || !dateCreated || !hostID) {
                 return res.status(400).send("ERROR: Missing required fields");
             }
+
+            if (guestID == hostID) {
+                return res.status(400).send("UERROR: You cannot create a review for yourself.");
+            }
+            
             try {
                 const host = await Host.findByPk(hostID)
                 const guest = await Guest.findByPk(guestID)

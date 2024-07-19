@@ -305,6 +305,7 @@ function startWebSocketServer(app) {
 
     async function handleMessageSend(parsedMessage, chatID) { // Add chatID as a parameter
         console.log(chatID);
+        
         try {
             let replyToMessage = null;
             if (parsedMessage.replyToID) {

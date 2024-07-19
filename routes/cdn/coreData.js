@@ -152,7 +152,6 @@ router.get("/accountInfo", async (req, res) => { // GET account information
 router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews list
     try {
         const { hostID, order } = req.query;
-        const guestID = req.user.userID
         const where = {};
         const reviewOrder = [];
         var checkGuest = false
@@ -162,9 +161,11 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
         } else {
             where.hostID = hostID;
         }
-        if (guestID === null) {
+        if (req.user) {
+            var guestID = req.user.userID;
             checkGuest = true
         } else {
+            var guestID = null;
             checkGuest = false
         }
 

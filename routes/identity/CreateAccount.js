@@ -27,8 +27,9 @@ async function isUniqueContactNum(contactNum) {
 
 router.post("/", async (req, res) => {
     // console.log("Received at CreateAccount");
-    const { username, email, password, contactNum, address, isHostAccount } = req.body;
-    console.log(req.body);
+    const { username, email, password, contactNum, blkNo, street, postalCode, unitNum, isHostAccount } = req.body;
+
+    const address = `Block ${blkNo} ${street} Singapore ${postalCode} #${unitNum}`;
 
     try {
         if (!await isUniqueUsername(username)) {

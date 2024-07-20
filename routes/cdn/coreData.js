@@ -7,6 +7,7 @@ const Logger = require("../../services/Logger");
 const { Sequelize } = require('sequelize');
 const Universal = require("../../services/Universal");
 const { validateToken, checkUser } = require("../../middleware/auth");
+const Extensions = require("../../services/Extensions");
 
 router.get('/myAccount', validateToken, (req, res) => {
     const userInfo = req.user;
@@ -53,23 +54,54 @@ router.get("/checkFavouriteListing", async (req, res) => { // GET favourite list
 router.get("/getListing", async (req, res) => {
     const listingID = req.query.id || req.body.listingID;
     const includeReservations = req.query.includeReservations;
+    const includeHost = req.query.includeHost;
+
+    var includeClause = []
+    if (includeReservations) {
+        includeClause.push({
+            model: Guest,
+            as: "guests"
+        })
+    }
+    if (includeHost) {
+        includeClause.push({
+            model: Host,
+            as: "Host"
+        })
+    }
+
     if (!listingID) {
         res.status(400).send("ERROR: Listing ID not provided.")
         return
     }
 
     const listing = await FoodListing.findByPk(listingID, {
-        include: includeReservations ? [{
-            model: Guest,
-            as: "guests"
-        }] : []
+        include: includeClause
     })
 
-    if (!listing || listing == null) {
+    if (!listing || listing == null || listing.published == false) {
         res.status(404).send("ERROR: Listing not found")
         return
     }
-    res.json(listing)
+    
+    res.json(
+        Extensions.sanitiseData(listing.toJSON(), [
+            "listingID",
+            "title",
+            "images",
+            "shortDescription",
+            "longDescription",
+            "portionPrice",
+            "address",
+            "totalSlots",
+            "hostID",
+            "userID",
+            "username",
+            "mealsMatched",
+            "foodRating",
+            "hygieneGrade"
+        ], ["createdAt", "updatedAt"])
+    )
     return
 })
 

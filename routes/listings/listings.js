@@ -105,7 +105,7 @@ router.post("/addListing", validateToken, async (req, res) => {
                     longDescription: validatedData.longDescription,
                     portionPrice: validatedData.portionPrice,
                     totalSlots: validatedData.totalSlots,
-                    datetime: formattedDatetime,
+                    datetime: validatedData.datetime.toISOString(),
                     approxAddress: approximateAddress,
                     address: hostInfo.address,
                     hostID: req.user.userID,

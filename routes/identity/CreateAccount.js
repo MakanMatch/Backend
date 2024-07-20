@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
 const { Emailer, Universal, Encryption, Logger } = require('../../services');
+const axios = require('axios');
 require('dotenv').config();
 
 async function isUniqueUsername(username) {
@@ -29,7 +30,7 @@ router.post("/", async (req, res) => {
     // console.log("Received at CreateAccount");
     const { username, email, password, contactNum, blkNo, street, postalCode, unitNum, isHostAccount } = req.body;
 
-    const address = `Block ${blkNo} ${street} Singapore ${postalCode} #${unitNum}`;
+    const address = `Block ${blkNo} ${street} ${postalCode} #${unitNum}`;
 
     try {
         if (!await isUniqueUsername(username)) {
@@ -61,6 +62,18 @@ router.post("/", async (req, res) => {
 
             if (!await isUniqueContactNum(contactNum)) {
                 return res.status(400).send("UERROR: Contact number already exists.");
+            }
+
+            const encodedAddress = encodeURIComponent(String(address))
+            console.log(encodedAddress);
+            const apiKey = process.env.GMAPS_API_KEY;
+            const url = `https://maps.googleapis.com/maps/api/geocode/json?address="${encodedAddress}"&key=${apiKey}`;
+            const response = await axios.get(url);
+            console.log(response.data);
+            const location = response.data.results[0];
+            console.log(location);
+            if (!location) {
+                return res.status(400).send("UERROR: Invalid address.");
             }
 
             accountData.contactNum = parseInt(contactNum);

@@ -1,11 +1,11 @@
 const express = require("express");
 const http = require("http");
 const WebSocket = require("ws");
-const { ChatHistory, ChatMessage, Reservation, FoodListing } = require("../../models");
+const { ChatHistory, ChatMessage, Reservation, FoodListing, Host, Guest } = require("../../models");
 const Universal = require("../../services/Universal");
 const Logger = require("../../services/Logger");
 const { Op } = require('sequelize');
-const { connect } = require("http2");
+const { json } = require("body-parser");
 
 function startWebSocketServer(app) {
     const PORT = 8080;
@@ -14,6 +14,7 @@ function startWebSocketServer(app) {
     const connectedUsers = new Map(); // Map to store user connections and their WebSocket instances
     const userRooms = new Map(); // Map to store user IDs and their associated room IDs
     const chatRooms = new Map(); // Map to store chatID and userIDs in the room
+    const userNames = new Map(); // Map to store user IDs and their usernames
     let chatID = null;
 
     async function getChatHistoryAndMessages(user1ID, user2ID) {
@@ -79,6 +80,7 @@ function startWebSocketServer(app) {
                 let userID = parsedMessage.userID;
                 let username = parsedMessage.username;
                 let userType = parsedMessage.userType;
+                let chatPartnerUsername = null;
 
                 if (userType === "Guest") {
                     try {
@@ -104,6 +106,11 @@ function startWebSocketServer(app) {
                         }
 
                         let hostID = findHost.hostID;
+                        const findHostUser = await Host.findOne({
+                            where: { userID: findHost.hostID }
+                        })
+
+                        chatPartnerUsername = findHostUser.username;
                         const compositeKey = { userID, hostID };
                         if (connectedUsers.has(compositeKey)){
                             connectedUsers.delete(compositeKey);
@@ -115,6 +122,8 @@ function startWebSocketServer(app) {
 
                         chatID = await getChatHistoryAndMessages(userID, hostID);
                         chatRooms.set(chatID, [userID, hostID]);
+                        const jsonMessage = JSON.stringify({ action: "connect", chatPartnerUsername });
+                        broadcastMessage(jsonMessage, [userID, hostID]);
                     } catch (error) {
                         console.error("Error connecting user:", error);
                         const jsonMessage = { action: "error", message: "Error connecting user" };
@@ -152,6 +161,11 @@ function startWebSocketServer(app) {
                             }
 
                             let hostID = findHost.hostID;
+                            const findHostUser = await Host.findOne({
+                                where: { userID: hostID }
+                            })
+    
+                            chatPartnerUsername = findHostUser.username;
                             const compositeKey = { userID, hostID };
                             if (connectedUsers.has(compositeKey)){
                                 connectedUsers.delete(compositeKey);
@@ -163,6 +177,8 @@ function startWebSocketServer(app) {
 
                             chatID = await getChatHistoryAndMessages(userID, hostID);
                             chatRooms.set(chatID, [userID, hostID]);
+                            const jsonMessage = JSON.stringify({ action: "connect", chatPartnerUsername });
+                            broadcastMessage(jsonMessage, [userID, hostID]);
                         }
                         else if (findHost) {
                             const listingID = findHost.listingID;
@@ -178,6 +194,10 @@ function startWebSocketServer(app) {
                             }
 
                             let guestID = findGuest.guestID;
+                            const findGuestUser = await Guest.findOne({
+                                where: { userID: guestID }
+                            })
+                            chatPartnerUsername = findGuestUser.username;
                             const compositeKey = { userID, guestID };
                             if (connectedUsers.has(compositeKey)){
                                 connectedUsers.delete(compositeKey);
@@ -189,6 +209,8 @@ function startWebSocketServer(app) {
 
                             chatID = await getChatHistoryAndMessages(userID, guestID);
                             chatRooms.set(chatID, [userID, guestID]);
+                            const jsonMessage = JSON.stringify({ action: "connect", chatPartnerUsername });
+                            broadcastMessage(jsonMessage, [userID, guestID]);
                         }
                     }
                     catch (error) {

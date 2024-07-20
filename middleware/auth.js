@@ -51,27 +51,48 @@ const validateToken = (req, res, next) => {
 const checkUser = (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-        console.error('No authorization header');
         next();
         return
     }
 
     const token = authHeader.split(' ')[1];
     if (!token) {
-        console.error('No token found in authorization header');
         next();
         return
     }
 
-    jwt.verify(token, process.env.JWT_KEY, (err, user) => {
-        if (err) {
-            console.error('Token verification failed:', err);
-            return res.sendStatus(403);
+    // Initialise a default TokenManager instance
+    const tokenManager = TokenManager.default();
+
+    var payload;
+    var latestToken;
+    var refreshed = false;
+    try {
+        // Get TokenManager to verify the token and also refresh it if necessary
+        const verification = tokenManager.verify(token, true);
+        payload = verification.payload;
+        latestToken = verification.token;
+        refreshed = verification.refreshed;
+    } catch (err) {
+        // Handle token verification/refreshing errors
+        if (err.name == "TokenExpiredError") {
+            return res.status(403).send("ERROR: Token expired. Please request new token.");
+        } else {
+            Logger.log(`AUTH VALIDATETOKEN: Failed to verify token; error: ${err}`);
+            return res.status(403).send("ERROR: Failed to verify token.");
         }
-        // console.log("Decoded this user: " + user)
-        req.user = user;
-        next();
-    });
+    }
+
+    // Populate request with user information
+    req.user = payload;
+    if (refreshed) {
+        // Inform client of new token so that they can replace through RefreshedToken header
+        Logger.log(`AUTH VALIDATETOKEN: Token refreshed for user with ID ${req.user.userID || "NOTFOUND"}.`);
+        res.setHeader('refreshedtoken', latestToken);
+    }
+
+    // Continue to next middleware
+    next();
 }
 
 module.exports = { validateToken, checkUser };

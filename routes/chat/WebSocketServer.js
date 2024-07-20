@@ -5,8 +5,6 @@ const { ChatHistory, ChatMessage, Reservation, FoodListing, Host, Guest } = requ
 const Universal = require("../../services/Universal");
 const Logger = require("../../services/Logger");
 const { Op } = require('sequelize');
-const { json } = require("body-parser");
-
 function startWebSocketServer(app) {
     const PORT = 8080;
     const server = http.createServer(app);
@@ -14,7 +12,6 @@ function startWebSocketServer(app) {
     const connectedUsers = new Map(); // Map to store user connections and their WebSocket instances
     const userRooms = new Map(); // Map to store user IDs and their associated room IDs
     const chatRooms = new Map(); // Map to store chatID and userIDs in the room
-    const userNames = new Map(); // Map to store user IDs and their usernames
     let chatID = null;
 
     async function getChatHistoryAndMessages(user1ID, user2ID) {
@@ -73,7 +70,6 @@ function startWebSocketServer(app) {
 
     wss.on("connection", (ws) => {
         ws.id = Universal.generateUniqueID();
-        console.log("WebSocket connection established");
         ws.on("message", async (message) => {
             const parsedMessage = JSON.parse(message);
             if (parsedMessage.action === "connect") {
@@ -116,9 +112,7 @@ function startWebSocketServer(app) {
                             connectedUsers.delete(compositeKey);
                         }
                         connectedUsers.set(compositeKey, ws);
-                        console.log(connectedUsers);
                         userRooms.set(userID, hostID);
-                        console.log(userRooms);
 
                         chatID = await getChatHistoryAndMessages(userID, hostID);
                         chatRooms.set(chatID, [userID, hostID]);
@@ -171,9 +165,7 @@ function startWebSocketServer(app) {
                                 connectedUsers.delete(compositeKey);
                             }
                             connectedUsers.set(compositeKey, ws);
-                            console.log(connectedUsers);
                             userRooms.set(userID, hostID);
-                            console.log(userRooms);
 
                             chatID = await getChatHistoryAndMessages(userID, hostID);
                             chatRooms.set(chatID, [userID, hostID]);
@@ -203,9 +195,7 @@ function startWebSocketServer(app) {
                                 connectedUsers.delete(compositeKey);
                             }
                             connectedUsers.set(compositeKey, ws);
-                            console.log(connectedUsers);
                             userRooms.set(userID, guestID);
-                            console.log(userRooms);
 
                             chatID = await getChatHistoryAndMessages(userID, guestID);
                             chatRooms.set(chatID, [userID, guestID]);
@@ -318,7 +308,6 @@ function startWebSocketServer(app) {
     }
 
     async function handleMessageSend(parsedMessage, chatID) {
-        console.log("You are about to send a message")
         try {
             let replyToMessage = null;
             if (parsedMessage.replyToID) {
@@ -340,7 +329,6 @@ function startWebSocketServer(app) {
                 replyToID: replyToMessage ? replyToMessage.messageID : null,
                 edited: false,
             });
-            console.log("Message created: ", createdMessage);
 
             const responseMessage = {
                 ...createdMessage.get({ plain: true }),
@@ -348,9 +336,7 @@ function startWebSocketServer(app) {
             };
 
             const users = chatRooms.get(createdMessage.chatID);
-            console.log("Message created")
             broadcastMessage(JSON.stringify(responseMessage), users);
-            console.log("Message broadcasted")
         } catch (error) {
             console.error("Error creating message:", error);
         }

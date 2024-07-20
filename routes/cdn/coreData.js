@@ -51,7 +51,7 @@ router.get("/checkFavouriteListing", async (req, res) => { // GET favourite list
     }
 });
 
-router.get("/getListing", async (req, res) => {
+router.get("/getListing", checkUser, async (req, res) => {
     const listingID = req.query.id || req.body.listingID;
     const includeReservations = req.query.includeReservations;
     const includeHost = req.query.includeHost;
@@ -79,7 +79,13 @@ router.get("/getListing", async (req, res) => {
         include: includeClause
     })
 
-    if (!listing || listing == null || listing.published == false) {
+    if (!listing || listing == null) {
+        res.status(404).send("ERROR: Listing not found")
+        return
+    }
+
+    var isHost = req.user && listing.hostID == req.user.userID;
+    if (!isHost && !listing.published) {
         res.status(404).send("ERROR: Listing not found")
         return
     }
@@ -91,15 +97,21 @@ router.get("/getListing", async (req, res) => {
             "images",
             "shortDescription",
             "longDescription",
+            "datetime",
             "portionPrice",
+            "approxAddress",
             "address",
             "totalSlots",
+            "published",
             "hostID",
             "userID",
             "username",
             "mealsMatched",
             "foodRating",
-            "hygieneGrade"
+            "hygieneGrade",
+            "referenceNum",
+            "guestID",
+            "portions"
         ], ["createdAt", "updatedAt"])
     )
     return

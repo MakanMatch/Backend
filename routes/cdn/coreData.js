@@ -185,7 +185,8 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
                     const likedReviews = await ReviewLike.findAll({
                         where: {
                             guestID: guestID
-                        }
+                        },
+                        attributes: ['reviewID']
                     });
                     if (likedReviews.length > 0) {
                         const likedReviewIDs = likedReviews.map(likedReview => likedReview.reviewID);

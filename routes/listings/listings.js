@@ -18,19 +18,22 @@ router.post("/addListing", validateToken, async (req, res) => {
             shortDescription: yup.string().trim().required(),
             longDescription: yup.string().trim().required(),
             portionPrice: yup.number().required(),
-            totalSlots: yup.number().required(),
-            datetime: yup.date().required()
+            totalSlots: yup.number().required()
         });
+        if (!req.body.datetime) {
+            res.status(400).send("UERROR: Date and time not provided");
+            return
+        }
 
         if (req.files.length === 0) {
-            res.status(400).send("ERROR: No image uploaded");
+            res.status(400).send("UERROR: No image uploaded");
             return;
         } else {
             var validatedData;
             try {
                 validatedData = await addListingSchema.validate(req.body, { abortEarly: false });
             } catch (validationError) {
-                res.status(400).send(`ERROR: ${validationError.errors.join(', ')}`);
+                res.status(400).send(`UERROR: ${validationError.errors.join(', ')}`);
                 return;
             }
 
@@ -96,7 +99,7 @@ router.post("/addListing", validateToken, async (req, res) => {
                     approximateAddress += `, ${state}`; // For contexts outside of Singapore
                 }
 
-                const formattedDatetime = validatedData.datetime + ":00.000Z";
+                const formattedDatetime = req.body.datetime + ":00.000Z";
                 const listingDetails = {
                     listingID: Universal.generateUniqueID(),
                     title: validatedData.title,

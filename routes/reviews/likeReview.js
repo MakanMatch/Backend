@@ -20,46 +20,36 @@ router.route("/")
             if (!review) {
                 return res.status(404).send("ERROR: Review not found");
             }
-            const existingLike = await ReviewLike.findOne({
-                where: {
-                    reviewID: reviewID,
-                    guestID: guestID
-                }
-            });
-            if (review && existingLike) {
-                const removeLike = await ReviewLike.destroy({
-                    where: {
-                        reviewID: reviewID,
-                        guestID: guestID
-                    }
-                });
-                review.likeCount -= 1;
-                const updateReview = await review.save()
-                if (!removeLike || !updateReview) {
+            const existingLike = await ReviewLike.findOne({ where: { reviewID, guestID } });
+            if (existingLike) {
+                const unlikeReview = await ReviewLike.destroy({ where: { reviewID, guestID } }); // Unlike review
+                const updateLikeCount = review.likeCount -= 1;
+                if (!unlikeReview || !updateLikeCount) {
                     return res.status(500).send("ERROR: Failed to unlike review");
                 } else {
                     res.json({
                         message: "SUCCESS: Review unliked.",
                         liked: false,
-                        likeCount: updateReview.likeCount
+                        likeCount: review.likeCount
                     })
                 }
             } else {
-                const createLike = await ReviewLike.create({
-                    reviewID: reviewID,
-                    guestID: guestID,
-                });
-                review.likeCount += 1;
-                const updateReview = await review.save()
-                if (!createLike || !updateReview) {
+                const likeReview = await ReviewLike.create({ reviewID, guestID }); // Like review
+                const updateLikeCount = review.likeCount += 1;
+                if (!likeReview || !updateLikeCount) {
                     return res.status(500).send("ERROR: Failed to like review");
                 } else {
                     res.json({
                         message: "SUCCESS: Review liked.",
                         liked: true,
-                        likeCount: updateReview.likeCount
+                        likeCount: review.likeCount
                     })
                 }
+            }
+
+            const saveReveiw = await review.save();
+            if (!saveReveiw) {
+                return res.status(500).send("ERROR: Failed to save review");
             }
         } catch (err) {
             Logger.log(`REVIEWS LIKEREVIEW POST ERROR: Failed to like / unlike review; error: ${err}.`);

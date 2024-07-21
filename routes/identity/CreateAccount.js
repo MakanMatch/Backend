@@ -31,8 +31,13 @@ router.post("/", async (req, res) => {
     const { username, fname, lname,  email, password, contactNum, blkNo, street, postalCode, unitNum, isHostAccount } = req.body;
 
     const address = `Block ${blkNo} ${street} ${postalCode} #${unitNum}`;
+    const nameRegex = /^[a-zA-Z]+$/;
 
     try {
+        if (!nameRegex.test(fname) || !nameRegex.test(lname)) {
+            return res.status(400).send("UERROR: First name and last name cannot contain numbers.");
+        }
+        
         if (!await isUniqueUsername(username)) {
             return res.status(400).send("UERROR: Username already exists.");
         }

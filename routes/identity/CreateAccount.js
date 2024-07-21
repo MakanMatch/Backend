@@ -28,7 +28,7 @@ async function isUniqueContactNum(contactNum) {
 
 router.post("/", async (req, res) => {
     // console.log("Received at CreateAccount");
-    const { username, email, password, contactNum, blkNo, street, postalCode, unitNum, isHostAccount } = req.body;
+    const { username, fname, lname,  email, password, contactNum, blkNo, street, postalCode, unitNum, isHostAccount } = req.body;
 
     const address = `Block ${blkNo} ${street} ${postalCode} #${unitNum}`;
 
@@ -47,6 +47,8 @@ router.post("/", async (req, res) => {
         const emailVeriTokenExpiration = new Date(Date.now() + 86400000).toISOString();
         const accountData = {
             userID,
+            fname,
+            lname,
             username,
             email,
             password: hashedPassword,
@@ -64,7 +66,7 @@ router.post("/", async (req, res) => {
                 return res.status(400).send("UERROR: Contact number already exists.");
             }
 
-            const encodedAddress = encodeURIComponent(String(address))
+            const encodedAddress = encodeURIComponent(String(address));
             console.log(encodedAddress);
             const apiKey = process.env.GMAPS_API_KEY;
             const url = `https://maps.googleapis.com/maps/api/geocode/json?address="${encodedAddress}"&key=${apiKey}`;
@@ -85,10 +87,10 @@ router.post("/", async (req, res) => {
         }
 
         if (!user) {
-            return res.status(500).send("ERROR: Failed to create user.")
+            return res.status(500).send("ERROR: Failed to create user.");
         }
 
-        const origin = req.headers.origin
+        const origin = req.headers.origin;
         const verificationLink = `${origin}/auth/verifyToken?userID=${userID}&token=${emailVeriToken}`;
 
         // Send email with verification link using the Emailer service
@@ -111,8 +113,8 @@ router.post("/", async (req, res) => {
         Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created. Verification email auto-dispatched.`);
         res.send("SUCCESS: Account created. Please verify your email.");
     } catch (err) {
-        console.log(err)
-        Logger.log(`IDENTITY CREATEACCOUNT: Fail to create ${isHostAccount ? 'Host' : 'Guest'} account for user email ${email}.`)
+        console.log(err);
+        Logger.log(`IDENTITY CREATEACCOUNT: Fail to create ${isHostAccount ? 'Host' : 'Guest'} account for user email ${email}.`);
         res.status(500).send("ERROR: Internal server error.");
     }
 });

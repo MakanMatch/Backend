@@ -68,6 +68,17 @@ function startWebSocketServer(app) {
         }
     }
 
+    async function getUsersChatID(map, id){
+        for (let [key, value] of map) {
+            console.log(value)
+            if (value.includes(id)) {
+                console.log(value)
+                chatID = key;
+                return chatID;
+            }
+        }
+    }
+
     wss.on("connection", (ws) => {
         ws.id = Universal.generateUniqueID();
         ws.on("message", async (message) => {
@@ -215,6 +226,9 @@ function startWebSocketServer(app) {
             } else if (parsedMessage.action === "delete") {
                 handleDeleteMessage(parsedMessage);
             } else if (parsedMessage.action === "send") {
+                console.log("userID", parsedMessage.userID);
+                //Find the correct chatID for the message by using userID
+                getUsersChatID(chatRooms, parsedMessage.userID);
                 handleMessageSend(parsedMessage, chatID);
             } else {
                 const jsonMessage = { action: "error", message: "Invalid action" };
@@ -325,7 +339,6 @@ function startWebSocketServer(app) {
                 message: parsedMessage.message,
                 sender: parsedMessage.sender,
                 datetime: parsedMessage.datetime,
-                chatID: chatID,
                 replyToID: replyToMessage ? replyToMessage.messageID : null,
                 edited: false,
             });

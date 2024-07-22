@@ -242,14 +242,14 @@ router.get("/consolidateReviewsStatistics", async (req, res) => { // GET full re
                 const threeStarRatings = hostFoodRatings.filter(rating => rating.foodRating === 3).length;
                 const fourStarRatings = hostFoodRatings.filter(rating => rating.foodRating === 4).length;
                 const fiveStarRatings = hostFoodRatings.filter(rating => rating.foodRating === 5).length;
+                const totalRatings = hostFoodRatings.length;
 
                 const consolidatedData = {
-                    oneStar: oneStarRatings,
-                    twoStar: twoStarRatings,
-                    threeStar: threeStarRatings,
-                    fourStar: fourStarRatings,
-                    fiveStar: fiveStarRatings,
-                    totalRatings: hostFoodRatings.length
+                    oneStar: (oneStarRatings / totalRatings) * 100,
+                    twoStar: (twoStarRatings / totalRatings) * 100,
+                    threeStar: (threeStarRatings / totalRatings) * 100,
+                    fourStar: (fourStarRatings / totalRatings) * 100,
+                    fiveStar: (fiveStarRatings / totalRatings) * 100
                 }
                 res.status(200).json(consolidatedData);
             } else {
@@ -261,8 +261,7 @@ router.get("/consolidateReviewsStatistics", async (req, res) => { // GET full re
                             twoStar: 0,
                             threeStar: 0,
                             fourStar: 0,
-                            fiveStar: 0,
-                            totalRatings: 0
+                            fiveStar: 0
                         }
                     }
                 );

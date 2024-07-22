@@ -111,7 +111,8 @@ router.get("/getListing", checkUser, async (req, res) => {
             "hygieneGrade",
             "referenceNum",
             "guestID",
-            "portions"
+            "portions",
+            "totalPrice"
         ], ["createdAt", "updatedAt"])
     )
     return

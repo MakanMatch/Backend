@@ -17,7 +17,7 @@ router.route("/")
                 Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Internal server error; error: ${err}.`);
                 return res.status(500).send("ERROR: Internal server error");
             }
-            let { reviewID, foodRating, hygieneRating, comments, images } = req.body;
+            let { reviewID, foodRating, hygieneRating, comments, images} = req.body;
 
             if (!reviewID) {
                 return res.status(400).send("ERROR: Missing review ID");
@@ -27,6 +27,9 @@ router.route("/")
             if (!review) {
                 return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
             }
+
+            // Store original images
+            const originalImages = review.images ? review.images.split('|') : [];
 
             var fileUrls = [];
 
@@ -95,6 +98,21 @@ router.route("/")
                     if (!updateReview) {
                         return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
                     } else {
+                        // Compare original and updated images and delete removed files
+                        const updatedImages = fileUrls;
+                        const removedImages = originalImages.filter(image => !updatedImages.includes(image));
+
+                        for (const removedImage of removedImages) {
+                            try {
+                                const deleteRemovedImage = await FileManager.deleteFile(removedImage);
+                                if (!deleteRemovedImage) {
+                                    Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to delete file; error: ${err}`);
+                                }
+                            } catch (err) {
+                                Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to delete file; error: ${err}`);
+                            }
+                        }
+
                         return res.send(`SUCCESS: Review with ID ${reviewID} updated`); // Tested in postcode, working!
                     }
                 } catch (err) {

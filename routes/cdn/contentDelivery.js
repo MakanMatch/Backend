@@ -67,4 +67,21 @@ router.get("/getImageForReview", async (req, res) => {
     return;
 });
 
+router.get("/getProfilePicture", async (req, res) => {
+    const { username, imageName } = req.query;
+    if (!username || !imageName) {
+        res.status(400).send("ERROR: Invalid request parameters.");
+        return;
+    }
+
+    const findImageName = await FileManager.prepFile(imageName);
+    if (!findImageName.startsWith("SUCCESS")) {
+        res.status(404).send("ERROR: Image not found.");
+        return;
+    }
+
+    res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length))
+    return;
+});
+
 module.exports = { router, at: '/cdn' };

@@ -34,7 +34,7 @@ router.route("/")
                 for (const image of images) {
                     try {
                         const saveImages = await FileManager.saveFile(image)
-                        if (saveImages) {
+                        if (saveImages == true) {
                             fileUrls.push(`${image}`);
                         } else {
                             return res.status(500).send("ERROR: Failed to upload images");
@@ -47,7 +47,7 @@ router.route("/")
             } else if (images && typeof images === 'string') {
                 try {
                     const saveSingleImage = await FileManager.saveFile(images)
-                    if (saveSingleImage) {
+                    if (saveSingleImage == true) {
                         fileUrls.push(`${images}`);
                     } else {
                         return res.status(500).send("ERROR: Failed to upload image");
@@ -63,7 +63,7 @@ router.route("/")
                 for (const file of req.files) {
                     try {
                         const saveFiles = await FileManager.saveFile(file.filename)
-                        if (saveFiles) {
+                        if (saveFiles == true) {
                             fileUrls.push(`${file.filename}`)
                         } else {
                             return res.status(500).send("ERROR: Failed to upload files");

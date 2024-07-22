@@ -48,11 +48,6 @@ router.route("/")
                     })
                 }
             }
-
-            const saveReveiw = await review.save();
-            if (!saveReveiw) {
-                return res.status(500).send("ERROR: Failed to save review");
-            }
         } catch (err) {
             Logger.log(`REVIEWS LIKEREVIEW POST ERROR: Failed to like / unlike review; error: ${err}.`);
             return res.status(500).send("ERROR: Failed to like review");

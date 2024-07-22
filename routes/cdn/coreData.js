@@ -57,13 +57,13 @@ router.get("/getListing", checkUser, async (req, res) => {
     const includeHost = req.query.includeHost;
 
     var includeClause = []
-    if (includeReservations) {
+    if (includeReservations == 'true') {
         includeClause.push({
             model: Guest,
             as: "guests"
         })
     }
-    if (includeHost) {
+    if (includeHost == 'true') {
         includeClause.push({
             model: Host,
             as: "Host"

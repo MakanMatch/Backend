@@ -220,4 +220,58 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
     }
 })
 
+router.get("/consolidateReviewsStatistics", async (req, res) => { // GET full reservations list
+    const { hostID } = req.query;
+    if (!hostID) {
+        console.log("ERROR: Missing host ID.");
+        return res.status(400).send("ERROR: Missing host ID.");
+    }
+    try {
+        const findHost = await Host.findByPk(hostID);
+        if (!findHost) {
+            console.log("ERROR: Host not found.");
+            return res.status(404).send("ERROR: Host not found.");
+        } else {
+            const hostFoodRatings = await Review.findAll({
+                where: { hostID },
+                attributes: ['foodRating']
+            });
+            if (hostFoodRatings.length > 0) {
+                const oneStarRatings = hostFoodRatings.filter(rating => rating.foodRating === 1).length;
+                const twoStarRatings = hostFoodRatings.filter(rating => rating.foodRating === 2).length;
+                const threeStarRatings = hostFoodRatings.filter(rating => rating.foodRating === 3).length;
+                const fourStarRatings = hostFoodRatings.filter(rating => rating.foodRating === 4).length;
+                const fiveStarRatings = hostFoodRatings.filter(rating => rating.foodRating === 5).length;
+
+                const consolidatedData = {
+                    oneStar: oneStarRatings,
+                    twoStar: twoStarRatings,
+                    threeStar: threeStarRatings,
+                    fourStar: fourStarRatings,
+                    fiveStar: fiveStarRatings,
+                    totalRatings: hostFoodRatings.length
+                }
+                res.status(200).json(consolidatedData);
+            } else {
+                return res.status(200).json(
+                    { 
+                        message: "No reviews found.",
+                        consolidatedData: {
+                            oneStar: 0,
+                            twoStar: 0,
+                            threeStar: 0,
+                            fourStar: 0,
+                            fiveStar: 0,
+                            totalRatings: 0
+                        }
+                    }
+                );
+            }
+        }
+    } catch (err) {
+        Logger.log(`CDN COREDATA CONSOLIDATEREVIEWSSTATISTICS ERROR: Failed to consolidate review statistics: ${err}.`);
+        return res.status(500).send("ERROR: An error occured while retrieving review statistics.");
+    }
+})
+
 module.exports = { router, at: '/cdn' };

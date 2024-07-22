@@ -7,6 +7,7 @@ const Logger = require("../../services/Logger");
 const { Sequelize } = require('sequelize');
 const Universal = require("../../services/Universal");
 const { validateToken, checkUser } = require("../../middleware/auth");
+const Extensions = require("../../services/Extensions");
 
 router.get('/myAccount', validateToken, (req, res) => {
     const userInfo = req.user;
@@ -50,26 +51,70 @@ router.get("/checkFavouriteListing", async (req, res) => { // GET favourite list
     }
 });
 
-router.get("/getListing", async (req, res) => {
+router.get("/getListing", checkUser, async (req, res) => {
     const listingID = req.query.id || req.body.listingID;
     const includeReservations = req.query.includeReservations;
+    const includeHost = req.query.includeHost;
+
+    var includeClause = []
+    if (includeReservations == 'true') {
+        includeClause.push({
+            model: Guest,
+            as: "guests"
+        })
+    }
+    if (includeHost == 'true') {
+        includeClause.push({
+            model: Host,
+            as: "Host"
+        })
+    }
+
     if (!listingID) {
         res.status(400).send("ERROR: Listing ID not provided.")
         return
     }
 
     const listing = await FoodListing.findByPk(listingID, {
-        include: includeReservations ? [{
-            model: Guest,
-            as: "guests"
-        }] : []
+        include: includeClause
     })
 
     if (!listing || listing == null) {
         res.status(404).send("ERROR: Listing not found")
         return
     }
-    res.json(listing)
+
+    var isHost = req.user && listing.hostID == req.user.userID;
+    if (!isHost && !listing.published) {
+        res.status(404).send("ERROR: Listing not found")
+        return
+    }
+    
+    res.json(
+        Extensions.sanitiseData(listing.toJSON(), [
+            "listingID",
+            "title",
+            "images",
+            "shortDescription",
+            "longDescription",
+            "datetime",
+            "portionPrice",
+            "approxAddress",
+            "address",
+            "totalSlots",
+            "published",
+            "hostID",
+            "userID",
+            "username",
+            "mealsMatched",
+            "foodRating",
+            "hygieneGrade",
+            "referenceNum",
+            "guestID",
+            "portions",
+            "totalPrice"
+        ], ["createdAt", "updatedAt"])
+    )
     return
 })
 

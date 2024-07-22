@@ -5,25 +5,10 @@ const Logger = require('../../services/Logger');
 const { storeImages } = require('../../middleware/storeImages');
 const FileManager = require('../../services/FileManager');
 const multer = require('multer');
+const { validateToken } = require('../../middleware/auth');
 
 router.route("/")
-    .get(async (req, res) => {
-        const { reviewID } = req.query
-        if (!reviewID) {
-            return res.status(400).send("ERROR: Missing review ID");
-        }
-        try {
-            const review = await Review.findByPk(reviewID);
-            if (!review) {
-                return res.status(404).send(`ERROR: Review not found`);
-            }
-            return res.json(review); // Tested in postcode, working!
-        } catch (err) {
-            Logger.log(`REVIEWS MANAGEREVIEWS GET ERROR: Failed to retrieve review; error: ${err}`);
-            return res.status(500).send("ERROR: Failed to retrieve review");
-        }
-    })
-    .put(async (req, res) => {
+    .put(validateToken, async (req, res) => {
         storeImages(req, res, async (err) => {
             if (err instanceof multer.MulterError) {
                 Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Image upload error; error: ${err}.`);
@@ -119,7 +104,7 @@ router.route("/")
             }
         })
     })
-    .delete(async (req, res) => {
+    .delete(validateToken, async (req, res) => {
         const { reviewID } = req.body;
         if (!reviewID) {
             return res.status(400).send("ERROR: Missing review ID");

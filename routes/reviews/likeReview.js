@@ -23,8 +23,11 @@ router.route("/")
             const existingLike = await ReviewLike.findOne({ where: { reviewID, guestID } });
             if (existingLike) {
                 const unlikeReview = await ReviewLike.destroy({ where: { reviewID, guestID } }); // Unlike review
-                const updateLikeCount = review.likeCount -= 1;
-                if (!unlikeReview || !updateLikeCount) {
+                review.likeCount -= 1;
+                const updateReview = await review.save()
+                console.log(unlikeReview);
+                console.log(updateReview);
+                if (!unlikeReview || !updateReview) {
                     return res.status(500).send("ERROR: Failed to unlike review");
                 } else {
                     res.json({
@@ -35,8 +38,11 @@ router.route("/")
                 }
             } else {
                 const likeReview = await ReviewLike.create({ reviewID, guestID }); // Like review
-                const updateLikeCount = review.likeCount += 1;
-                if (!likeReview || !updateLikeCount) {
+                review.likeCount += 1;
+                const updateReview = await review.save()
+                console.log(likeReview);
+                console.log(updateReview);
+                if (!likeReview || !updateReview) {
                     return res.status(500).send("ERROR: Failed to like review");
                 } else {
                     res.json({

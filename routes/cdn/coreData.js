@@ -197,6 +197,10 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
                             review.isLiked = likedReviewIDs.includes(review.reviewID); 
                         });
                     }
+                } else {
+                    reviewsJSON.forEach(review => { 
+                        review.isLiked = false; 
+                    });
                 }
 
                 if (order === "images") {

@@ -17,8 +17,8 @@ router.post("/addListing", validateToken, async (req, res) => {
             title: yup.string().trim().required(),
             shortDescription: yup.string().trim().required(),
             longDescription: yup.string().trim().required(),
-            portionPrice: yup.number().required(),
-            totalSlots: yup.number().required(),
+            portionPrice: yup.number().min(1).max(10).required(),
+            totalSlots: yup.number().min(1).max(10).required(),
             datetime: yup.string().trim().required()
         });
 

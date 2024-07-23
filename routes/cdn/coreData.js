@@ -14,14 +14,33 @@ router.get('/myAccount', validateToken, (req, res) => {
 });
 
 router.get("/listings", async (req, res) => { // GET all food listings
+    const hostID = req.query.hostID;
+    const includeHost = req.query.includeHost;
+    const includeReservations = req.query.includeReservations;
+    var whereClause = { published: true };
+    if (hostID) {
+        whereClause.HostID = hostID;
+    }
+
+    var includeClause = []
+    if (includeHost == 'true') {
+        includeClause.push({
+            model: Host,
+            as: "Host",
+            attributes: ["userID", "username", "foodRating"]
+        })
+    }
+    if (includeReservations == 'true') {
+        includeClause.push({
+            model: Guest,
+            as: "guests"
+        })
+    }
+
     try {
         const foodListings = await FoodListing.findAll({
-            where: { published: true },
-            include: [{
-                model: Host,
-                as: "Host",
-                attributes: ["userID", "username", "foodRating"]
-            }]
+            where: whereClause,
+            include: includeClause
         });
         foodListings.map(listing => (listing.images == null || listing.images == "") ? listing.images = [] : listing.images = listing.images.split("|"));
         res.status(200).json(foodListings);

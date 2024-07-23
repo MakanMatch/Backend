@@ -45,8 +45,12 @@ router.route("/")
                 if (req.files) {
                     for (const file of req.files) {
                         try {
-                            await FileManager.saveFile(file.filename);
-                            fileUrls.push(`${file.filename}`);
+                            const saveFile = await FileManager.saveFile(file.filename);
+                            if (saveFile == true) {
+                                fileUrls.push(`${file.filename}`);
+                            } else {
+                                return res.status(500).send("ERROR: Failed to upload file");
+                            }
                         } catch (err) {
                             Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Failed to upload file; error: ${err}.`);
                             return res.status(500).send("ERROR: Failed to upload file");

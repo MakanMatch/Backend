@@ -226,22 +226,30 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
                         attributes: ['username']
                     }]
                 })
+
+                const reviewsJSON = reviews.map(review => review.toJSON());
+                
                 if (!checkGuest) {
                     const likedReviews = await ReviewLike.findAll({
                         where: {
                             guestID: guestID
-                        }
+                        },
+                        attributes: ['reviewID']
                     });
                     if (likedReviews.length > 0) {
                         const likedReviewIDs = likedReviews.map(likedReview => likedReview.reviewID);
-                        reviews.forEach(review => {
-                            review.dataValues.isLiked = likedReviewIDs.includes(review.reviewID);
+                        reviewsJSON.forEach(review => { 
+                            review.isLiked = likedReviewIDs.includes(review.reviewID); 
                         });
                     }
+                } else {
+                    reviewsJSON.forEach(review => { 
+                        review.isLiked = false; 
+                    });
                 }
 
                 if (order === "images") {
-                    reviews.sort((a, b) => {
+                    reviewsJSON.sort((a, b) => {
                         const imageCountA = a.images ? a.images.split("|").length : 0;
                         const imageCountB = b.images ? b.images.split("|").length : 0;
                         return imageCountB - imageCountA;
@@ -249,7 +257,7 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
                 }
 
                 if (reviews.length > 0) {
-                    res.json(reviews);
+                    res.json(reviewsJSON.length > 0 ? reviewsJSON : []);
                 } else {
                     return res.status(200).json([]);
                 }

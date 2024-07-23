@@ -23,6 +23,11 @@ router.route("/")
                 return res.status(400).send("ERROR: Missing review ID");
             }
 
+            const guestID = req.user.userID;
+            if (!guestID) {
+                return res.status(400).send("ERROR: Missing guest ID");
+            }
+
             const review = await Review.findByPk(reviewID);
             if (!review) {
                 return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
@@ -122,6 +127,11 @@ router.route("/")
         })
     })
     .delete(validateToken, async (req, res) => {
+        const guestID = req.user.userID;
+            if (!guestID) {
+                return res.status(400).send("ERROR: Missing guest ID");
+            }
+
         const { reviewID } = req.body;
         if (!reviewID) {
             return res.status(400).send("ERROR: Missing review ID");

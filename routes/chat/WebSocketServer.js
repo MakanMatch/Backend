@@ -5,6 +5,7 @@ const { ChatHistory, ChatMessage, Reservation, FoodListing, Host, Guest } = requ
 const Universal = require("../../services/Universal");
 const Logger = require("../../services/Logger");
 const { Op } = require('sequelize');
+var counter = 0;
 function startWebSocketServer(app) {
     const PORT = 8080;
     const server = http.createServer(app);
@@ -88,9 +89,9 @@ function startWebSocketServer(app) {
 
     async function getUsersChatID(map, id) {
         for (let [key, value] of map) {
-            console.log(value)
+            console.log("chatid", key)
             if (value.includes(id)) {
-                console.log(value)
+                console.log("chatid", key)
                 chatID = key;
                 return chatID;
             }
@@ -277,7 +278,6 @@ function startWebSocketServer(app) {
             } else if (parsedMessage.action === "delete") {
                 handleDeleteMessage(parsedMessage);
             } else if (parsedMessage.action === "send") {
-                console.log("userID", parsedMessage.userID);
                 //Find the correct chatID for the message by using userID
                 getUsersChatID(chatRooms, parsedMessage.userID);
                 handleMessageSend(parsedMessage, chatID);
@@ -412,8 +412,10 @@ function startWebSocketServer(app) {
 
     function broadcastMessage(message, userIDs = []) {
         connectedUsers.forEach((ws, key) => {
-            if (userIDs.length === 0 || userIDs.includes(key.userID) || userIDs.includes(key.hostID)) {
+            if (userIDs.length === 0 || userIDs.includes(key.userID) && userIDs.includes(key.hostID)) {
                 if (ws.readyState === WebSocket.OPEN) {
+                    console.log(key);
+                    console.log("sending", message);
                     ws.send(message);
                 }
             }

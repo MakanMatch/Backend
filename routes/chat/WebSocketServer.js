@@ -51,9 +51,27 @@ function startWebSocketServer(app) {
                     };
                 })
             );
+
+            const username1 = await Guest.findOne({
+                where: { userID: user1ID },
+            }) || await Host.findOne({
+                where: { userID: user1ID },
+            });
+
+            const username2 = await Guest.findOne({
+                where: { userID: user2ID },
+            }) || await Host.findOne({
+                where: { userID: user2ID },
+            });
+
+            console.log("username1", username1.username);
+            console.log("username2", username2.username);
             const message = JSON.stringify({
                 type: "chat_history",
                 messages: messagesWithReplies,
+                username1: username1.username,
+                username2: username2.username,
+                chatID: chatHistory.chatID,
             });
 
             broadcastMessage(message, [user1ID, user2ID]);
@@ -68,7 +86,7 @@ function startWebSocketServer(app) {
         }
     }
 
-    async function getUsersChatID(map, id){
+    async function getUsersChatID(map, id) {
         for (let [key, value] of map) {
             console.log(value)
             if (value.includes(id)) {
@@ -91,136 +109,169 @@ function startWebSocketServer(app) {
 
                 if (userType === "Guest") {
                     try {
-                        const findGuest = await Reservation.findOne({
-                            where: { guestID: userID }
+                        const findGuest = await Reservation.findAll({
+                            where: { guestID: userID },
                         });
-                        if (!findGuest) {
+                        if (findGuest.length === 0) {
                             const jsonMessage = { action: "error", message: "Guest not found" };
                             ws.send(JSON.stringify(jsonMessage));
                             return;
                         }
 
-                        const listingID = findGuest.listingID;
+                        for (const guest of findGuest) {
+                            if (guest.listingID === null) {
+                                const jsonMessage = {
+                                    action: "error",
+                                    message: "Guest has no listing",
+                                };
+                                ws.send(JSON.stringify(jsonMessage));
+                                return;
+                            }
 
-                        const findHost = await FoodListing.findOne({
-                            where: { listingID: listingID }
-                        });
-
-                        if (!findHost) {
-                            const jsonMessage = { action: "error", message: "Host not found" };
-                            ws.send(JSON.stringify(jsonMessage));
-                            return;
-                        }
-
-                        let hostID = findHost.hostID;
-                        const findHostUser = await Host.findOne({
-                            where: { userID: findHost.hostID }
-                        })
-
-                        chatPartnerUsername = findHostUser.username;
-                        const compositeKey = { userID, hostID };
-                        if (connectedUsers.has(compositeKey)){
-                            connectedUsers.delete(compositeKey);
-                        }
-                        connectedUsers.set(compositeKey, ws);
-                        userRooms.set(userID, hostID);
-
-                        chatID = await getChatHistoryAndMessages(userID, hostID);
-                        chatRooms.set(chatID, [userID, hostID]);
-                        const jsonMessage = JSON.stringify({ action: "connect", chatPartnerUsername });
-                        broadcastMessage(jsonMessage, [userID, hostID]);
-                    } catch (error) {
-                        console.error("Error connecting user:", error);
-                        const jsonMessage = { action: "error", message: "Error connecting user" };
-                        ws.send(JSON.stringify(jsonMessage));
-                    }
-                }
-                else if (userType === "Host") {
-                    // Check if the Host is a guest for a listing
-                    try {
-                        const findGuest = await Reservation.findOne({
-                            where: { guestID: userID }
-                        });
-
-                        const findHost = await FoodListing.findOne({
-                            where: { hostID: userID }
-                        });
-
-                        if (!findGuest && !findHost) {
-                            const jsonMessage = { action: "error", message: "User not found" };
-                            ws.send(JSON.stringify(jsonMessage));
-                            return;
-                        }
-
-                        if (findGuest) {
-                            const listingID = findGuest.listingID;
-
+                            const listingID = guest.listingID;
                             const findHost = await FoodListing.findOne({
-                                where: { listingID: listingID }
+                                where: { listingID: listingID },
                             });
 
                             if (!findHost) {
-                                const jsonMessage = { action: "error", message: "Host not found" };
+                                const jsonMessage = {
+                                    action: "error",
+                                    message: "Host not found",
+                                };
                                 ws.send(JSON.stringify(jsonMessage));
                                 return;
                             }
 
                             let hostID = findHost.hostID;
                             const findHostUser = await Host.findOne({
-                                where: { userID: hostID }
-                            })
-    
+                                where: { userID: hostID },
+                            });
+
                             chatPartnerUsername = findHostUser.username;
                             const compositeKey = { userID, hostID };
-                            if (connectedUsers.has(compositeKey)){
+                            if (connectedUsers.has(compositeKey)) {
                                 connectedUsers.delete(compositeKey);
                             }
                             connectedUsers.set(compositeKey, ws);
                             userRooms.set(userID, hostID);
-
                             chatID = await getChatHistoryAndMessages(userID, hostID);
                             chatRooms.set(chatID, [userID, hostID]);
-                            const jsonMessage = JSON.stringify({ action: "connect", chatPartnerUsername });
+                            const jsonMessage = JSON.stringify({
+                                action: "connect",
+                                chatPartnerUsername,
+                            });
                             broadcastMessage(jsonMessage, [userID, hostID]);
                         }
-                        else if (findHost) {
-                            const listingID = findHost.listingID;
-
-                            const findGuest = await Reservation.findOne({
-                                where: { listingID: listingID }
-                            });
-
-                            if (!findGuest) {
-                                const jsonMessage = { action: "error", message: "Guest not found" };
-                                ws.send(JSON.stringify(jsonMessage));
-                                return;
-                            }
-
-                            let guestID = findGuest.guestID;
-                            const findGuestUser = await Guest.findOne({
-                                where: { userID: guestID }
-                            })
-                            chatPartnerUsername = findGuestUser.username;
-                            const compositeKey = { userID, guestID };
-                            if (connectedUsers.has(compositeKey)){
-                                connectedUsers.delete(compositeKey);
-                            }
-                            connectedUsers.set(compositeKey, ws);
-                            userRooms.set(userID, guestID);
-
-                            chatID = await getChatHistoryAndMessages(userID, guestID);
-                            chatRooms.set(chatID, [userID, guestID]);
-                            const jsonMessage = JSON.stringify({ action: "connect", chatPartnerUsername });
-                            broadcastMessage(jsonMessage, [userID, guestID]);
-                        }
-                    }
-                    catch (error) {
+                    } catch (error) {
                         console.error("Error connecting user:", error);
-                        const jsonMessage = { action: "error", message: "Error connecting user" };
+                        const jsonMessage = {
+                            action: "error",
+                            message: "Error connecting user",
+                        };
+                        ws.send(JSON.stringify(jsonMessage));
+                    }
+                } else if (userType === "Host") {
+                    // Check if the Host is a guest for a listing
+                    try {
+                        const findGuest = await Reservation.findAll({
+                            where: { guestID: userID },
+                        });
+
+                        const findHost = await FoodListing.findAll({
+                            where: { hostID: userID },
+                        });
+
+                        if (findHost.length === 0 && findGuest.length === 0) {
+                            const jsonMessage = { action: "error", message: "User not found" };
+                            ws.send(JSON.stringify(jsonMessage));
+                            return;
+                        }
+
+                        if (findGuest.length > 0) {
+                            for (const guest of findGuest) {
+                                if (guest.listingID === null) {
+                                    const jsonMessage = {
+                                        action: "error",
+                                        message: "Guest has no listing",
+                                    };
+                                    ws.send(JSON.stringify(jsonMessage));
+                                    return;
+                                }
+                                const listingID = guest.listingID;
+                                const findHost = await FoodListing.findOne({
+                                    where: { listingID: listingID },
+                                });
+                                if (!findHost) {
+                                    const jsonMessage = {
+                                        action: "error",
+                                        message: "Host not found",
+                                    };
+                                    ws.send(JSON.stringify(jsonMessage));
+                                    return;
+                                }
+                                let hostID = findHost.hostID;
+                                const findHostUser = await Host.findOne({
+                                    where: { userID: hostID },
+                                });
+                                chatPartnerUsername = findHostUser.username;
+                                const compositeKey = { userID, hostID };
+                                if (connectedUsers.has(compositeKey)) {
+                                    connectedUsers.delete(compositeKey);
+                                }
+                                connectedUsers.set(compositeKey, ws);
+                                userRooms.set(userID, hostID);
+                                chatID = await getChatHistoryAndMessages(userID, hostID);
+                                chatRooms.set(chatID, [userID, hostID]);
+                                const jsonMessage = JSON.stringify({
+                                    action: "connect",
+                                    chatPartnerUsername,
+                                });
+                                broadcastMessage(jsonMessage, [userID, hostID]);
+                            }
+                        }
+                        if (findHost.length > 0) {
+                            for (const host of findHost) {
+                                const listingID = host.listingID;
+                                const findGuest = await Reservation.findOne({
+                                    where: { listingID: listingID },
+                                });
+                                if (!findGuest) {
+                                    const jsonMessage = {
+                                        action: "error",
+                                        message: "Guest not found",
+                                    };
+                                    ws.send(JSON.stringify(jsonMessage));
+                                    return;
+                                }
+                                let guestID = findGuest.guestID;
+                                const findGuestUser = await Guest.findOne({
+                                    where: { userID: guestID },
+                                });
+                                chatPartnerUsername = findGuestUser.username;
+                                const compositeKey = { userID, guestID };
+                                if (connectedUsers.has(compositeKey)) {
+                                    connectedUsers.delete(compositeKey);
+                                }
+                                connectedUsers.set(compositeKey, ws);
+                                userRooms.set(userID, guestID);
+                                chatID = await getChatHistoryAndMessages(userID, guestID);
+                                chatRooms.set(chatID, [userID, guestID]);
+                                const jsonMessage = JSON.stringify({
+                                    action: "connect",
+                                    chatPartnerUsername,
+                                });
+                                broadcastMessage(jsonMessage, [userID, guestID]);
+                            }
+                        }
+                    } catch (error) {
+                        console.error("Error connecting user:", error);
+                        const jsonMessage = {
+                            action: "error",
+                            message: "Error connecting user",
+                        };
                         ws.send(JSON.stringify(jsonMessage));
                     }
                 }
-
             } else if (parsedMessage.action === "edit") {
                 handleEditMessage(parsedMessage);
             } else if (parsedMessage.action === "delete") {
@@ -249,7 +300,10 @@ function startWebSocketServer(app) {
                             if (users.length === 0) {
                                 chatRooms.delete(chatID); // Remove the chat room if no users are left
                             } else {
-                                broadcastMessage(JSON.stringify({ action: "user_left", userID }), users);
+                                broadcastMessage(
+                                    JSON.stringify({ action: "user_left", userID }),
+                                    users
+                                );
                             }
                         }
                     });
@@ -257,6 +311,7 @@ function startWebSocketServer(app) {
             });
         });
     });
+
 
     wss.on("error", (error) => {
         console.error("WebSocket server error:", error);

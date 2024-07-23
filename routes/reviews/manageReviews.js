@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Review } = require('../../models');
+const { Review, Guest } = require('../../models');
 const Logger = require('../../services/Logger');
 const { storeImages } = require('../../middleware/storeImages');
 const FileManager = require('../../services/FileManager');
@@ -28,7 +28,19 @@ router.route("/")
                 return res.status(400).send("ERROR: Missing guest ID");
             }
 
-            const review = await Review.findByPk(reviewID);
+            const review = await Review.findOne({
+                where: { reviewID: reviewID },
+                include: [{
+                    model: Guest,
+                    as: 'reviewPoster',
+                    attributes: ['userID']
+                }]
+            });
+
+            if (guestID !== review.reviewPoster.userID) {    // Check if the action performer is the review poster
+                return res.status(403).send("ERROR: You are not authorized to update this review");
+            }
+
             if (!review) {
                 return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
             }
@@ -136,8 +148,22 @@ router.route("/")
         if (!reviewID) {
             return res.status(400).send("ERROR: Missing review ID");
         }
+
+        const review = await Review.findOne({
+            where: { reviewID: reviewID },
+            include: [{
+                model: Guest,
+                as: 'reviewPoster',
+                attributes: ['userID']
+            }]
+        })
+
+        if (guestID !== review.reviewPoster.userID) {  // Check if the action performer is the review poster
+            return res.status(403).send("ERROR: You are not authorized to delete this review");
+        }
+
         try {
-            const deleteReview = await Review.destroy({
+            const deleteReview = await review.destroy({
                 where: { reviewID: reviewID }
             });
             if (!deleteReview) {

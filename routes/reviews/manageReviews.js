@@ -99,8 +99,7 @@ router.route("/")
                         return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
                     } else {
                         // Compare original and updated images and delete removed files
-                        const updatedImages = fileUrls;
-                        const removedImages = originalImages.filter(image => !updatedImages.includes(image));
+                        const removedImages = originalImages.filter(image => !fileUrls.includes(image));
 
                         for (const removedImage of removedImages) {
                             try {

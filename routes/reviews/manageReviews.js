@@ -163,7 +163,7 @@ router.route("/")
         }
 
         try {
-            const deleteReview = await review.destroy(reviewID);
+            const deleteReview = await review.destroy();
             if (!deleteReview) {
                 return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
             } else {

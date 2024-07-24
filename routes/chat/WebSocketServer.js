@@ -147,7 +147,6 @@ function startWebSocketServer(app) {
                             chatRooms.set(chatID, [userID, hostID]);
                             const jsonMessage = JSON.stringify({
                                 action: "connect",
-                                chatPartnerUsername,
                             });
                             broadcastMessage(jsonMessage, [userID, hostID]);
                         }
@@ -175,7 +174,7 @@ function startWebSocketServer(app) {
                             ws.send(JSON.stringify(jsonMessage));
                             return;
                         }
-
+                        console.log(findGuest.length)
                         if (findGuest.length > 0) {
                             for (const guest of findGuest) {
                                 if (guest.listingID === null) {
@@ -218,6 +217,7 @@ function startWebSocketServer(app) {
                                 broadcastMessage(jsonMessage, [userID, hostID]);
                             }
                         }
+                        console.log(findHost.length)
                         if (findHost.length > 0) {
                             for (const host of findHost) {
                                 const listingID = host.listingID;
@@ -246,8 +246,7 @@ function startWebSocketServer(app) {
                                 chatID = await getChatID(userID, guestID);
                                 chatRooms.set(chatID, [userID, guestID]);
                                 const jsonMessage = JSON.stringify({
-                                    action: "connect",
-                                    chatPartnerUsername,
+                                    action: "chat_id",
                                 });
                                 broadcastMessage(jsonMessage, [userID, guestID]);
                             }
@@ -401,8 +400,11 @@ function startWebSocketServer(app) {
     }
 
     function broadcastMessage(message, userIDs = []) {
+        console.log(1)
         connectedUsers.forEach((ws, key) => {
-            if (userIDs.length === 0 || userIDs.includes(key.userID) && userIDs.includes(key.hostID)) {
+            console.log(2)
+            if (userIDs.length === 0 || userIDs.includes(key.userID) && (userIDs.includes(key.hostID) || userIDs.includes(key.guestID))) {
+
                 if (ws.readyState === WebSocket.OPEN) {
                     console.log(key);
                     console.log("sending", message);

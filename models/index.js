@@ -90,7 +90,7 @@ fs
     .forEach(file => {
         const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
         // Add model if model not hard-imported
-        if (db[model.name] !== undefined) {
+        if (db[model.name] == undefined) {
             db[model.name] = model;
         }
     });

@@ -1,29 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { Review } = require('../../models');
+const { Review, Guest } = require('../../models');
 const Logger = require('../../services/Logger');
 const { storeImages } = require('../../middleware/storeImages');
 const FileManager = require('../../services/FileManager');
 const multer = require('multer');
+const { validateToken } = require('../../middleware/auth');
 
 router.route("/")
-    .get(async (req, res) => {
-        const { reviewID } = req.query
-        if (!reviewID) {
-            return res.status(400).send("ERROR: Missing review ID");
-        }
-        try {
-            const review = await Review.findByPk(reviewID);
-            if (!review) {
-                return res.status(404).send(`ERROR: Review not found`);
-            }
-            return res.json(review); // Tested in postcode, working!
-        } catch (err) {
-            Logger.log(`REVIEWS MANAGEREVIEWS GET ERROR: Failed to retrieve review; error: ${err}`);
-            return res.status(500).send("ERROR: Failed to retrieve review");
-        }
-    })
-    .put(async (req, res) => {
+    .put(validateToken, async (req, res) => {
         storeImages(req, res, async (err) => {
             if (err instanceof multer.MulterError) {
                 Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Image upload error; error: ${err}.`);
@@ -32,16 +17,36 @@ router.route("/")
                 Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Internal server error; error: ${err}.`);
                 return res.status(500).send("ERROR: Internal server error");
             }
-            let { reviewID, foodRating, hygieneRating, comments, images } = req.body;
+            let { reviewID, foodRating, hygieneRating, comments, images} = req.body;
 
             if (!reviewID) {
                 return res.status(400).send("ERROR: Missing review ID");
             }
 
-            const review = await Review.findByPk(reviewID);
+            const guestID = req.user.userID;
+            if (!guestID) {
+                return res.status(400).send("ERROR: Missing guest ID");
+            }
+
+            const review = await Review.findOne({
+                where: { reviewID: reviewID },
+                include: [{
+                    model: Guest,
+                    as: 'reviewPoster',
+                    attributes: ['userID']
+                }]
+            });
+
+            if (guestID !== review.reviewPoster.userID) {    // Check if the action performer is the review poster
+                return res.status(403).send("ERROR: You are not authorized to update this review");
+            }
+
             if (!review) {
                 return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
             }
+
+            // Store original images
+            const originalImages = review.images ? review.images.split('|') : [];
 
             var fileUrls = [];
 
@@ -49,7 +54,7 @@ router.route("/")
                 for (const image of images) {
                     try {
                         const saveImages = await FileManager.saveFile(image)
-                        if (saveImages) {
+                        if (saveImages == true) {
                             fileUrls.push(`${image}`);
                         } else {
                             return res.status(500).send("ERROR: Failed to upload images");
@@ -62,7 +67,7 @@ router.route("/")
             } else if (images && typeof images === 'string') {
                 try {
                     const saveSingleImage = await FileManager.saveFile(images)
-                    if (saveSingleImage) {
+                    if (saveSingleImage == true) {
                         fileUrls.push(`${images}`);
                     } else {
                         return res.status(500).send("ERROR: Failed to upload image");
@@ -78,7 +83,7 @@ router.route("/")
                 for (const file of req.files) {
                     try {
                         const saveFiles = await FileManager.saveFile(file.filename)
-                        if (saveFiles) {
+                        if (saveFiles == true) {
                             fileUrls.push(`${file.filename}`)
                         } else {
                             return res.status(500).send("ERROR: Failed to upload files");
@@ -110,6 +115,20 @@ router.route("/")
                     if (!updateReview) {
                         return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
                     } else {
+                        // Compare original and updated images and delete removed files
+                        const removedImages = originalImages.filter(image => !fileUrls.includes(image));
+
+                        for (const removedImage of removedImages) {
+                            try {
+                                const deleteRemovedImage = await FileManager.deleteFile(removedImage);
+                                if (!deleteRemovedImage) {
+                                    Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to delete file; error: ${err}`);
+                                }
+                            } catch (err) {
+                                Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to delete file; error: ${err}`);
+                            }
+                        }
+
                         return res.send(`SUCCESS: Review with ID ${reviewID} updated`); // Tested in postcode, working!
                     }
                 } catch (err) {
@@ -119,15 +138,32 @@ router.route("/")
             }
         })
     })
-    .delete(async (req, res) => {
+    .delete(validateToken, async (req, res) => {
+        const guestID = req.user.userID;
+            if (!guestID) {
+                return res.status(400).send("ERROR: Missing guest ID");
+            }
+
         const { reviewID } = req.body;
         if (!reviewID) {
             return res.status(400).send("ERROR: Missing review ID");
         }
+
+        const review = await Review.findOne({
+            where: { reviewID: reviewID },
+            include: [{
+                model: Guest,
+                as: 'reviewPoster',
+                attributes: ['userID']
+            }]
+        })
+
+        if (guestID !== review.reviewPoster.userID) {  // Check if the action performer is the review poster
+            return res.status(403).send("ERROR: You are not authorized to delete this review");
+        }
+
         try {
-            const deleteReview = await Review.destroy({
-                where: { reviewID: reviewID }
-            });
+            const deleteReview = await review.destroy();
             if (!deleteReview) {
                 return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
             } else {

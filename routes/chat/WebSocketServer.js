@@ -5,7 +5,7 @@ const { ChatHistory, ChatMessage, Reservation, FoodListing, Host, Guest } = requ
 const Universal = require("../../services/Universal");
 const Logger = require("../../services/Logger");
 const { Op } = require('sequelize');
-var counter = 0;
+
 function startWebSocketServer(app) {
     const PORT = 8080;
     const server = http.createServer(app);
@@ -35,10 +35,14 @@ function startWebSocketServer(app) {
                 });
             }
 
+            console.log("Chat History:", chatHistory);
+
             const previousMessages = await ChatMessage.findAll({
                 where: { chatID: chatHistory.chatID },
                 order: [["datetime", "ASC"]],
             });
+
+            console.log("Previous Messages:", previousMessages);
 
             const messagesWithReplies = await Promise.all(
                 previousMessages.map(async (message) => {
@@ -53,6 +57,8 @@ function startWebSocketServer(app) {
                 })
             );
 
+            console.log("Messages with Replies:", messagesWithReplies);
+
             const username1 = await Guest.findOne({
                 where: { userID: user1ID },
             }) || await Host.findOne({
@@ -65,8 +71,9 @@ function startWebSocketServer(app) {
                 where: { userID: user2ID },
             });
 
-            console.log("username1", username1.username);
-            console.log("username2", username2.username);
+            console.log("username1:", username1 ? username1.username : "not found");
+            console.log("username2:", username2 ? username2.username : "not found");
+
             const message = JSON.stringify({
                 type: "chat_history",
                 messages: messagesWithReplies,
@@ -86,6 +93,8 @@ function startWebSocketServer(app) {
             broadcastMessage(errorMessage, [user1ID, user2ID]);
         }
     }
+
+
 
     async function getUsersChatID(map, id) {
         for (let [key, value] of map) {
@@ -426,4 +435,4 @@ function startWebSocketServer(app) {
     });
 }
 
-module.exports = startWebSocketServer;
+module.exports = startWebSocketServerl

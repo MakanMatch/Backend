@@ -435,4 +435,4 @@ function startWebSocketServer(app) {
     });
 }
 
-module.exports = startWebSocketServerl
+module.exports = startWebSocketServer;

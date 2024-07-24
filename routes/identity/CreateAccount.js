@@ -30,7 +30,17 @@ router.post("/", async (req, res) => {
     // console.log("Received at CreateAccount");
     const { username, fname, lname,  email, password, contactNum, blkNo, street, postalCode, unitNum, isHostAccount } = req.body;
 
-    const address = `Block ${blkNo} ${street} ${postalCode} #${unitNum}`;
+    // const address = `Block ${blkNo} ${street} ${postalCode} #${unitNum}`;
+    let address = '';
+    if (blkNo && unitNum) {
+        address = `Block ${blkNo} ${street} ${postalCode} #${unitNum}`;
+    } else if (blkNo) {
+        address = `Block ${blkNo} ${street} ${postalCode}`;
+    } else if (unitNum) {
+        address = `${street} ${postalCode} #${unitNum}`;
+    } else {
+        address = `${street} ${postalCode}`;
+    }
     const nameRegex = /^[a-zA-Z]+$/;
 
     try {

@@ -16,7 +16,6 @@ function startWebSocketServer(app) {
     let chatID = null;
 
     async function getChatAndMessages(chatID){
-        console.log(chatID);
             let chatHistory = await ChatHistory.findOne({
                 where: { chatID: chatID },
             });
@@ -62,9 +61,6 @@ function startWebSocketServer(app) {
             }) || await Host.findOne({
                 where: { userID: user2ID },
             });
-
-            console.log("username1:", username1 ? username1.username : "not found");
-            console.log("username2:", username2 ? username2.username : "not found");
 
             const message = JSON.stringify({
                 action: "chat_id",
@@ -174,7 +170,6 @@ function startWebSocketServer(app) {
                             ws.send(JSON.stringify(jsonMessage));
                             return;
                         }
-                        console.log(findGuest.length)
                         if (findGuest.length > 0) {
                             for (const guest of findGuest) {
                                 if (guest.listingID === null) {
@@ -217,7 +212,6 @@ function startWebSocketServer(app) {
                                 broadcastMessage(jsonMessage, [userID, hostID]);
                             }
                         }
-                        console.log(findHost.length)
                         if (findHost.length > 0) {
                             for (const host of findHost) {
                                 const listingID = host.listingID;
@@ -400,14 +394,11 @@ function startWebSocketServer(app) {
     }
 
     function broadcastMessage(message, userIDs = []) {
-        console.log(1)
         connectedUsers.forEach((ws, key) => {
-            console.log(2)
             if (userIDs.length === 0 || userIDs.includes(key.userID) && (userIDs.includes(key.hostID) || userIDs.includes(key.guestID))) {
 
                 if (ws.readyState === WebSocket.OPEN) {
-                    console.log(key);
-                    console.log("sending", message);
+
                     ws.send(message);
                 }
             }

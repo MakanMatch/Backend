@@ -45,7 +45,7 @@ router.get("/listings", async (req, res) => { // GET all food listings
         res.status(200).json(listingsWithImagesArray);
     } catch (error) {
         Logger.log("CDN COREDATA LISTINGS ERROR: Failed to retrieve all published listings; error: " + error);
-        res.status(500).send("ERROR: Internal server error");
+        res.status(500).send({ message: "ERROR: Internal server error", error: error });
     }
 });
 
@@ -55,7 +55,7 @@ router.get("/checkFavouriteListing", async (req, res) => { // GET favourite list
         const userID = req.query.userID;
         const guest = await Guest.findByPk(userID);
         if (!guest) {
-            return res.status(404).send("Guest not found.");
+            return res.status(404).send({ message: "UERROR: Guest was not found", error: "User's guest details could not be found" });
         }
         const favouriteCuisines = guest.favCuisine.split("|");
         if (favouriteCuisines.includes(listingID)) {
@@ -64,7 +64,7 @@ router.get("/checkFavouriteListing", async (req, res) => { // GET favourite list
             res.status(200).json({ message: "SUCCESS: Listing is not a favourite", listingIsFavourite: false });
         }
     } catch (error) {
-        res.status(500).send("ERROR: Internal server error");
+        res.status(500).send({ message: "ERROR: Internal server error", error: error });
     }
 });
 
@@ -241,14 +241,12 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
 router.get("/consolidateReviewsStatistics", async (req, res) => { // GET full reservations list
     const { hostID } = req.query;
     if (!hostID) {
-        console.log("ERROR: Missing host ID.");
-        return res.status(400).send("ERROR: Missing host ID.");
+        return res.status(400).send({ message: "UERROR: One or more required payloads were not provided", error: "One or more required payloads were not provided" });
     }
     try {
         const findHost = await Host.findByPk(hostID);
         if (!findHost) {
-            console.log("ERROR: Host not found.");
-            return res.status(404).send("ERROR: Host not found.");
+            return res.status(404).send({ message: "UERROR: Host could not found", error: "Host could not be found" });
         } else {
             const hostFoodRatings = await Review.findAll({
                 where: { hostID },
@@ -287,7 +285,7 @@ router.get("/consolidateReviewsStatistics", async (req, res) => { // GET full re
         }
     } catch (err) {
         Logger.log(`CDN COREDATA CONSOLIDATEREVIEWSSTATISTICS ERROR: Failed to consolidate review statistics: ${err}.`);
-        return res.status(500).send("ERROR: An error occured while retrieving review statistics.");
+        return res.status(500).send({ message: "ERROR: An error occured while retrieving review statistics", error: err });
     }
 })
 

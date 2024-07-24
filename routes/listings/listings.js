@@ -23,23 +23,23 @@ router.post("/addListing", validateToken, async (req, res) => {
         });
 
         if (req.files.length === 0) {
-            res.status(400).send("UERROR: No image uploaded");
+            res.status(400).send({ message: "UERROR: No image uploaded", error: "No image uploaded when adding a listing" });
             return;
         } else {
             var validatedData;
             try {
                 validatedData = await addListingSchema.validate(req.body, { abortEarly: false });
             } catch (validationError) {
-                res.status(400).send(`UERROR: ${validationError.errors.join(', ')}`);
+                res.status(400).send({ message: "UERROR: One or more entered fields are invalid", error: validationError.errors });
                 return;
             }
 
             if (err instanceof multer.MulterError) {
                 Logger.log(`LISTINGS ADDLISTING: Image upload error: ${err}`);
-                res.status(400).send("ERROR: Image upload error");
+                res.status(400).send({ message: "UERROR: Image(s) not accepted", error: err });
             } else if (err) {
                 Logger.log(`LISTINGS ADDLISTING: Internal server error: ${err}`);
-                res.status(500).send("ERROR: Internal server error");
+                res.status(500).send({ message: "ERROR: Failed to process image(s)", error: err });
             }
             var allImagesSuccess = false;
             for (let i = 0; i < req.files.length; i++) {
@@ -58,13 +58,13 @@ router.post("/addListing", validateToken, async (req, res) => {
                     await FileManager.deleteFile(req.files[i].filename);
                 }
                 Logger.log(`LISTINGS ADDLISTING: One or more image checks failed. ${req.files.length} image(s) deleted successfully.`)
-                res.status(400).send("ERROR: Failed to upload image");
+                res.status(400).send({ message: "ERROR: Failed to upload image(s)", error: "One or more images failed to upload" });
                 return;
             }
 
             const hostInfo = await Host.findByPk(req.user.userID);
             if (!hostInfo) {
-                res.status(404).send("ERROR: Host not found");
+                res.status(404).send({ message: "UERROR: Host was not found", error: "User's host details could not be found" });
                 return;
             }
             try {
@@ -93,7 +93,7 @@ router.post("/addListing", validateToken, async (req, res) => {
                 });
                 let approximateAddress = `${street}, ${city}`;
                 if (state) {
-                    approximateAddress += `, ${state}`; // For contexts outside of Singapore
+                    approximateAddress += `, ${state}`;
                 }
 
                 const listingDetails = {
@@ -120,11 +120,11 @@ router.post("/addListing", validateToken, async (req, res) => {
                     Logger.log(`LISTINGS ADDLISTING ERROR: Listing with listingID ${listingDetails.listingID} created successfully.`)
                     return;
                 } else {
-                    res.status(400).send("ERROR: Failed to create food listing");
+                    res.status(400).send({ message: "ERROR: Failed to create food listing", error: "Failed to create food listing" });
                     return;
                 }
             } catch (error) {
-                res.status(500).send("ERROR: Internal server error");
+                res.status(500).send({ message: "ERROR: Internal server error", error: error });
                 Logger.log(`LISTINGS ADDLISTING ERROR: Internal server error: ${error}`);
                 return;
             }
@@ -136,22 +136,22 @@ router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
     const { userID } = req.user;
     const { listingID } = req.body;
     if (!userID || !listingID) {
-        res.status(400).send("ERROR: One or more required payloads were not provided");
+        res.status(400).send({ message: "UERROR: One or more required payloads were not provided", error: "One or more required payloads were not provided" });
         return;
     }
 
     const findUser = await Guest.findByPk(userID) || await Host.findByPk(userID);
     if (!findUser) {
-        res.status(404).send("ERROR: User not found");
+        res.status(404).send({ message: "UERROR: User not found", error: "User's details could not be found" });
         return;
     }
 
     const findListing = await FoodListing.findByPk(listingID);
     if (!findListing) {
-        res.status(404).send("ERROR: Listing not found");
+        res.status(404).send({ message: "UERROR: Listing not found", error: "Listing was not found" });
         return;
     } else if (userID === findListing.hostID) {
-        res.status(400).send("ERROR: Host cannot favourite their own listing");
+        res.status(400).send({ message: "UERROR: Host cannot favourite their own listing", error: "Host cannot favourite their own listing" });
         return;
     }
 
@@ -172,19 +172,19 @@ router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
             favourite: favourite
         });
     } catch (error) {
-        res.status(400).send("ERROR: Failed to update user's favourites");
+        res.status(400).send({ message: "ERROR: Failed to update user's favourites", error: error });
     }
 });
 
 router.delete("/deleteListing", async (req, res) => {
     const { listingID } = req.body;
     if (!listingID) {
-        res.status(400).send("ERROR: One or more required payloads were not provided");
+        res.status(400).send({ message: "UERROR: One or more required payloads were not provided", error: "One or more required payloads were not provided" });
         return;
     }
     const findListing = await FoodListing.findByPk(listingID);
     if (!findListing) {
-        res.status(404).send("ERROR: Listing not found");
+        res.status(404).send({ message: "UERROR: Listing could not be found", error: "Listing to be deleted was not found" });
         return;
     }
     const listingImages = findListing.images.split("|");
@@ -198,7 +198,7 @@ router.delete("/deleteListing", async (req, res) => {
         Logger.log(`LISTINGS DELETELISTING: Listing with listingID ${listingID} deleted successfully.`)
         return;
     } else {
-        res.status(400).send("ERROR: Failed to delete listing");
+        res.status(400).send({ message: "ERROR: Failed to delete listing", error: "Failed to delete listing" });
         return;
     }
 });

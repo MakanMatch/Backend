@@ -15,7 +15,23 @@ function startWebSocketServer(app) {
     const chatRooms = new Map(); // Map to store chatID and userIDs in the room
     let chatID = null;
 
-    async function getChatHistoryAndMessages(user1ID, user2ID) {
+    async function getChatAndMessages(chatID){
+        console.log(chatID);
+            let chatHistory = await ChatHistory.findOne({
+                where: { chatID: chatID },
+            });
+            const previousMessages = await ChatMessage.findAll({
+                where: { chatID: chatID },
+                order: [["datetime", "ASC"]],
+            });
+
+            const message = JSON.stringify({
+                previousMessages: previousMessages,
+                chatID: chatHistory.chatID,
+            });
+            broadcastMessage(message, [chatHistory.user1ID, chatHistory.user2ID]);
+    }
+    async function getChatID(user1ID, user2ID) {
         try {
             let chatHistory = await ChatHistory.findOne({
                 where: {
@@ -35,30 +51,6 @@ function startWebSocketServer(app) {
                 });
             }
 
-            console.log("Chat History:", chatHistory);
-
-            const previousMessages = await ChatMessage.findAll({
-                where: { chatID: chatHistory.chatID },
-                order: [["datetime", "ASC"]],
-            });
-
-            console.log("Previous Messages:", previousMessages);
-
-            const messagesWithReplies = await Promise.all(
-                previousMessages.map(async (message) => {
-                    let replyToMessage = null;
-                    if (message.replyToID) {
-                        replyToMessage = await ChatMessage.findByPk(message.replyToID);
-                    }
-                    return {
-                        ...message.get({ plain: true }),
-                        replyTo: replyToMessage ? replyToMessage.message : null,
-                    };
-                })
-            );
-
-            console.log("Messages with Replies:", messagesWithReplies);
-
             const username1 = await Guest.findOne({
                 where: { userID: user1ID },
             }) || await Host.findOne({
@@ -75,8 +67,7 @@ function startWebSocketServer(app) {
             console.log("username2:", username2 ? username2.username : "not found");
 
             const message = JSON.stringify({
-                type: "chat_history",
-                messages: messagesWithReplies,
+                action: "chat_id",
                 username1: username1.username,
                 username2: username2.username,
                 chatID: chatHistory.chatID,
@@ -94,18 +85,6 @@ function startWebSocketServer(app) {
         }
     }
 
-
-
-    async function getUsersChatID(map, id) {
-        for (let [key, value] of map) {
-            console.log("chatid", key)
-            if (value.includes(id)) {
-                console.log("chatid", key)
-                chatID = key;
-                return chatID;
-            }
-        }
-    }
 
     wss.on("connection", (ws) => {
         ws.id = Universal.generateUniqueID();
@@ -164,7 +143,7 @@ function startWebSocketServer(app) {
                             }
                             connectedUsers.set(compositeKey, ws);
                             userRooms.set(userID, hostID);
-                            chatID = await getChatHistoryAndMessages(userID, hostID);
+                            chatID = await getChatID(userID, hostID);
                             chatRooms.set(chatID, [userID, hostID]);
                             const jsonMessage = JSON.stringify({
                                 action: "connect",
@@ -230,7 +209,7 @@ function startWebSocketServer(app) {
                                 }
                                 connectedUsers.set(compositeKey, ws);
                                 userRooms.set(userID, hostID);
-                                chatID = await getChatHistoryAndMessages(userID, hostID);
+                                chatID = await getChatID(userID, hostID);
                                 chatRooms.set(chatID, [userID, hostID]);
                                 const jsonMessage = JSON.stringify({
                                     action: "connect",
@@ -264,7 +243,7 @@ function startWebSocketServer(app) {
                                 }
                                 connectedUsers.set(compositeKey, ws);
                                 userRooms.set(userID, guestID);
-                                chatID = await getChatHistoryAndMessages(userID, guestID);
+                                chatID = await getChatID(userID, guestID);
                                 chatRooms.set(chatID, [userID, guestID]);
                                 const jsonMessage = JSON.stringify({
                                     action: "connect",
@@ -288,8 +267,9 @@ function startWebSocketServer(app) {
                 handleDeleteMessage(parsedMessage);
             } else if (parsedMessage.action === "send") {
                 //Find the correct chatID for the message by using userID
-                getUsersChatID(chatRooms, parsedMessage.userID);
-                handleMessageSend(parsedMessage, chatID);
+                handleMessageSend(parsedMessage, parsedMessage.chatID);
+            } else if (parsedMessage.action === "chat_history") {
+                getChatAndMessages(parsedMessage.chatID);
             } else {
                 const jsonMessage = { action: "error", message: "Invalid action" };
                 ws.send(JSON.stringify(jsonMessage));
@@ -408,6 +388,7 @@ function startWebSocketServer(app) {
             });
 
             const responseMessage = {
+                action: "send",
                 ...createdMessage.get({ plain: true }),
                 replyTo: replyToMessage ? replyToMessage.message : null,
             };

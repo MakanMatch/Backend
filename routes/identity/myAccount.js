@@ -176,5 +176,60 @@ router.put('/changePassword', validateToken, async (req, res) => {
     }
 });
 
+router.put('/changeName', validateToken, async (req, res) => {
+    const changeNameSchema = yup.object().shape({
+        fname: yup.string()
+            .required('First name cannot be empty')
+            .min(1, 'First name cannot be empty')
+            .max(30)
+            .matches(/^[^0-9]*$/, 'First name cannot contain numbers'),
+        lname: yup.string()
+            .required('Last name cannot be empty')
+            .min(1, 'Last name cannot be empty')
+            .max(30)
+            .matches(/^[^0-9]*$/, 'Last name cannot contain numbers')
+    });
+
+    const { userID, userType } = req.user;
+
+    try {
+        const data = await changeNameSchema.validate(req.body, { abortEarly: false });
+
+        const { fname, lname } = data;
+
+        let user;
+
+        // Find the user based on userType
+        if (userType === 'Guest') {
+            user = await Guest.findOne({ where: { userID } });
+        } else if (userType === 'Host') {
+            user = await Host.findOne({ where: { userID } });
+        } else if (userType === 'Admin') {
+            user = await Admin.findOne({ where: { userID } });
+        }
+
+        if (!user) {
+            return res.status(400).send('ERROR: User not found.');
+        }
+
+        // Update user's name
+        user.fname = fname;
+        user.lname = lname;
+
+        const saveNewName = await user.save();
+
+        if (!saveNewName) {
+            Logger.log(`IDENTITY MYACCOUNT CHANGENAME ERROR: Failed to save new name for user ${userID}`);
+            return res.status(500).send(`ERROR: Failed to save new name for user ${userID}`);
+        }
+
+        Logger.log(`IDENTITY MYACCOUNT CHANGENAME: Name successfully changed for user ${userID}`);
+        res.send('SUCCESS: Name changed successfully');
+    } catch (err) {
+        Logger.log(`IDENTITY MYACCOUNT CHANGENAME ERROR: Failed to change name for user ${userID}; error: ${err}`);
+        res.status(500).send(`ERROR: Failed to change name for user ${userID}`);
+    }
+});
+
 
 module.exports = { router, at: '/identity/myAccount' };

@@ -120,6 +120,8 @@ router.get("/accountInfo", async (req, res) => { // GET account information
 
         const accountInfo = {
             userID: user.userID,
+            fname: user.fname,
+            lname: user.lname,
             username: user.username,
             email: user.email,
             contactNum: user.contactNum,

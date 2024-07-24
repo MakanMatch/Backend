@@ -1,6 +1,13 @@
 const nodeMailer = require('nodemailer');
 require('dotenv').config();
 
+/**
+ * Emailer class to send emails
+ * 
+ * @method checkPermission: Checks if the system has permission to send emails
+ * @method checkContext: Checks if the system context is set up properly
+ * @method sendEmail: Sends an email. Provide a destination email, subject line, fallback text content and HTML content.
+ */
 class Emailer {
     static contextChecked = false;
 

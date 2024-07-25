@@ -8,6 +8,7 @@ const Logger = require("../../services/Logger");
 const { Sequelize } = require('sequelize');
 const Universal = require("../../services/Universal");
 const { validateToken, checkUser } = require("../../middleware/auth");
+const { Op } = require("sequelize");
 
 router.get('/myAccount', validateToken, (req, res) => {
     const userInfo = req.user;
@@ -287,6 +288,6 @@ router.get("/consolidateReviewsStatistics", async (req, res) => { // GET full re
         Logger.log(`CDN COREDATA CONSOLIDATEREVIEWSSTATISTICS ERROR: Failed to consolidate review statistics: ${err}.`);
         return res.status(500).send("ERROR: An error occured while retrieving review statistics");
     }
-})
+});
 
 module.exports = { router, at: '/cdn' };

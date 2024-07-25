@@ -1,3 +1,6 @@
+const { v4: uuidv4 } = require('uuid');
+const Logger = require('../services/Logger');
+
 /**
  * 
  * @param {import('sequelize').Sequelize} sequelize 
@@ -80,6 +83,21 @@ module.exports = (sequelize, DataTypes) => {
         // Review poster relationship
         Guest.hasMany(models.Review, {
             onDelete: "cascade"
+        })
+    }
+
+    Guest.hook = (models) => {
+        Guest.afterCreate("createUserRecord", async (guest, options) => {
+            try {
+                await models.UserRecord.create({
+                    recordID: uuidv4(),
+                    hostID: null,
+                    guestID: guest.userID,
+                    adminID: null
+                })
+            } catch (err) {
+                Logger.log(`SEQUELIZE GUEST AFTERCREATE HOOK ERROR: Failed to auto-create UserRecord for new Guest with ID ${guest.userID}; error: ${err}`)
+            }
         })
     }
 

@@ -56,6 +56,15 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: false
         },
+        hostID: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            references: {
+                model: 'hosts',
+                key: 'userID'
+            },
+            onDelete: 'cascade'
+        }
     }, { tableName: 'foodListings' })
 
     // Associations
@@ -64,9 +73,16 @@ module.exports = (sequelize, DataTypes) => {
             foreignKey: "hostID",
             onDelete: "cascade"
         })
+        
         FoodListing.belongsToMany(models.Guest, {
             through: models.Reservation,
             as: "guests",
+            foreignKey: "listingID"
+        })
+
+        FoodListing.belongsToMany(models.UserRecord, {
+            through: models.FavouriteListing,
+            as: "favouredBy",
             foreignKey: "listingID"
         })
     }

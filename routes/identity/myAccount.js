@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const yup = require('yup');
+const axios = require('axios');
 const { Logger, Encryption } = require('../../services');
 const { Guest, Host, Admin } = require('../../models');
 const { validateToken } = require('../../middleware/auth');
@@ -34,7 +35,7 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         username: yup.string().required().trim().min(1).max(50),
         email: yup.string().required().email(),
         contactNum: yup.string().matches(/^\d{8}$/),
-        address: yup.string().trim()
+        // address: yup.string().trim()
     });
 
     const userID = req.user.userID;
@@ -42,7 +43,7 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
     try {
         const data = await schema.validate(req.body, { abortEarly: false });
 
-        const { username, email, contactNum, address } = data
+        const { username, email, contactNum } = data
 
         // Find user using userID
         let user = await Guest.findOne({ where: { userID } }) ||
@@ -70,7 +71,7 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         user.username = username;
         user.email = email;
         user.contactNum = contactNum;
-        user.address = address;
+        // user.address = address;
 
         // Save changes to the database
         saveUser = await user.save();
@@ -209,7 +210,7 @@ router.put('/changeName', validateToken, async (req, res) => {
         }
 
         if (!user) {
-            return res.status(400).send('ERROR: User not found.');
+            return res.status(400).send('UERROR: User not found.');
         }
 
         // Update user's name
@@ -226,8 +227,59 @@ router.put('/changeName', validateToken, async (req, res) => {
         Logger.log(`IDENTITY MYACCOUNT CHANGENAME: Name successfully changed for user ${userID}`);
         res.send('SUCCESS: Name changed successfully');
     } catch (err) {
+        if (err instanceof yup.ValidationError) {
+            const validationErrors = err.errors.join(' ');
+            return res.status(400).send(validationErrors);
+        }
         Logger.log(`IDENTITY MYACCOUNT CHANGENAME ERROR: Failed to change name for user ${userID}; error: ${err}`);
         res.status(500).send(`ERROR: Failed to change name for user ${userID}`);
+    }
+});
+
+router.put('/changeAddress', validateToken, async (req, res) => {
+    const userID = req.user.userID;
+    const { blkNo, street, postalCode, unitNum } = req.body;
+
+    // Construct address string
+    let address = '';
+    if (blkNo && unitNum) {
+        address = `Block ${blkNo} ${street} ${postalCode} #${unitNum}`;
+    } else if (blkNo) {
+        address = `Block ${blkNo} ${street} ${postalCode}`;
+    } else if (unitNum) {
+        address = `${street} ${postalCode} #${unitNum}`;
+    } else {
+        address = `${street} ${postalCode}`;
+    }
+
+    if (!street || !postalCode) {
+        return res.status(400).send("UERROR: Street and postal code are required.");
+    }
+
+    try {
+        // Geocode address to ensure it is valid
+        const encodedAddress = encodeURIComponent(String(address));
+        const apiKey = process.env.GMAPS_API_KEY;
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?address="${encodedAddress}"&key=${apiKey}`;
+        const response = await axios.get(url);
+        const location = response.data.results[0];
+        if (!location) {
+            return res.status(400).send("UERROR: Invalid address.");
+        }
+
+        // Update address in the database
+        const user = await Host.findOne({ where: { userID } }) || await Guest.findOne({ where: { userID } });
+        if (!user) {
+            return res.status(404).send("ERROR: User not found.");
+        }
+
+        user.address = address;
+        await user.save();
+
+        res.send("SUCCESS: Address updated successfully.");
+    } catch (err) {
+        console.log(err);
+        res.status(500).send("ERROR: Internal server error.");
     }
 });
 

@@ -81,8 +81,7 @@ module.exports = (sequelize, DataTypes) => {
     // Associations
     Host.associate = (models) => {
         Host.hasMany(models.FoodListing, {
-            foreignKey: "hostID",
-            as: "Host"
+            foreignKey: "hostID"
         })
 
         Host.hasMany(models.Review)
@@ -98,9 +97,9 @@ module.exports = (sequelize, DataTypes) => {
             try {
                 await models.UserRecord.create({
                     recordID: uuidv4(),
-                    hostID: host.userID,
-                    guestID: null,
-                    adminID: null
+                    hID: host.userID,
+                    gID: null,
+                    aID: null
                 })
             } catch (err) {
                 Logger.log(`SEQUELIZE HOST AFTERCREATE HOOK ERROR: Failed to auto-create UserRecord for new Host with ID ${host.userID}; error: ${err}`)

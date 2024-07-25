@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             primaryKey: true
         },
-        hostID: {
+        hID: {
             type: DataTypes.STRING,
             allowNull: true,
             references: {
@@ -21,7 +21,7 @@ module.exports = (sequelize, DataTypes) => {
             onDelete: 'cascade',
             onUpdate: 'cascade'
         },
-        guestID: {
+        gID: {
             type: DataTypes.STRING,
             allowNull: true,
             references: {
@@ -31,7 +31,7 @@ module.exports = (sequelize, DataTypes) => {
             onDelete: 'cascade',
             onUpdate: 'cascade'
         },
-        adminID: {
+        aID: {
             type: DataTypes.STRING,
             allowNull: true,
             references: {

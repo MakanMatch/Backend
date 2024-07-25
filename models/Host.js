@@ -80,8 +80,13 @@ module.exports = (sequelize, DataTypes) => {
 
     // Associations
     Host.associate = (models) => {
-        Host.hasMany(models.FoodListing)
+        Host.hasMany(models.FoodListing, {
+            foreignKey: "hostID",
+            as: "Host"
+        })
+
         Host.hasMany(models.Review)
+
         Host.belongsToMany(models.Admin, {
             through: models.Warning,
             as: "warnings"

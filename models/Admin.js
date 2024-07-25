@@ -66,9 +66,9 @@ module.exports = (sequelize, DataTypes) => {
             try {
                 await models.UserRecord.create({
                     recordID: uuidv4(),
-                    hostID: null,
-                    guestID: null,
-                    adminID: admin.userID
+                    hID: null,
+                    gID: null,
+                    aID: admin.userID
                 })
             } catch (err) {
                 Logger.log(`SEQUELIZE ADMIN AFTERCREATE HOOK ERROR: Failed to auto-create UserRecord for new Admin with ID ${admin.userID}; error: ${err}`)

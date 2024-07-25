@@ -55,15 +55,6 @@ module.exports = (sequelize, DataTypes) => {
         coordinates: {
             type: DataTypes.STRING,
             allowNull: false
-        },
-        hostID: {
-            type: DataTypes.STRING,
-            allowNull: false,
-            references: {
-                model: 'hosts',
-                key: 'userID'
-            },
-            onDelete: 'cascade'
         }
     }, { tableName: 'foodListings' })
 

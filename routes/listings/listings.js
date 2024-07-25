@@ -19,7 +19,8 @@ router.post("/addListing", validateToken, async (req, res) => {
             longDescription: yup.string().trim().required(),
             portionPrice: yup.number().min(1).max(10).required(),
             totalSlots: yup.number().min(1).max(10).required(),
-            datetime: yup.string().trim().required()
+            datetime: yup.string().trim().required(),
+            publishInstantly: yup.boolean().required(),
         });
 
         if (req.files.length === 0) {
@@ -109,7 +110,7 @@ router.post("/addListing", validateToken, async (req, res) => {
                     address: hostInfo.address,
                     hostID: hostInfo.userID,
                     coordinates: coordinates.lat + "," + coordinates.lng,
-                    published: true,
+                    published: validatedData.publishInstantly,
                 };
                 const addListingResponse = await FoodListing.create(listingDetails);
                 if (addListingResponse) {

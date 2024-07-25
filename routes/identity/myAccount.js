@@ -274,11 +274,17 @@ router.put('/changeAddress', validateToken, async (req, res) => {
         }
 
         user.address = address;
-        await user.save();
+        saveUser = await user.save();
 
+        if(!saveUser) {
+            Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to save address for user ${userID}`);
+            return res.status(500).send("ERROR: Failed to save address.");
+        }
+
+        Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS: Address updated successfully for user ${userID}.`);
         res.send("SUCCESS: Address updated successfully.");
     } catch (err) {
-        console.log(err);
+        Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to update address for user ${userID}; error: ${err}`);
         res.status(500).send("ERROR: Internal server error.");
     }
 });

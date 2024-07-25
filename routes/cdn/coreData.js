@@ -246,7 +246,7 @@ router.get("/consolidateReviewsStatistics", async (req, res) => { // GET full re
     try {
         const findHost = await Host.findByPk(hostID);
         if (!findHost) {
-            return res.status(404).send("UERROR: Host doesn't exist");
+            return res.status(404).send("ERROR: Host doesn't exist");
         } else {
             const hostFoodRatings = await Review.findAll({
                 where: { hostID },

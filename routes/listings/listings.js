@@ -148,7 +148,7 @@ router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
 
     const findListing = await FoodListing.findByPk(listingID);
     if (!findListing) {
-        res.status(404).send("UERROR: Listing doesn't exist");
+        res.status(404).send("ERROR: Listing doesn't exist");
         return;
     } else if (userID === findListing.hostID) {
         res.status(400).send("UERROR: Hosts cannot add their own listings to favourites");
@@ -184,7 +184,7 @@ router.delete("/deleteListing", async (req, res) => {
     }
     const findListing = await FoodListing.findByPk(listingID);
     if (!findListing) {
-        res.status(404).send("UERROR: Listing doesn't exist");
+        res.status(404).send("ERROR: Listing doesn't exist");
         return;
     }
     const listingImages = findListing.images.split("|");

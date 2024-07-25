@@ -8,7 +8,7 @@ const { FoodListing,Review } = require("../../models");
 router.get("/getImageForListing", async (req, res) => {
     const { listingID, imageName } = req.query;
     if (!listingID || !imageName) {
-        res.status(400).send("ERROR: Invalid request parameters.");
+        res.status(400).send("UERROR: Invalid request parameters.");
         return;
     }
 

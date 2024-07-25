@@ -141,10 +141,6 @@ function startWebSocketServer(app) {
                             userRooms.set(userID, hostID);
                             chatID = await getChatID(userID, hostID);
                             chatRooms.set(chatID, [userID, hostID]);
-                            const jsonMessage = JSON.stringify({
-                                action: "connect",
-                            });
-                            broadcastMessage(jsonMessage, [userID, hostID]);
                         }
                     } catch (error) {
                         console.error("Error connecting user:", error);
@@ -205,11 +201,6 @@ function startWebSocketServer(app) {
                                 userRooms.set(userID, hostID);
                                 chatID = await getChatID(userID, hostID);
                                 chatRooms.set(chatID, [userID, hostID]);
-                                const jsonMessage = JSON.stringify({
-                                    action: "connect",
-                                    chatPartnerUsername,
-                                });
-                                broadcastMessage(jsonMessage, [userID, hostID]);
                             }
                         }
                         if (findHost.length > 0) {
@@ -239,10 +230,6 @@ function startWebSocketServer(app) {
                                 userRooms.set(userID, guestID);
                                 chatID = await getChatID(userID, guestID);
                                 chatRooms.set(chatID, [userID, guestID]);
-                                const jsonMessage = JSON.stringify({
-                                    action: "chat_id",
-                                });
-                                broadcastMessage(jsonMessage, [userID, guestID]);
                             }
                         }
                     } catch (error) {
@@ -320,8 +307,9 @@ function startWebSocketServer(app) {
             findMessage.edited = true;
             await findMessage.save();
 
-            const responseMessage = { action: "edit", message: findMessage };
+            const responseMessage = { action: "edit", message: findMessage.message, messageID: messageId };
             const users = chatRooms.get(findMessage.chatID);
+            console.log("nga")
             broadcastMessage(JSON.stringify(responseMessage), users);
 
         } catch (error) {
@@ -387,6 +375,7 @@ function startWebSocketServer(app) {
             };
 
             const users = chatRooms.get(createdMessage.chatID);
+            console.log(users);
             broadcastMessage(JSON.stringify(responseMessage), users);
         } catch (error) {
             console.error("Error creating message:", error);
@@ -396,9 +385,8 @@ function startWebSocketServer(app) {
     function broadcastMessage(message, userIDs = []) {
         connectedUsers.forEach((ws, key) => {
             if (userIDs.length === 0 || userIDs.includes(key.userID) && (userIDs.includes(key.hostID) || userIDs.includes(key.guestID))) {
-
                 if (ws.readyState === WebSocket.OPEN) {
-
+                    console.log("yipeeee")
                     ws.send(message);
                 }
             }

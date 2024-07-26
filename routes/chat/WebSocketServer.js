@@ -98,7 +98,6 @@ function startWebSocketServer(app) {
                         connectionID = Universal.generateUniqueID();
                         userType = user instanceof Guest ? "Guest" : "Host";
                         userName = user.username;
-
                         // Store user data in clientStore
                         clientStore[userID] = {
                             connectionID,
@@ -144,8 +143,6 @@ function startWebSocketServer(app) {
 
                             let chatID = await getChatID(userID, hostID);
                             clientStore[userID].chatID = chatID;
-                            clientStore[hostID] = clientStore[hostID] || {};
-                            clientStore[hostID].chatID = chatID;
                         }
                     } catch (error) {
                         console.error("Error connecting guest:", error);

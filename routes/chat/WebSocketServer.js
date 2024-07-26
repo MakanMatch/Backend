@@ -104,7 +104,8 @@ function startWebSocketServer(app) {
                             ws,
                             userID,
                             userType,
-                            userName
+                            userName,
+                            chatIDs: []  // Initialize chatIDs as an empty array
                         };
                     } else {
                         throw new Error("User not found");
@@ -142,8 +143,8 @@ function startWebSocketServer(app) {
                             chatPartnerUsername = host.username;
 
                             let chatID = await getChatID(userID, hostID);
-                            clientStore[userID].chatID = chatID;
-                            let status = checkChatPartnerOnline(clientStore, chatID);
+                            clientStore[userID].chatIDs.push(chatID);  // Add chatID to chatIDs list
+                            let status = checkChatPartnerOnline(clientStore, chatID, userID);
                             if (status === true) {
                                 ws.send(JSON.stringify({ action: "chat_partner_online" }));
                             } else {
@@ -185,7 +186,7 @@ function startWebSocketServer(app) {
                                 chatPartnerUsername = host.username;
 
                                 let chatID = await getChatID(userID, hostID);
-                                clientStore[userID].chatID = chatID;
+                                clientStore[userID].chatIDs.push(chatID);  // Add chatID to chatIDs list
                             }
                         }
 
@@ -203,7 +204,7 @@ function startWebSocketServer(app) {
                                 chatPartnerUsername = guest.username;
 
                                 let chatID = await getChatID(userID, guestID);
-                                clientStore[userID].chatID = chatID;
+                                clientStore[userID].chatIDs.push(chatID);  // Add chatID to chatIDs list
                             }
                         }
                     } catch (error) {
@@ -227,17 +228,23 @@ function startWebSocketServer(app) {
         ws.on("close", () => {
             for (const userID in clientStore) {
                 if (clientStore[userID].ws === ws) {
-                    const chatID = clientStore[userID].chatID;
+                    const chatIDs = clientStore[userID].chatIDs;
+                    chatIDs.forEach((chatID) => {
+                        const remainingUser = Object.entries(clientStore).find(([key, value]) => value.chatID === chatID && key !== userID);
+                        if (remainingUser) {
 
-                    const remainingUser = Object.entries(clientStore).find(([key, value]) => value.chatID === chatID && key !== userID);
-                    if (remainingUser) {
-                        const [remainingUserID, remainingUserData] = remainingUser;
-                        if(remainingUserData.ws &&remainingUserData.ws.readyState === WebSocket.OPEN) {
+                            const [remainingUserID, remainingUserData] = remainingUser;
+                            if (remainingUserData.ws && remainingUserData.ws.readyState === WebSocket.OPEN) {
+                                console.log("online");
+                                const message = JSON.stringify({ action: "chat_partner_online" });
+                                remainingUserData.ws.send(message);
+                            }
+                        } else {
+                            console.log("offline");
                             const message = JSON.stringify({ action: "chat_partner_offline" });
-                        
-                        remainingUserData.ws.send(message);
+                            broadcastMessage(message, [userID]);
                         }
-                    }
+                    });
                     delete clientStore[userID];
                     break;
                 }
@@ -276,10 +283,11 @@ function startWebSocketServer(app) {
             await findMessage.save();
 
             const responseMessage = { action: "edit", message: findMessage.message, messageID: messageId };
-            const [recipientID] = Object.entries(clientStore).find(
-                ([key, value]) => value.chatID === chatHistory.chatID && key !== editedMessage.userID
-              );
-            broadcastMessage(JSON.stringify(responseMessage), [userID, recipientID]);
+            const recipient = Object.entries(clientStore).find(([key, value]) => value.chatIDs.includes(chatHistory.chatID) && key !== editedMessage.userID);
+            if (recipient) {
+                const [recipientKey, recipientValue] = recipient;
+                broadcastMessage(JSON.stringify(responseMessage), [userID, recipientValue.userID]);
+            }
         } catch (error) {
             console.error("Error editing message:", error);
             broadcastMessage({ action: "error", message: "Error editing message" }, [userID]);
@@ -310,10 +318,11 @@ function startWebSocketServer(app) {
             await findMessage.destroy();
 
             const responseMessage = { action: "delete", messageID: findMessage.messageID };
-            const [recipientKey] = Object.entries(clientStore).find(
-                ([key, value]) => value.chatID === chatHistory.chatID && key !== deletedMessage.userID
-              );
-            broadcastMessage(JSON.stringify(responseMessage), [deletedMessage.userID, recipientKey]);
+            const recipient = Object.entries(clientStore).find(([key, value]) => value.chatIDs.includes(chatHistory.chatID) && key !== deletedMessage.userID);
+            if (recipient) {
+                const [recipientKey, recipientValue] = recipient;
+                broadcastMessage(JSON.stringify(responseMessage), [deletedMessage.userID, recipientValue.userID]);
+            }
         } catch (error) {
             console.error("Error deleting message:", error);
             broadcastMessage({ action: "error", message: "Error deleting message" }, [userID]);
@@ -336,22 +345,28 @@ function startWebSocketServer(app) {
                 action: "send",
                 message: newMessage,
             };
-            const recipient = Object.entries(clientStore).find(([key, value]) => value.chatID === chatID && key !== receivedMessage.userID);
-            broadcastMessage(JSON.stringify(responseMessage), [receivedMessage.userID, recipient[0]]);
+            const recipient = Object.entries(clientStore).find(([key, value]) => value.chatIDs.includes(chatID) && key !== receivedMessage.userID);
+            if (recipient) {
+                const [recipientKey, recipientData] = recipient;
+                broadcastMessage(JSON.stringify(responseMessage), [receivedMessage.userID, recipientData.userID]);
+            }
         } catch (error) {
             console.error("Error sending message:", error);
             broadcastMessage({ action: "error", message: "Error sending message" });
         }
     }
 
-    async function checkChatPartnerOnline(clientStore, chatID) {
-        const chatPartner = Object.entries(clientStore).find(([key, value]) => value.chatID === chatID);
+    async function checkChatPartnerOnline(clientStore, chatID, userID) {
+        const chatPartner = Object.entries(clientStore).find(([key, value]) => value.chatIDs.includes(chatID) && key !== userID);
+        console.log(chatPartner);
         if (!chatPartner) {
+            console.log("Chat partner offline")
             return false;
         }
 
         const [partnerID, partnerData] = chatPartner;
         if (partnerData.ws && partnerData.ws.readyState === WebSocket.OPEN) {
+            console.log("Chat partner online")
             return true;
         }
 
@@ -372,4 +387,4 @@ function startWebSocketServer(app) {
     });
 }
 
-module.exports =  startWebSocketServer;
+module.exports = startWebSocketServer;

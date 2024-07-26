@@ -190,9 +190,9 @@ router.route("/")
     })
     .delete(validateToken, async (req, res) => {
         const guestID = req.user.userID;
-            if (!guestID) {
-                return res.status(400).send("ERROR: Missing guest ID");
-            }
+        if (!guestID) {
+            return res.status(400).send("ERROR: Missing guest ID");
+        }
 
         const { reviewID, hostID } = req.body;
         if (!reviewID || !hostID) {

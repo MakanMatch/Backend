@@ -3,7 +3,7 @@ const router = express.Router();
 const yup = require('yup');
 const axios = require('axios');
 const { Logger, Encryption } = require('../../services');
-const { Guest, Host, Admin } = require('../../models');
+const { Guest, Host, Admin, FoodListing } = require('../../models');
 const { validateToken } = require('../../middleware/auth');
 
 async function isUniqueUsername(username, currentUser) {
@@ -277,10 +277,26 @@ router.put('/changeAddress', validateToken, async (req, res) => {
 
         user.address = address;
         saveUser = await user.save();
-
-        if(!saveUser) {
+        if (!saveUser) {
             Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to save address for user ${userID}`);
             return res.status(500).send("ERROR: Failed to save address.");
+        }
+
+        // Update all of the host's listings
+        const geoLocation = location.geometry.location;
+        const coordinates = { lat: geoLocation.lat, lng: geoLocation.lng };
+        const updatedListings = await FoodListing.update(
+            {
+                coordinates: `${coordinates.lat},${coordinates.lng}`
+            },
+            {
+                where: { hostID: user.userID }
+            }
+        )
+
+        if (!updatedListings) {
+            Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to update listings for user ${userID}`);
+            return res.status(500).send("ERROR: Failed to update listings.");
         }
 
         Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS: Address updated successfully for user ${userID}.`);

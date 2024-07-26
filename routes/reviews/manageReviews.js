@@ -128,6 +128,10 @@ router.route("/")
                 if (!updateHostRating) {
                     return res.status(500).send("ERROR: Failed to update host rating");
                 }
+                const saveHostTable = await host.save();
+                if (!saveHostTable) {
+                    return res.status(500).send("ERROR: Failed to save host table");
+                }
             } catch (err) {
                 Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update host rating; error: ${err}`);
                 return res.status(500).send("ERROR: Failed to update host rating");

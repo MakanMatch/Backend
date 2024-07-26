@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const yup = require('yup');
+const axios = require('axios');
 const { Logger, Encryption } = require('../../services');
-const { Guest, Host, Admin } = require('../../models');
+const { Guest, Host, Admin, FoodListing } = require('../../models');
 const { validateToken } = require('../../middleware/auth');
 
 async function isUniqueUsername(username, currentUser) {
@@ -34,7 +35,6 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         username: yup.string().required().trim().min(1).max(50),
         email: yup.string().required().email(),
         contactNum: yup.string().matches(/^\d{8}$/),
-        address: yup.string().trim()
     });
 
     const userID = req.user.userID;
@@ -42,7 +42,7 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
     try {
         const data = await schema.validate(req.body, { abortEarly: false });
 
-        const { username, email, contactNum, address } = data
+        const { username, email, contactNum } = data
 
         // Find user using userID
         let user = await Guest.findOne({ where: { userID } }) ||
@@ -70,7 +70,6 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         user.username = username;
         user.email = email;
         user.contactNum = contactNum;
-        user.address = address;
 
         // Save changes to the database
         saveUser = await user.save();
@@ -108,7 +107,7 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
         }
 
         deleteUser = await user.destroy();
-        
+
         if (!deleteUser) {
             Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT ERROR: Failed to delete user ${userID}`)
             res.status(500).send(`ERROR: Failed to delete user ${userID}`)
@@ -160,7 +159,7 @@ router.put('/changePassword', validateToken, async (req, res) => {
         // Update user's password
         newPasswordHashed = await Encryption.hash(newPassword);
         user.password = newPasswordHashed;
-        
+
         saveNewPassword = await user.save();
 
         if (!saveNewPassword) {
@@ -173,6 +172,140 @@ router.put('/changePassword', validateToken, async (req, res) => {
     } catch (err) {
         Logger.log(`IDENTITY MYACCOUNT CHANGEPASSWORD ERROR: Failed to change password for user ${userID}`)
         res.status(500).send(`ERROR: Failed to change password for user ${userID}`);
+    }
+});
+
+router.put('/changeName', validateToken, async (req, res) => {
+    const changeNameSchema = yup.object().shape({
+        fname: yup.string()
+            .required('First name cannot be empty')
+            .min(1, 'First name cannot be empty')
+            .max(30)
+            .matches(/^[^0-9]*$/, 'First name cannot contain numbers'),
+        lname: yup.string()
+            .required('Last name cannot be empty')
+            .min(1, 'Last name cannot be empty')
+            .max(30)
+            .matches(/^[^0-9]*$/, 'Last name cannot contain numbers')
+    });
+
+    const { userID, userType } = req.user;
+
+    try {
+        const data = await changeNameSchema.validate(req.body, { abortEarly: false });
+
+        const { fname, lname } = data;
+
+        let user;
+
+        // Find the user based on userType
+        if (userType === 'Guest') {
+            user = await Guest.findOne({ where: { userID } });
+        } else if (userType === 'Host') {
+            user = await Host.findOne({ where: { userID } });
+        } else if (userType === 'Admin') {
+            user = await Admin.findOne({ where: { userID } });
+        }
+
+        if (!user) {
+            return res.status(400).send('UERROR: User not found.');
+        }
+
+        if (user.fname === fname && user.lname === lname) {
+            return res.status(200).send('SUCCESS: Nothing to update.');
+        }
+
+        // Update user's name
+        user.fname = fname;
+        user.lname = lname;
+
+        const saveNewName = await user.save();
+
+        if (!saveNewName) {
+            Logger.log(`IDENTITY MYACCOUNT CHANGENAME ERROR: Failed to save new name for user ${userID}`);
+            return res.status(500).send(`ERROR: Failed to update name.`);
+        }
+
+        Logger.log(`IDENTITY MYACCOUNT CHANGENAME: Name successfully changed for user ${userID}`);
+        res.send('SUCCESS: Name changed successfully');
+    } catch (err) {
+        if (err instanceof yup.ValidationError) {
+            const validationErrors = err.errors.join(' ');
+            return res.status(400).send(validationErrors);
+        }
+        Logger.log(`IDENTITY MYACCOUNT CHANGENAME ERROR: Failed to change name for user ${userID}; error: ${err}`);
+        res.status(500).send(`ERROR: Failed to change name for user ${userID}`);
+    }
+});
+
+router.put('/changeAddress', validateToken, async (req, res) => {
+    const userID = req.user.userID;
+    const { blkNo, street, postalCode, unitNum } = req.body;
+
+    // Construct address string
+    let address = '';
+    if (blkNo && unitNum) {
+        address = `Block ${blkNo} ${street} ${postalCode} #${unitNum}`;
+    } else if (blkNo) {
+        address = `Block ${blkNo} ${street} ${postalCode}`;
+    } else if (unitNum) {
+        address = `${street} ${postalCode} #${unitNum}`;
+    } else {
+        address = `${street} ${postalCode}`;
+    }
+
+    if (!street || !postalCode) {
+        return res.status(400).send("UERROR: Street and postal code are required.");
+    }
+
+    try {
+        // Geocode address to ensure it is valid
+        const encodedAddress = encodeURIComponent(String(address));
+        const apiKey = process.env.GMAPS_API_KEY;
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?address="${encodedAddress}"&key=${apiKey}`;
+        const response = await axios.get(url);
+        const location = response.data.results[0];
+        if (!location) {
+            return res.status(400).send("UERROR: Invalid address.");
+        }
+
+        // Update address in the database
+        const user = await Host.findOne({ where: { userID } }) || await Guest.findOne({ where: { userID } });
+        if (!user) {
+            return res.status(404).send("ERROR: User not found.");
+        }
+
+        user.address = address;
+        saveUser = await user.save();
+        if (!saveUser) {
+            Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to save address for user ${userID}`);
+            return res.status(500).send("ERROR: Failed to save address.");
+        }
+
+        // Update all of the host's listings
+        if (req.user.userType == "Host") {
+            const geoLocation = location.geometry.location;
+            const coordinates = { lat: geoLocation.lat, lng: geoLocation.lng };
+            const updatedListings = await FoodListing.update(
+                {
+                    coordinates: `${coordinates.lat},${coordinates.lng}`
+                },
+                {
+                    where: { hostID: user.userID }
+                }
+            )
+
+            if (!updatedListings) {
+                Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to update listings for user ${userID}`);
+                return res.status(500).send("ERROR: Failed to update listings.");
+            }
+        }
+
+        Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS: Address updated successfully for user ${userID}.`);
+        res.send("SUCCESS: Address updated successfully.");
+    } catch (err) {
+        Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to update address for user ${userID}; error: ${err}`);
+        res.status(500).send("ERROR: Internal server error.");
     }
 });
 

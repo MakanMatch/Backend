@@ -89,6 +89,8 @@ async function onDBSynchronise() {
     } else {
         const newGuest = await Guest.create({
             userID: "47f4497b-1331-4b8a-97a4-095a79a1fd48",
+            fname: "Susie",
+            lname: "Jones",
             username: "susiejones",
             email: "susie_jones@gmail.com",
             password: await Encryption.hash("SusieJones123"),
@@ -112,6 +114,8 @@ async function onDBSynchronise() {
     if (!sampleHost) {
         const newHost = await Host.create({
             "userID": "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4",
+            "fname": "Jamie",
+            "lname": "Oliver",
             "username": "jamieoliver",
             "email": "jamie_oliver@gmail.com",
             "password": await Encryption.hash("123456789"),

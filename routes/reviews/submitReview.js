@@ -7,7 +7,6 @@ const { storeImages } = require("../../middleware/storeImages");
 const { Review, Host, Guest } = require('../../models');
 const Logger = require('../../services/Logger');
 const { validateToken } = require('../../middleware/auth');
-const { where } = require('sequelize');
 
 router.route("/")
     .post(validateToken, async (req, res) => {

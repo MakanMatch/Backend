@@ -2,7 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const router = express.Router();
 const { FoodListing } = require("../../models");
-const { Host, Guest } = require("../../models");
+const { Host, Guest, UserRecord, FavouriteListing } = require("../../models");
 const Universal = require("../../services/Universal");
 const FileManager = require("../../services/FileManager");
 const Logger = require("../../services/Logger")
@@ -10,6 +10,7 @@ const { storeImages } = require("../../middleware/storeImages");
 const axios = require("axios");
 const yup = require("yup");
 const { validateToken } = require("../../middleware/auth");
+const { Op } = require("sequelize");
 
 router.post("/addListing", validateToken, async (req, res) => {
     storeImages(req, res, async (err) => {
@@ -133,19 +134,13 @@ router.post("/addListing", validateToken, async (req, res) => {
 });
 
 router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
-    const { userID } = req.user;
+    const userID = req.user.userID;
     const { listingID } = req.body;
     if (!userID || !listingID) {
         res.status(400).send("ERROR: One or more required payloads were not provided");
         return;
     }
-
-    const findUser = await Guest.findByPk(userID) || await Host.findByPk(userID);
-    if (!findUser) {
-        res.status(404).send("ERROR: User not found");
-        return;
-    }
-
+ 
     const findListing = await FoodListing.findByPk(listingID);
     if (!findListing) {
         res.status(404).send("ERROR: Listing not found");
@@ -155,24 +150,54 @@ router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
         return;
     }
 
-    let favCuisine = findUser.favCuisine || '';
-
-    if (favCuisine.split("|").includes(listingID)) {
-        favCuisine = favCuisine.replace(listingID + "|", "");
-    } else {
-        favCuisine += listingID + "|";
+    const findUser = await UserRecord.findOne({
+        attributes: ["recordID"],
+        where: {
+            [Op.or]: [
+                { hID: userID },
+                { gID: userID },
+                { aID: userID }
+            ]
+        }
+    });
+    if (!findUser) {
+        res.status(404).send("ERROR: User not found");
+        return;
     }
-
-    try {
-        findUser.favCuisine = favCuisine;
-        await findUser.save();
-        const favourite = favCuisine.split("|").includes(listingID);
-        res.status(200).json({
-            message: `SUCCESS: Listing ${favourite ? 'added to' : 'removed from'} favourites successfully`,
-            favourite: favourite
+    
+    const favListingForUser = await FavouriteListing.findOne({
+        where: {
+            listingID: listingID,
+            userRecordID: findUser.recordID
+        }
+    });
+    if (favListingForUser) {
+        const deleteFavourite = await favListingForUser.destroy();
+        if (deleteFavourite) {
+            res.status(200).json({
+                message: "SUCCESS: Listing removed from favourites successfully",
+                favourite: false
+            });
+            return;
+        } else {
+            res.status(400).send("ERROR: Failed to remove listing from favourites");
+            return;
+        }
+    } else {
+        const addFavourite = await FavouriteListing.create({
+            listingID: listingID,
+            userRecordID: findUser.recordID
         });
-    } catch (error) {
-        res.status(400).send("ERROR: Failed to update user's favourites");
+        if (addFavourite) {
+            res.status(200).json({
+                message: "SUCCESS: Listing added to favourites successfully",
+                favourite: true
+            });
+            return;
+        } else {
+            res.status(400).send("ERROR: Failed to add listing to favourites");
+            return;
+        }
     }
 });
 

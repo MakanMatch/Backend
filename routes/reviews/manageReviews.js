@@ -147,7 +147,9 @@ router.route("/")
 
             try {
                 // Update the review record
-                const updateReview = await review.update(updateDict);
+                review.set(updateDict);
+
+                const updateReview = await review.save();
                 if (!updateReview) {
                     return res.status(500).send(`ERROR: Failed to update review.`);
                 }

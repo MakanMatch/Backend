@@ -35,7 +35,7 @@ router.get("/getGuestPastReservations", validateToken, async(req, res) => {
             }
         }
     } catch (err) {
-        console.log(err)
+        Logger.log(`MAKAN_HISTORY GETGUESTPASTRESERVATIONS ERROR: ${err}`)
         return res.status(500).send("ERROR: An error occured while retrieving user's past reservations");
     }
 });

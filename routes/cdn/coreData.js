@@ -43,10 +43,10 @@ router.get("/listings", async (req, res) => { // GET all food listings
             return listingJson;
         });
 
-        res.status(200).json(listingsWithImagesArray);
+        return res.status(200).json(listingsWithImagesArray);
     } catch (error) {
         Logger.log("CDN COREDATA LISTINGS ERROR: Failed to retrieve all published listings; error: " + error);
-        res.status(500).send("ERROR: Internal server error");
+        return res.status(500).send("ERROR: Internal server error");
     }
 });
 
@@ -60,12 +60,12 @@ router.get("/checkFavouriteListing", async (req, res) => { // GET favourite list
         }
         const favouriteCuisines = guest.favCuisine.split("|");
         if (favouriteCuisines.includes(listingID)) {
-            res.status(200).json({ message: "SUCCESS: Listing is a favourite", listingIsFavourite: true });
+            return res.status(200).json({ message: "SUCCESS: Listing is a favourite", listingIsFavourite: true });
         } else {
-            res.status(200).json({ message: "SUCCESS: Listing is not a favourite", listingIsFavourite: false });
+            return res.status(200).json({ message: "SUCCESS: Listing is not a favourite", listingIsFavourite: false });
         }
     } catch (error) {
-        res.status(500).send("ERROR: Internal server error");
+        return res.status(500).send("ERROR: Internal server error");
     }
 });
 
@@ -268,7 +268,7 @@ router.get("/consolidateReviewsStatistics", async (req, res) => { // GET full re
                     fourStar: (fourStarRatings / totalRatings) * 100,
                     fiveStar: (fiveStarRatings / totalRatings) * 100
                 }
-                res.status(200).json(consolidatedData);
+                return res.status(200).json(consolidatedData);
             } else {
                 return res.status(200).json(
                     { 

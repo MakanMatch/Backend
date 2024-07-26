@@ -35,7 +35,6 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         username: yup.string().required().trim().min(1).max(50),
         email: yup.string().required().email(),
         contactNum: yup.string().matches(/^\d{8}$/),
-        // address: yup.string().trim()
     });
 
     const userID = req.user.userID;
@@ -71,7 +70,6 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         user.username = username;
         user.email = email;
         user.contactNum = contactNum;
-        // user.address = address;
 
         // Save changes to the database
         saveUser = await user.save();
@@ -213,6 +211,10 @@ router.put('/changeName', validateToken, async (req, res) => {
             return res.status(400).send('UERROR: User not found.');
         }
 
+        if (user.fname === fname && user.lname === lname) {
+            return res.status(200).send('SUCCESS: Nothing to update.');
+        }
+
         // Update user's name
         user.fname = fname;
         user.lname = lname;
@@ -221,7 +223,7 @@ router.put('/changeName', validateToken, async (req, res) => {
 
         if (!saveNewName) {
             Logger.log(`IDENTITY MYACCOUNT CHANGENAME ERROR: Failed to save new name for user ${userID}`);
-            return res.status(500).send(`ERROR: Failed to save new name for user ${userID}`);
+            return res.status(500).send(`ERROR: Failed to update name.`);
         }
 
         Logger.log(`IDENTITY MYACCOUNT CHANGENAME: Name successfully changed for user ${userID}`);

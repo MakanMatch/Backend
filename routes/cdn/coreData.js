@@ -19,7 +19,7 @@ router.get("/listings", async (req, res) => { // GET all food listings
     const includeReservations = req.query.includeReservations;
     var whereClause = { published: true };
     if (hostID) {
-        whereClause.HostID = hostID;
+        whereClause.hostID = hostID;
     }
 
     var includeClause = []

@@ -27,7 +27,6 @@ async function isUniqueContactNum(contactNum) {
 }
 
 router.post("/", async (req, res) => {
-    // console.log("Received at CreateAccount");
     const { username, fname, lname,  email, password, contactNum, blkNo, street, postalCode, unitNum, isHostAccount } = req.body;
 
     // const address = `Block ${blkNo} ${street} ${postalCode} #${unitNum}`;
@@ -82,18 +81,15 @@ router.post("/", async (req, res) => {
             }
 
             const encodedAddress = encodeURIComponent(String(address));
-            console.log(encodedAddress);
             const apiKey = process.env.GMAPS_API_KEY;
             const url = `https://maps.googleapis.com/maps/api/geocode/json?address="${encodedAddress}"&key=${apiKey}`;
             const response = await axios.get(url);
-            console.log(response.data);
             const location = response.data.results[0];
-            console.log(location);
             if (!location) {
                 return res.status(400).send("UERROR: Invalid address.");
             }
 
-            accountData.contactNum = parseInt(contactNum);
+            accountData.contactNum = contactNum;
             accountData.address = address;
 
             user = await Host.create(accountData);
@@ -128,8 +124,7 @@ router.post("/", async (req, res) => {
         Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created. Verification email auto-dispatched.`);
         res.send("SUCCESS: Account created. Please verify your email.");
     } catch (err) {
-        console.log(err);
-        Logger.log(`IDENTITY CREATEACCOUNT: Fail to create ${isHostAccount ? 'Host' : 'Guest'} account for user email ${email}.`);
+        Logger.log(`IDENTITY CREATEACCOUNT ERROR: Failed to create ${isHostAccount ? 'Host' : 'Guest'} account for user email ${email}.`);
         res.status(500).send("ERROR: Internal server error.");
     }
 });

@@ -29,7 +29,26 @@ router.get("/getGuestPastReservations", validateToken, async(req, res) => {
                 }
             });
             if (pastReservations.length > 0) {
-                res.status(200).json(pastReservations);
+                const foodListings = await FoodListing.findAll({
+                    where: {
+                        listingID: {
+                            [Op.in]: pastReservations.map(reservation => reservation.listingID)
+                        }
+                    },
+                    include: [{
+                        model: Host,
+                        attributes: ["username", "foodRating"]
+                    }]
+                });
+                if (foodListings) {
+                    if (foodListings.length > 0) {
+                        return res.status(200).json({ pastReservations: pastReservations, foodListings: foodListings });
+                    } else {
+                        return res.status(400).send("ERROR: Could not find any food listings that were tied to this reservation");
+                    }
+                } else {
+                    return res.status(400).send("ERROR: An error occured while retrieving food listings for the past reservations");
+                }
             } else {
                 return res.status(200).json([]);
             }

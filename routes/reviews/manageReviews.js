@@ -6,6 +6,7 @@ const { storeImages } = require('../../middleware/storeImages');
 const FileManager = require('../../services/FileManager');
 const multer = require('multer');
 const { validateToken } = require('../../middleware/auth');
+const { Op } = require('sequelize');
 
 router.route("/")
     .put(validateToken, async (req, res) => {
@@ -27,7 +28,7 @@ router.route("/")
 
             const review = await Review.findOne({
                 where: { reviewID: reviewID },
-                attributes: ['hostID'],
+                attributes: ['reviewID', 'foodRating', 'hygieneRating', 'images', 'hostID'],
                 include: [{
                     model: Guest,
                     as: 'reviewPoster',
@@ -38,6 +39,11 @@ router.route("/")
             const hostID = review.hostID;
             if (!hostID) {
                 return res.status(404).send("ERROR: Host ID not found");
+            }
+
+            const host = await Host.findByPk(hostID)
+            if (!host) {
+                return res.status(404).send("ERROR: Host not found");
             }
 
              // Check if the action performer is the review poster
@@ -102,58 +108,30 @@ router.route("/")
             const fileUrlsString = fileUrls.length > 0 ? fileUrls.join("|") : null;
 
             const updateDict = {};
-
-            // if (foodRating || hygieneRating) {
-            //     const host = await Host.findByPk(hostID);
-            //     if (!host) {
-            //         return res.status(404).send("ERROR: Host not found");
-            //     } else {
-            //         if (foodRating) {
-            //             updateDict.foodRating = foodRating;
-            //             var previousFoodRating = review.foodRating;
-            //             var newFoodRating = foodRating;
-            //             var newHostFoodRating = ((parseFloat(host.foodRating) * host.reviewsCount) - parseFloat(previousFoodRating) + parseFloat(newFoodRating)) / host.reviewsCount;
-            //             try {
-            //                 const updateHostFoodRating = await Host.update(
-            //                     {
-            //                         foodRating: newHostFoodRating.toFixed(2)
-            //                     },
-            //                     {
-            //                         where: { userID: hostID }
-            //                     }
-            //                 );
-            //                 if (!updateHostFoodRating) {
-            //                     return res.status(500).send("ERROR: Failed to update host food rating");
-            //                 }
-            //             } catch (err) {
-            //                 Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update host food rating; error: ${err}`);
-            //                 return res.status(500).send("ERROR: Failed to update host food rating");
-            //             }
-            //         }
-            //         if (hygieneRating) {
-            //             updateDict.hygieneRating = hygieneRating;
-            //             var previousHygieneRating = review.hygieneRating;
-            //             var newHygieneRating = hygieneRating;
-            //             var newHostHygieneRating = ((parseFloat(host.hygieneGrade) * host.reviewsCount) - parseFloat(previousHygieneRating) + parseFloat(newHygieneRating)) / host.reviewsCount;
-            //             try {
-            //                 const updateHostHygieneRating = await Host.update(
-            //                     {
-            //                         hygieneGrade: newHostHygieneRating.toFixed(2)
-            //                     },
-            //                     {
-            //                         where: { userID: hostID }
-            //                     }
-            //                 );
-            //                 if (!updateHostHygieneRating) {
-            //                     return res.status(500).send("ERROR: Failed to update host hygiene rating");
-            //                 }
-            //             } catch (err) {
-            //                 Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update host hygiene rating; error: ${err}`);
-            //                 return res.status(500).send("ERROR: Failed to update host hygiene rating");
-            //             }
-            //         }
-            //     }
-            // }
+            const currentReviewCount = await Review.count({ 
+                where: { hostID: hostID },
+                hostID: {[Op.eq]: reviewID}
+            });
+            var previousFoodRating = review.foodRating;
+            var newFoodRating = foodRating;
+            updateDict.foodRating = newFoodRating;
+            var previousHygieneRating = review.hygieneRating;
+            var newHygieneRating = hygieneRating;
+            updateDict.hygieneRating = newHygieneRating;
+            var newHostHygieneRating = ((parseFloat(host.hygieneGrade) * currentReviewCount) - parseFloat(previousHygieneRating) + parseFloat(newHygieneRating)) / currentReviewCount;
+            var newHostFoodRating = ((parseFloat(host.foodRating) * currentReviewCount) - parseFloat(previousFoodRating) + parseFloat(newFoodRating)) / currentReviewCount;
+            try {
+                const updateHostRating = await host.update({
+                    foodRating: newHostFoodRating.toFixed(2),
+                    hygieneGrade: newHostHygieneRating.toFixed(2)
+                });
+                if (!updateHostRating) {
+                    return res.status(500).send("ERROR: Failed to update host rating");
+                }
+            } catch (err) {
+                Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update host rating; error: ${err}`);
+                return res.status(500).send("ERROR: Failed to update host rating");
+            }
             
             updateDict.comments = comments.trim();
             if (fileUrlsString) {

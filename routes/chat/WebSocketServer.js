@@ -146,8 +146,6 @@ function startWebSocketServer(app) {
                             clientStore[userID].chatIDs.push(chatID);  // Add chatID to chatIDs list
 
                             let status = await checkChatPartnerOnline(clientStore, chatID, userID);
-                            console.log("Status: ", status);
-                            console.log("hostID: ", hostID);
                             if (status === true) {
                                 ws.send(JSON.stringify({ action: "chat_partner_online" }));
                                 continue;
@@ -194,7 +192,6 @@ function startWebSocketServer(app) {
                                 clientStore[userID].chatIDs.push(chatID);  // Add chatID to chatIDs list
 
                                 let status = await checkChatPartnerOnline(clientStore, chatID, userID);
-                                console.log("Status: ", status);
                                 if (status === true) {
                                     ws.send(JSON.stringify({ action: "chat_partner_online" }));
                                     break;
@@ -253,18 +250,15 @@ function startWebSocketServer(app) {
                 if (clientStore[userID].ws === ws) {
                     const chatIDs = clientStore[userID].chatIDs;
                     chatIDs.forEach((chatID) => {
-                        console.log("chatID: ", chatID);
                         const remainingUser = Object.entries(clientStore).find(([key, value]) => value.chatID === chatID && key !== userID);
                         if (remainingUser) {
                             const [remainingUserID, remainingUserData] = remainingUser;
                             if (remainingUserData.ws && remainingUserData.ws.readyState === WebSocket.OPEN) {
-                                console.log("Chat partner online");
                                 const message = JSON.stringify({ action: "chat_partner_online" });
                                 remainingUserData.ws.send(message);
                             }
                         }
                     else {
-                        console.log("Chat partner offline");
                         const message = JSON.stringify({ action: "chat_partner_offline" });
                         const recipient = Object.entries(clientStore).find(([key, value]) => value.chatIDs.includes(chatID) && key !== userID);
                         if (recipient) {

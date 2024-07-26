@@ -50,11 +50,13 @@ module.exports = (sequelize, DataTypes) => {
         },
         foodRating: {
             type: DataTypes.DOUBLE,
-            allowNull: true
+            allowNull: true,
+            defaultValue: 0
         },
         hygieneGrade: {
             type: DataTypes.DOUBLE,
-            allowNull: true
+            allowNull: true,
+            defaultValue: 0
         },
         paymentImage: {
             type: DataTypes.STRING,

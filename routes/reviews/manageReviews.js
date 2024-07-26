@@ -18,7 +18,7 @@ router.route("/")
                 Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Internal server error; error: ${err}.`);
                 return res.status(500).send("ERROR: Internal server error");
             }
-            let { reviewID, foodRating, hygieneRating, comments, images} = req.body;
+            let { reviewID, foodRating, hygieneRating, comments, images } = req.body;
 
             if (!reviewID) {
                 return res.status(400).send("ERROR: Review ID is not provided.");
@@ -26,8 +26,7 @@ router.route("/")
 
             const guestID = req.user.userID;
 
-            const review = await Review.findOne({
-                where: { reviewID: reviewID },
+            const review = await Review.findByPk(reviewID, {
                 attributes: ['reviewID', 'foodRating', 'hygieneRating', 'images', 'hostID'],
                 include: [{
                     model: Guest,
@@ -46,13 +45,13 @@ router.route("/")
                 return res.status(404).send("ERROR: Host not found");
             }
 
-             // Check if the action performer is the review poster
-            if (guestID !== review.reviewPoster.userID) {   
-                return res.status(403).send("ERROR: You are not authorized to update this review");
+            // Check if the action performer is the review poster
+            if (!review) {
+                return res.status(404).send(`ERROR: Review with ID ${reviewID} not found.`);
             }
 
-            if (!review) {
-                return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
+            if (guestID !== review.reviewPoster.userID) {
+                return res.status(403).send("ERROR: You are not authorized to update this review.");
             }
 
             // Store original images
@@ -86,9 +85,8 @@ router.route("/")
                     Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to upload image; error: ${err}.`);
                     return res.status(500).send("ERROR: Failed to upload file");
                 }
-            } else {
-                fileUrls = [];
             }
+
             if (req.files && req.files.length > 0) {
                 for (const file of req.files) {
                     try {
@@ -110,76 +108,89 @@ router.route("/")
             const updateDict = {};
 
             // Check review count for host
-            const currentReviewCount = await Review.count({ 
-                where: { hostID: hostID },
-                hostID: {[Op.eq]: reviewID}
+            const currentReviewCount = await Review.count({
+                where: { hostID: hostID }
             });
-            if (!currentReviewCount) {
-                return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
+
+            if (currentReviewCount == null || currentReviewCount == undefined || isNaN(currentReviewCount)) {
+                Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Review count for host with ID ${hostID} could not be obtained.`)
+                return res.status(500).send(`ERROR: Failed to process request.`);
             }
 
-            updateDict.foodRating = newFoodRating; // Update food rating in review card
-            updateDict.hygieneRating = newHygieneRating; // Update hygiene rating in review card
-            
+            // Process food rating
             var previousFoodRating = review.foodRating;
             var newFoodRating = foodRating;
+            var foodRatingChanged = (newFoodRating && newFoodRating != previousFoodRating);
+
+            // Process hygiene rating
             var previousHygieneRating = review.hygieneRating;
             var newHygieneRating = hygieneRating;
-            var newHostHygieneRating = ((parseFloat(host.hygieneGrade) * currentReviewCount) - parseFloat(previousHygieneRating) + parseFloat(newHygieneRating)) / currentReviewCount;
-            var newHostFoodRating = ((parseFloat(host.foodRating) * currentReviewCount) - parseFloat(previousFoodRating) + parseFloat(newFoodRating)) / currentReviewCount;
-            try {
-                const updateHostRating = await host.update({
-                    foodRating: newHostFoodRating.toFixed(2),
-                    hygieneGrade: newHostHygieneRating.toFixed(2)
-                });
-                if (!updateHostRating) {
-                    return res.status(500).send("ERROR: Failed to update host rating");
-                }
-                const saveHostTable = await host.save();
-                if (!saveHostTable) {
-                    return res.status(500).send("ERROR: Failed to save host table");
-                }
-            } catch (err) {
-                Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update host rating; error: ${err}`);
-                return res.status(500).send("ERROR: Failed to update host rating");
-            }
-            
+            var hygieneRatingChanged = (newHygieneRating && newHygieneRating != previousHygieneRating);
+
             updateDict.comments = comments.trim();
+            // Adding in images, if any
             if (fileUrlsString) {
                 updateDict.images = fileUrlsString;
             } else {
                 updateDict.images = null;
             }
 
-            if (Object.keys(updateDict).length === 0) {
-                return res.send("SUCCESS: No fields to update");
-            } else {
-                try {
-                    const updateReview = await review.update(updateDict);
-                    if (!updateReview) {
-                        return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
-                    } else {
-                        // Compare original and updated images and delete removed files
-                        const removedImages = originalImages.filter(image => !fileUrls.includes(image));
+            // Adding in new food rating, if changed
+            if (foodRatingChanged) {
+                updateDict.foodRating = newFoodRating;
+            }
 
-                        for (const removedImage of removedImages) {
-                            try {
-                                const deleteRemovedImage = await FileManager.deleteFile(removedImage);
-                                if (!deleteRemovedImage) {
-                                    Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to delete file; error: ${err}`);
-                                }
-                            } catch (err) {
-                                Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to delete file; error: ${err}`);
-                            }
+            // Adding in new hygiene rating, if changed
+            if (hygieneRatingChanged) {
+                updateDict.hygieneRating = newHygieneRating;
+            }
+
+            try {
+                // Update the review record
+                const updateReview = await review.update(updateDict);
+                if (!updateReview) {
+                    return res.status(500).send(`ERROR: Failed to update review.`);
+                }
+
+                // Compare original and updated images and delete removed files
+                const removedImages = originalImages.filter(image => !fileUrls.includes(image));
+
+                for (const removedImage of removedImages) {
+                    try {
+                        const deleteRemovedImage = await FileManager.deleteFile(removedImage);
+                        if (deleteRemovedImage != true) {
+                            Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to delete file ${removedImage}; error: ${deleteRemovedImage}`);
                         }
+                    } catch (err) {
+                        Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to delete file ${removedImage}; error: ${err}`);
+                    }
+                }
+            } catch (err) {
+                Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update review; error: ${err}`);
+                return res.status(500).send("ERROR: Failed to update review.");
+            }
 
-                        return res.send(`SUCCESS: Review with ID ${reviewID} updated`); // Tested in postcode, working!
+            if (foodRatingChanged || hygieneRatingChanged) {
+                var newHostHygieneRating = ((parseFloat(host.hygieneGrade) * currentReviewCount) - parseFloat(previousHygieneRating) + parseFloat(newHygieneRating)) / currentReviewCount;
+                var newHostFoodRating = ((parseFloat(host.foodRating) * currentReviewCount) - parseFloat(previousFoodRating) + parseFloat(newFoodRating)) / currentReviewCount;
+
+                try {
+                    host.set({
+                        foodRating: newHostFoodRating.toFixed(2),
+                        hygieneGrade: newHostHygieneRating.toFixed(2)
+                    });
+
+                    const saveHostTable = await host.save();
+                    if (!saveHostTable) {
+                        return res.status(500).send("ERROR: Failed to update host ratings.");
                     }
                 } catch (err) {
-                    Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update review; error: ${err}`);
-                    return res.status(500).send("ERROR: Failed to update review");
+                    Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update host rating; error: ${err}`);
+                    return res.status(500).send("ERROR: Failed to update host ratings.");
                 }
             }
+
+            return res.send(`SUCCESS: Review with ID ${reviewID} updated.`);
         })
     })
     .delete(validateToken, async (req, res) => {
@@ -218,9 +229,8 @@ router.route("/")
         }
 
         // Check review count for host
-        const currentReviewCount = await Review.count({ 
-            where: { hostID: hostID },
-            hostID: {[Op.eq]: reviewID}
+        const currentReviewCount = await Review.count({
+            where: { hostID: hostID }
         });
         if (!currentReviewCount) {
             return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);

@@ -120,8 +120,8 @@ async function onDBSynchronise() {
             "emailVerified": false,
             "favCuisine": "Mexican",
             "mealsMatched": "0",
-            "foodRating": "4",
-            "hygieneGrade": "5",
+            // "foodRating": "4",
+            // "hygieneGrade": "5",
             "paymentImage": "https://savh.org.sg/wp-content/uploads/2020/05/QRCodeS61SS0119JDBS.png"
         })
 

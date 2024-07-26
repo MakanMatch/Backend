@@ -20,9 +20,6 @@ router.route("/")
             }
 
             const guestID = req.user.userID;
-            if (!guestID) {
-                return res.status(400).send("ERROR: Missing guest ID");
-            }
 
             const { foodRating, hygieneRating, comments, dateCreated, hostID } = req.body;
 
@@ -38,7 +35,7 @@ router.route("/")
                 const host = await Host.findByPk(hostID)
                 const guest = await Guest.findByPk(guestID)
                 if (!host || !guest) {
-                    return res.status(404).send("ERROR: Host or guest not found");
+                    return res.status(404).send("ERROR: Host or guest not found.");
                 }
 
                 const fileUrls = [];
@@ -57,7 +54,7 @@ router.route("/")
                         }
                     }
                 }
-                const fileUrlsString = fileUrls.join("|");
+                const fileUrlsString = fileUrls.length != 0 ? fileUrls.join("|"): null;
 
                 const reviewID = Universal.generateUniqueID();
 
@@ -72,34 +69,37 @@ router.route("/")
                     hostID: hostID
                 };
 
-                await Review.create(review);
-
-                // Check review count for host
-                const currentReviewCount = await Review.count({
-                    where: { hostID: hostID },
-                    hostID: { [Op.eq]: reviewID }
+                // Check review count for host. Will count the just created review.
+                const prevReviewCount = await Review.count({
+                    where: { hostID: hostID }
                 });
-                if (!currentReviewCount) {
-                    return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
+    
+                if (prevReviewCount == null || prevReviewCount == undefined || isNaN(prevReviewCount)) {
+                    Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Review count for host with ID ${hostID} could not be obtained.`)
+                    return res.status(500).send(`ERROR: Failed to process request.`);
+                }
+
+                const reviewCreation = await Review.create(review);
+                if (!reviewCreation) {
+                    return res.status(500).send("ERROR: Failed to create review.");
                 }
 
                 // Update Host Food Rating
-                var newHostFoodRating = ((parseFloat(host.foodRating) * currentReviewCount) + parseFloat(foodRating)) / (currentReviewCount + 1);
-                var newHostHygieneRating = ((parseFloat(host.hygieneGrade) * currentReviewCount) + parseFloat(hygieneRating)) / (currentReviewCount + 1);
+                var newHostFoodRating = ((parseFloat(host.foodRating) * prevReviewCount) + parseFloat(foodRating)) / (prevReviewCount + 1);
+                var newHostHygieneRating = ((parseFloat(host.hygieneGrade) * prevReviewCount) + parseFloat(hygieneRating)) / (prevReviewCount + 1);
 
-                const updateHostRating = await host.update(
+                host.set(
                     {
                         foodRating: newHostFoodRating.toFixed(2),
                         hygieneGrade: newHostHygieneRating.toFixed(2),
-                        reviewsCount: currentReviewCount + 1,
-                    },
-                    {
-                        where: { userID: hostID }
+                        reviewsCount: prevReviewCount + 1,
                     }
                 );
 
-                if (updateHostRating[0] === 0) {
-                    return res.status(500).send("ERROR: Failed to update host food rating");
+                const updateHostRating = await host.save();
+
+                if (!updateHostRating) {
+                    return res.status(500).send("ERROR: Failed to update host food rating and hygiene rating.");
                 }
                 return res.send("SUCCESS: Review submitted successfully");
             } catch (err) {

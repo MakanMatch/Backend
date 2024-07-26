@@ -17,19 +17,17 @@ router.route("/")
                 Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Internal server error; error: ${err}.`);
                 return res.status(500).send("ERROR: Internal server error");
             }
-            let { reviewID, foodRating, hygieneRating, comments, images, hostID} = req.body;
+            let { reviewID, foodRating, hygieneRating, comments, images} = req.body;
 
-            if (!reviewID || !hostID) {
-                return res.status(400).send("ERROR: One or more required payloads not provided.");
+            if (!reviewID) {
+                return res.status(400).send("ERROR: Review ID is not provided.");
             }
 
             const guestID = req.user.userID;
-            if (!guestID) {
-                return res.status(400).send("ERROR: Missing guest ID");
-            }
 
             const review = await Review.findOne({
                 where: { reviewID: reviewID },
+                attributes: ['hostID'],
                 include: [{
                     model: Guest,
                     as: 'reviewPoster',
@@ -37,7 +35,13 @@ router.route("/")
                 }]
             });
 
-            if (guestID !== review.reviewPoster.userID) {    // Check if the action performer is the review poster
+            const hostID = review.hostID;
+            if (!hostID) {
+                return res.status(404).send("ERROR: Host ID not found");
+            }
+
+             // Check if the action performer is the review poster
+            if (guestID !== review.reviewPoster.userID) {   
                 return res.status(403).send("ERROR: You are not authorized to update this review");
             }
 
@@ -98,57 +102,58 @@ router.route("/")
             const fileUrlsString = fileUrls.length > 0 ? fileUrls.join("|") : null;
 
             const updateDict = {};
-            if (foodRating || hygieneRating) {
-                const host = await Host.findByPk(hostID);
-                if (!host) {
-                    return res.status(404).send("ERROR: Host not found");
-                } else {
-                    if (foodRating) {
-                        updateDict.foodRating = foodRating;
-                        var previousFoodRating = review.foodRating;
-                        var newFoodRating = foodRating;
-                        var newHostFoodRating = ((parseFloat(host.foodRating) * host.reviewsCount) - parseFloat(previousFoodRating) + parseFloat(newFoodRating)) / host.reviewsCount;
-                        try {
-                            const updateHostFoodRating = await Host.update(
-                                {
-                                    foodRating: newHostFoodRating.toFixed(2)
-                                },
-                                {
-                                    where: { userID: hostID }
-                                }
-                            );
-                            if (!updateHostFoodRating) {
-                                return res.status(500).send("ERROR: Failed to update host food rating");
-                            }
-                        } catch (err) {
-                            Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update host food rating; error: ${err}`);
-                            return res.status(500).send("ERROR: Failed to update host food rating");
-                        }
-                    }
-                    if (hygieneRating) {
-                        updateDict.hygieneRating = hygieneRating;
-                        var previousHygieneRating = review.hygieneRating;
-                        var newHygieneRating = hygieneRating;
-                        var newHostHygieneRating = ((parseFloat(host.hygieneGrade) * host.reviewsCount) - parseFloat(previousHygieneRating) + parseFloat(newHygieneRating)) / host.reviewsCount;
-                        try {
-                            const updateHostHygieneRating = await Host.update(
-                                {
-                                    hygieneGrade: newHostHygieneRating.toFixed(2)
-                                },
-                                {
-                                    where: { userID: hostID }
-                                }
-                            );
-                            if (!updateHostHygieneRating) {
-                                return res.status(500).send("ERROR: Failed to update host hygiene rating");
-                            }
-                        } catch (err) {
-                            Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update host hygiene rating; error: ${err}`);
-                            return res.status(500).send("ERROR: Failed to update host hygiene rating");
-                        }
-                    }
-                }
-            }
+
+            // if (foodRating || hygieneRating) {
+            //     const host = await Host.findByPk(hostID);
+            //     if (!host) {
+            //         return res.status(404).send("ERROR: Host not found");
+            //     } else {
+            //         if (foodRating) {
+            //             updateDict.foodRating = foodRating;
+            //             var previousFoodRating = review.foodRating;
+            //             var newFoodRating = foodRating;
+            //             var newHostFoodRating = ((parseFloat(host.foodRating) * host.reviewsCount) - parseFloat(previousFoodRating) + parseFloat(newFoodRating)) / host.reviewsCount;
+            //             try {
+            //                 const updateHostFoodRating = await Host.update(
+            //                     {
+            //                         foodRating: newHostFoodRating.toFixed(2)
+            //                     },
+            //                     {
+            //                         where: { userID: hostID }
+            //                     }
+            //                 );
+            //                 if (!updateHostFoodRating) {
+            //                     return res.status(500).send("ERROR: Failed to update host food rating");
+            //                 }
+            //             } catch (err) {
+            //                 Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update host food rating; error: ${err}`);
+            //                 return res.status(500).send("ERROR: Failed to update host food rating");
+            //             }
+            //         }
+            //         if (hygieneRating) {
+            //             updateDict.hygieneRating = hygieneRating;
+            //             var previousHygieneRating = review.hygieneRating;
+            //             var newHygieneRating = hygieneRating;
+            //             var newHostHygieneRating = ((parseFloat(host.hygieneGrade) * host.reviewsCount) - parseFloat(previousHygieneRating) + parseFloat(newHygieneRating)) / host.reviewsCount;
+            //             try {
+            //                 const updateHostHygieneRating = await Host.update(
+            //                     {
+            //                         hygieneGrade: newHostHygieneRating.toFixed(2)
+            //                     },
+            //                     {
+            //                         where: { userID: hostID }
+            //                     }
+            //                 );
+            //                 if (!updateHostHygieneRating) {
+            //                     return res.status(500).send("ERROR: Failed to update host hygiene rating");
+            //                 }
+            //             } catch (err) {
+            //                 Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update host hygiene rating; error: ${err}`);
+            //                 return res.status(500).send("ERROR: Failed to update host hygiene rating");
+            //             }
+            //         }
+            //     }
+            // }
             
             updateDict.comments = comments.trim();
             if (fileUrlsString) {
@@ -208,6 +213,10 @@ router.route("/")
             }]
         })
 
+        if (guestID !== review.reviewPoster.userID) {  // Check if the action performer is the review poster
+            return res.status(403).send("ERROR: You are not authorized to delete this review");
+        }
+
         const host = await Host.findByPk(hostID);
         if (!host) {
             return res.status(404).send("ERROR: Host not found");
@@ -231,10 +240,6 @@ router.route("/")
             if (!updateHostRating) {
                 return res.status(500).send("ERROR: Failed to update host rating");
             }
-        }
-
-        if (guestID !== review.reviewPoster.userID) {  // Check if the action performer is the review poster
-            return res.status(403).send("ERROR: You are not authorized to delete this review");
         }
 
         try {

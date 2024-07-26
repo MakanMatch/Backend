@@ -26,7 +26,7 @@ router.route("/")
             }
 
             const { foodRating, hygieneRating, comments, dateCreated, hostID } = req.body;
-          
+
             if (!foodRating || !hygieneRating || !dateCreated || !hostID) {
                 return res.status(400).send("ERROR: Missing required fields");
             }
@@ -34,7 +34,7 @@ router.route("/")
             if (guestID == hostID) {
                 return res.status(400).send("UERROR: You cannot create a review for yourself.");
             }
-            
+
             try {
                 const host = await Host.findByPk(hostID)
                 const guest = await Guest.findByPk(guestID)
@@ -70,24 +70,27 @@ router.route("/")
                     images: fileUrlsString,
                     dateCreated: dateCreated,
                     guestID: guestID,
-                    hostID: hostID 
+                    hostID: hostID
                 };
 
                 await Review.create(review);
 
                 // Update Host Food Rating
-                var newHostFoodRating = (parseInt((host.foodRating * host.reviewsCount)) + parseInt(foodRating)) / parseInt((host.reviewsCount + 1));
-                console.log(newHostFoodRating);
-                const updateHostFoodRating = await Host.update(
+                var newHostFoodRating = ((parseFloat(host.foodRating) * host.reviewsCount) + parseFloat(foodRating)) / (host.reviewsCount + 1);
+                var newHostHygieneRating = ((parseFloat(host.hygieneGrade) * host.reviewsCount) + parseFloat(hygieneRating)) / (host.reviewsCount + 1);
+
+                const updateHostRating = await Host.update(
                     {
+                        foodRating: newHostFoodRating.toFixed(2),
+                        hygieneGrade: newHostHygieneRating.toFixed(2),
                         reviewsCount: host.reviewsCount + 1,
-                        foodRating: parseFloat(newHostFoodRating).toFixed(2)
                     },
                     {
                         where: { userID: hostID }
                     }
-                )
-                if (!updateHostFoodRating) {
+                );
+
+                if (updateHostRating[0] === 0) {
                     return res.status(500).send("ERROR: Failed to update host food rating");
                 }
                 return res.send("SUCCESS: Review submitted successfully");

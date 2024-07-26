@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Review, Guest } = require('../../models');
+const { Review, Guest, Host } = require('../../models');
 const Logger = require('../../services/Logger');
 const { storeImages } = require('../../middleware/storeImages');
 const FileManager = require('../../services/FileManager');
@@ -17,10 +17,10 @@ router.route("/")
                 Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Internal server error; error: ${err}.`);
                 return res.status(500).send("ERROR: Internal server error");
             }
-            let { reviewID, foodRating, hygieneRating, comments, images} = req.body;
+            let { reviewID, foodRating, hygieneRating, comments, images, hostID} = req.body;
 
-            if (!reviewID) {
-                return res.status(400).send("ERROR: Missing review ID");
+            if (!reviewID || !hostID) {
+                return res.status(400).send("ERROR: One or more required payloads not provided.");
             }
 
             const guestID = req.user.userID;
@@ -98,8 +98,58 @@ router.route("/")
             const fileUrlsString = fileUrls.length > 0 ? fileUrls.join("|") : null;
 
             const updateDict = {};
-            if (foodRating) updateDict.foodRating = foodRating;
-            if (hygieneRating) updateDict.hygieneRating = hygieneRating;
+            if (foodRating || hygieneRating) {
+                const host = await Host.findByPk(hostID);
+                if (!host) {
+                    return res.status(404).send("ERROR: Host not found");
+                } else {
+                    if (foodRating) {
+                        updateDict.foodRating = foodRating;
+                        var previousFoodRating = review.foodRating;
+                        var newFoodRating = foodRating;
+                        var newHostFoodRating = ((parseFloat(host.foodRating) * host.reviewsCount) - parseFloat(previousFoodRating) + parseFloat(newFoodRating)) / host.reviewsCount;
+                        try {
+                            const updateHostFoodRating = await Host.update(
+                                {
+                                    foodRating: newHostFoodRating.toFixed(2)
+                                },
+                                {
+                                    where: { userID: hostID }
+                                }
+                            );
+                            if (updateHostFoodRating[0] === 0) {
+                                return res.status(500).send("ERROR: Failed to update host food rating");
+                            }
+                        } catch (err) {
+                            Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update host food rating; error: ${err}`);
+                            return res.status(500).send("ERROR: Failed to update host food rating");
+                        }
+                    }
+                    if (hygieneRating) {
+                        updateDict.hygieneRating = hygieneRating;
+                        var previousHygieneRating = review.hygieneRating;
+                        var newHygieneRating = hygieneRating;
+                        var newHostHygieneRating = ((parseFloat(host.hygieneGrade) * host.reviewsCount) - parseFloat(previousHygieneRating) + parseFloat(newHygieneRating)) / host.reviewsCount;
+                        try {
+                            const updateHostHygieneRating = await Host.update(
+                                {
+                                    hygieneGrade: newHostHygieneRating.toFixed(2)
+                                },
+                                {
+                                    where: { userID: hostID }
+                                }
+                            );
+                            if (updateHostHygieneRating[0] === 0) {
+                                return res.status(500).send("ERROR: Failed to update host hygiene rating");
+                            }
+                        } catch (err) {
+                            Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to update host hygiene rating; error: ${err}`);
+                            return res.status(500).send("ERROR: Failed to update host hygiene rating");
+                        }
+                    }
+                }
+            }
+            
             updateDict.comments = comments.trim();
             if (fileUrlsString) {
                 updateDict.images = fileUrlsString;
@@ -144,9 +194,9 @@ router.route("/")
                 return res.status(400).send("ERROR: Missing guest ID");
             }
 
-        const { reviewID } = req.body;
-        if (!reviewID) {
-            return res.status(400).send("ERROR: Missing review ID");
+        const { reviewID, hostID } = req.body;
+        if (!reviewID || !hostID) {
+            return res.status(400).send("ERROR: One or more required payloads not provided.");
         }
 
         const review = await Review.findOne({
@@ -157,6 +207,31 @@ router.route("/")
                 attributes: ['userID']
             }]
         })
+
+        const host = await Host.findByPk(hostID);
+        if (!host) {
+            return res.status(404).send("ERROR: Host not found");
+        }
+
+        if (host.reviewsCount == "1") {
+            const updateHostRating = await host.update({
+                foodRating: 0,
+                hygieneGrade: 0,
+                reviewsCount: 0
+            })
+            if (!updateHostRating) {
+                return res.status(500).send("ERROR: Failed to update host rating");
+            }
+        } else {
+            const updateHostRating = await host.update({
+                foodRating: ((parseFloat(host.foodRating) * host.reviewsCount - review.foodRating) / (host.reviewsCount - 1)).toFixed(2),
+                hygieneGrade: ((parseFloat(host.hygieneGrade) * host.reviewsCount - review.hygieneRating) / (host.reviewsCount - 1)).toFixed(2),
+                reviewsCount: host.reviewsCount - 1
+            })
+            if (!updateHostRating) {
+                return res.status(500).send("ERROR: Failed to update host rating");
+            }
+        }
 
         if (guestID !== review.reviewPoster.userID) {  // Check if the action performer is the review poster
             return res.status(403).send("ERROR: You are not authorized to delete this review");

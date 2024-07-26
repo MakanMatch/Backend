@@ -181,19 +181,25 @@ router.route("/")
             return res.status(400).send("ERROR: Missing guest ID");
         }
 
-        const { reviewID, hostID } = req.body;
-        if (!reviewID || !hostID) {
-            return res.status(400).send("ERROR: One or more required payloads not provided.");
+        const { reviewID } = req.body;
+        if (!reviewID) {
+            return res.status(400).send("ERROR: Review ID is not provided.");
         }
 
         const review = await Review.findOne({
             where: { reviewID: reviewID },
+            attributes: ['reviewID', 'foodRating', 'hygieneRating', 'images', 'hostID'],
             include: [{
                 model: Guest,
                 as: 'reviewPoster',
                 attributes: ['userID']
             }]
-        })
+        });
+
+        const hostID = review.hostID;
+        if (!hostID) {
+            return res.status(404).send("ERROR: Host ID not found");
+        }
 
         if (guestID !== review.reviewPoster.userID) {  // Check if the action performer is the review poster
             return res.status(403).send("ERROR: You are not authorized to delete this review");
@@ -204,7 +210,12 @@ router.route("/")
             return res.status(404).send("ERROR: Host not found");
         }
 
-        if (host.reviewsCount == "1") {
+        const currentReviewCount = await Review.count({ 
+            where: { hostID: hostID },
+            hostID: {[Op.eq]: reviewID}
+        });
+
+        if (currentReviewCount == "1") {
             const updateHostRating = await host.update({
                 foodRating: 0,
                 hygieneGrade: 0,
@@ -215,9 +226,9 @@ router.route("/")
             }
         } else {
             const updateHostRating = await host.update({
-                foodRating: ((parseFloat(host.foodRating) * host.reviewsCount - review.foodRating) / (host.reviewsCount - 1)).toFixed(2),
-                hygieneGrade: ((parseFloat(host.hygieneGrade) * host.reviewsCount - review.hygieneRating) / (host.reviewsCount - 1)).toFixed(2),
-                reviewsCount: host.reviewsCount - 1
+                foodRating: ((parseFloat(host.foodRating) * currentReviewCount - review.foodRating) / (currentReviewCount - 1)).toFixed(2),
+                hygieneGrade: ((parseFloat(host.hygieneGrade) * currentReviewCount - review.hygieneRating) / (currentReviewCount - 1)).toFixed(2),
+                reviewsCount: currentReviewCount - 1
             })
             if (!updateHostRating) {
                 return res.status(500).send("ERROR: Failed to update host rating");

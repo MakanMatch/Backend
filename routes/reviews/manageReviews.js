@@ -195,78 +195,81 @@ router.route("/")
     })
     .delete(validateToken, async (req, res) => {
         const guestID = req.user.userID;
-        if (!guestID) {
-            return res.status(400).send("ERROR: Missing guest ID");
-        }
 
         const { reviewID } = req.body;
         if (!reviewID) {
             return res.status(400).send("ERROR: Review ID is not provided.");
         }
 
-        const review = await Review.findOne({
-            where: { reviewID: reviewID },
+        const review = await Review.findByPk(reviewID, {
             attributes: ['reviewID', 'foodRating', 'hygieneRating', 'images', 'hostID'],
-            include: [{
-                model: Guest,
-                as: 'reviewPoster',
-                attributes: ['userID']
-            }]
+            include: [
+                {
+                    model: Guest,
+                    as: 'reviewPoster',
+                    attributes: ['userID']
+                },
+                {
+                    model: Host,
+                    as: 'host'
+                }
+            ]
         });
 
-        const hostID = review.hostID;
-        if (!hostID) {
-            return res.status(404).send("ERROR: Host ID not found");
+        if (guestID !== review.reviewPoster.userID) {
+            return res.status(403).send("ERROR: You are not authorized to delete this review.");
         }
 
-        if (guestID !== review.reviewPoster.userID) {  // Check if the action performer is the review poster
-            return res.status(403).send("ERROR: You are not authorized to delete this review");
-        }
-
-        const host = await Host.findByPk(hostID);
-        if (!host) {
-            return res.status(404).send("ERROR: Host not found");
-        }
+        const host = review.host;
 
         // Check review count for host
-        const currentReviewCount = await Review.count({
-            where: { hostID: hostID }
+        const prevReviewCount = await Review.count({
+            where: { hostID: host.userID }
         });
-        if (!currentReviewCount) {
-            return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
+
+        if (prevReviewCount == null || prevReviewCount == undefined || isNaN(prevReviewCount)) {
+            return res.status(404).send(`ERROR: Failed to process request.`);
         }
 
-        if (currentReviewCount == "1") {
-            const updateHostRating = await host.update({
-                foodRating: 0,
-                hygieneGrade: 0,
-                reviewsCount: 0
-            })
-            if (!updateHostRating) {
-                return res.status(500).send("ERROR: Failed to update host rating");
-            }
-        } else {
-            const updateHostRating = await host.update({
-                foodRating: ((parseFloat(host.foodRating) * currentReviewCount - review.foodRating) / (currentReviewCount - 1)).toFixed(2),
-                hygieneGrade: ((parseFloat(host.hygieneGrade) * currentReviewCount - review.hygieneRating) / (currentReviewCount - 1)).toFixed(2),
-                reviewsCount: currentReviewCount - 1
-            })
-            if (!updateHostRating) {
-                return res.status(500).send("ERROR: Failed to update host rating");
-            }
-        }
-
+        // Delete review
         try {
             const deleteReview = await review.destroy();
             if (!deleteReview) {
                 return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
-            } else {
-                return res.send(`SUCCESS: Review with ID ${reviewID} deleted`); // Tested in postcode, working!
             }
         } catch (err) {
             Logger.log(`REVIEWS MANAGEREVIEWS DELETE ERROR: Failed to delete review; error: ${err}`);
-            return res.status(500).send("ERROR: Failed to delete review");
+            return res.status(500).send("ERROR: Failed to delete review.");
         }
+
+        // Update host ratings
+        if (prevReviewCount == 1) {
+            // If this is the last review, just set ratings to 0
+            host.set({
+                foodRating: 0,
+                hygieneGrade: 0,
+                reviewsCount: 0
+            })
+
+            const updateHostRating = await host.save();
+            if (!updateHostRating) {
+                return res.status(500).send("ERROR: Failed to update host rating");
+            }
+        } else {
+            // Otherwise, update ratings based on average
+            host.set({
+                foodRating: ((parseFloat(host.foodRating) * prevReviewCount - review.foodRating) / (prevReviewCount - 1)).toFixed(2),
+                hygieneGrade: ((parseFloat(host.hygieneGrade) * prevReviewCount - review.hygieneRating) / (prevReviewCount - 1)).toFixed(2),
+                reviewsCount: prevReviewCount - 1
+            })
+
+            const updateHostRating = await host.save();
+            if (!updateHostRating) {
+                return res.status(500).send("ERROR: Failed to update host rating");
+            }
+        }
+
+        return res.send(`SUCCESS: Review with ID ${reviewID} deleted.`);
     });
 
 module.exports = { router, at: '/manageReviews' };

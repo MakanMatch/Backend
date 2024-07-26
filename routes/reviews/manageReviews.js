@@ -108,16 +108,23 @@ router.route("/")
             const fileUrlsString = fileUrls.length > 0 ? fileUrls.join("|") : null;
 
             const updateDict = {};
+
+            // Check review count for host
             const currentReviewCount = await Review.count({ 
                 where: { hostID: hostID },
                 hostID: {[Op.eq]: reviewID}
             });
+            if (!currentReviewCount) {
+                return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
+            }
+
+            updateDict.foodRating = newFoodRating; // Update food rating in review card
+            updateDict.hygieneRating = newHygieneRating; // Update hygiene rating in review card
+            
             var previousFoodRating = review.foodRating;
             var newFoodRating = foodRating;
-            updateDict.foodRating = newFoodRating;
             var previousHygieneRating = review.hygieneRating;
             var newHygieneRating = hygieneRating;
-            updateDict.hygieneRating = newHygieneRating;
             var newHostHygieneRating = ((parseFloat(host.hygieneGrade) * currentReviewCount) - parseFloat(previousHygieneRating) + parseFloat(newHygieneRating)) / currentReviewCount;
             var newHostFoodRating = ((parseFloat(host.foodRating) * currentReviewCount) - parseFloat(previousFoodRating) + parseFloat(newFoodRating)) / currentReviewCount;
             try {
@@ -210,10 +217,14 @@ router.route("/")
             return res.status(404).send("ERROR: Host not found");
         }
 
+        // Check review count for host
         const currentReviewCount = await Review.count({ 
             where: { hostID: hostID },
             hostID: {[Op.eq]: reviewID}
         });
+        if (!currentReviewCount) {
+            return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
+        }
 
         if (currentReviewCount == "1") {
             const updateHostRating = await host.update({

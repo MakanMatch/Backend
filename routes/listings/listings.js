@@ -56,7 +56,7 @@ router.post("/addListing", validateToken, async (req, res) => {
                 for (let i = 0; i < req.files.length; i++) {
                     await FileManager.deleteFile(req.files[i].filename);
                 }
-                Logger.log(`LISTINGS ADDLISTING: One or more image checks failed. ${req.files.length} image(s) deleted successfully.`)
+                Logger.log(`LISTINGS ADDLISTING ERROR: One or more image checks failed. ${req.files.length} image(s) deleted successfully.`)
                 return res.status(400).send("ERROR: Failed to upload image(s)");
             }
 

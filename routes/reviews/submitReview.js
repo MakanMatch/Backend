@@ -74,15 +74,24 @@ router.route("/")
 
                 await Review.create(review);
 
-                // Update Host Food Rating
-                var newHostFoodRating = ((parseFloat(host.foodRating) * host.reviewsCount) + parseFloat(foodRating)) / (host.reviewsCount + 1);
-                var newHostHygieneRating = ((parseFloat(host.hygieneGrade) * host.reviewsCount) + parseFloat(hygieneRating)) / (host.reviewsCount + 1);
+                // Check review count for host
+                const currentReviewCount = await Review.count({
+                    where: { hostID: hostID },
+                    hostID: { [Op.eq]: reviewID }
+                });
+                if (!currentReviewCount) {
+                    return res.status(404).send(`ERROR: Review with ID ${reviewID} not found`);
+                }
 
-                const updateHostRating = await Host.update(
+                // Update Host Food Rating
+                var newHostFoodRating = ((parseFloat(host.foodRating) * currentReviewCount) + parseFloat(foodRating)) / (currentReviewCount + 1);
+                var newHostHygieneRating = ((parseFloat(host.hygieneGrade) * currentReviewCount) + parseFloat(hygieneRating)) / (currentReviewCount + 1);
+
+                const updateHostRating = await host.update(
                     {
                         foodRating: newHostFoodRating.toFixed(2),
                         hygieneGrade: newHostHygieneRating.toFixed(2),
-                        reviewsCount: host.reviewsCount + 1,
+                        reviewsCount: currentReviewCount + 1,
                     },
                     {
                         where: { userID: hostID }

@@ -13,6 +13,7 @@ function startWebSocketServer(app) {
     const connectedUsers = new Map(); // Map to store user connections and their WebSocket instances
     const userRooms = new Map(); // Map to store user IDs and their associated room IDs
     const chatRooms = new Map(); // Map to store chatID and userIDs in the room
+    let clientStore = {};
     let chatID = null;
 
     async function getChatAndMessages(chatID){
@@ -83,14 +84,34 @@ function startWebSocketServer(app) {
 
 
     wss.on("connection", (ws) => {
-        ws.id = Universal.generateUniqueID();
+        connectionID = Universal.generateUniqueID();
         ws.on("message", async (message) => {
             const parsedMessage = JSON.parse(message);
             if (parsedMessage.action === "connect") {
                 let userID = parsedMessage.userID;
-                let username = parsedMessage.username;
-                let userType = parsedMessage.userType;
                 let chatPartnerUsername = null;
+                let userType;
+                let userName;
+
+                try{
+                    const user = await Guest.findByPk(userID);
+                    if(user){
+                        userType = "Guest";
+                        userName = user.username;
+                    }
+                    else if(!user){
+                        const host = await Host.findByPk(userID);
+                        if(host){
+                            userType = "Host";
+                            userName = host.username;
+                        }
+                    }
+                }catch(error){
+                    console.error("Error fetching user:", error);
+                    const jsonMessage = { action: "error", message: "Error fetching user" };
+                    ws.send(JSON.stringify(jsonMessage));
+                    return;
+                }
 
                 if (userType === "Guest") {
                     try {

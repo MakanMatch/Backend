@@ -143,6 +143,12 @@ function startWebSocketServer(app) {
 
                             let chatID = await getChatID(userID, hostID);
                             clientStore[userID].chatID = chatID;
+                            let status = checkChatPartnerOnline(clientStore, chatID);
+                            if (status === true) {
+                                ws.send(JSON.stringify({ action: "chat_partner_online" }));
+                            } else {
+                                ws.send(JSON.stringify({ action: "chat_partner_offline" }));
+                            }
                         }
                     } catch (error) {
                         console.error("Error connecting guest:", error);
@@ -180,8 +186,6 @@ function startWebSocketServer(app) {
 
                                 let chatID = await getChatID(userID, hostID);
                                 clientStore[userID].chatID = chatID;
-                                clientStore[hostID] = clientStore[hostID] || {};
-                                clientStore[hostID].chatID = chatID;
                             }
                         }
 
@@ -200,8 +204,6 @@ function startWebSocketServer(app) {
 
                                 let chatID = await getChatID(userID, guestID);
                                 clientStore[userID].chatID = chatID;
-                                clientStore[guestID] = clientStore[guestID] || {};
-                                clientStore[guestID].chatID = chatID;
                             }
                         }
                     } catch (error) {
@@ -225,7 +227,19 @@ function startWebSocketServer(app) {
         ws.on("close", () => {
             for (const userID in clientStore) {
                 if (clientStore[userID].ws === ws) {
+                    const chatID = clientStore[userID].chatID;
+
+                    const remainingUser = Object.entries(clientStore).find(([key, value]) => value.chatID === chatID && key !== userID);
+                    if (remainingUser) {
+                        const [remainingUserID, remainingUserData] = remainingUser;
+                        if(remainingUserData.ws &&remainingUserData.ws.readyState === WebSocket.OPEN) {
+                            const message = JSON.stringify({ action: "chat_partner_offline" });
+                        
+                        remainingUserData.ws.send(message);
+                        }
+                    }
                     delete clientStore[userID];
+                    break;
                 }
             }
         });
@@ -330,6 +344,20 @@ function startWebSocketServer(app) {
         }
     }
 
+    async function checkChatPartnerOnline(clientStore, chatID) {
+        const chatPartner = Object.entries(clientStore).find(([key, value]) => value.chatID === chatID);
+        if (!chatPartner) {
+            return false;
+        }
+
+        const [partnerID, partnerData] = chatPartner;
+        if (partnerData.ws && partnerData.ws.readyState === WebSocket.OPEN) {
+            return true;
+        }
+
+        return false;
+    }
+
     function broadcastMessage(message, recipients) {
         for (const userID of recipients) {
             const client = clientStore[userID];
@@ -344,4 +372,4 @@ function startWebSocketServer(app) {
     });
 }
 
-module.exports =  startWebSocketServer ;
+module.exports =  startWebSocketServer;

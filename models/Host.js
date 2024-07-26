@@ -58,11 +58,13 @@ module.exports = (sequelize, DataTypes) => {
         },
         foodRating: {
             type: DataTypes.DOUBLE,
-            allowNull: true
+            allowNull: true,
+            defaultValue: 0
         },
         hygieneGrade: {
             type: DataTypes.DOUBLE,
-            allowNull: true
+            allowNull: true,
+            defaultValue: 0
         },
         paymentImage: {
             type: DataTypes.STRING,
@@ -83,6 +85,11 @@ module.exports = (sequelize, DataTypes) => {
         emailVerificationTokenExpiration: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        reviewsCount: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 0
         }
     }, { tableName: 'hosts' })
 

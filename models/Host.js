@@ -75,6 +75,11 @@ module.exports = (sequelize, DataTypes) => {
         emailVerificationTokenExpiration: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        reviewsCount: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 0
         }
     }, { tableName: 'hosts' })
 

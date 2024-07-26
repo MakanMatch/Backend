@@ -7,6 +7,7 @@ const { storeImages } = require("../../middleware/storeImages");
 const { Review, Host, Guest } = require('../../models');
 const Logger = require('../../services/Logger');
 const { validateToken } = require('../../middleware/auth');
+const { where } = require('sequelize');
 
 router.route("/")
     .post(validateToken, async (req, res) => {
@@ -74,6 +75,21 @@ router.route("/")
 
                 await Review.create(review);
 
+                // Update Host Food Rating
+                var newHostFoodRating = (parseInt((host.foodRating * host.reviewsCount)) + parseInt(foodRating)) / parseInt((host.reviewsCount + 1));
+                console.log(newHostFoodRating);
+                const updateHostFoodRating = await Host.update(
+                    {
+                        reviewsCount: host.reviewsCount + 1,
+                        foodRating: parseFloat(newHostFoodRating).toFixed(2)
+                    },
+                    {
+                        where: { userID: hostID }
+                    }
+                )
+                if (!updateHostFoodRating) {
+                    return res.status(500).send("ERROR: Failed to update host food rating");
+                }
                 return res.send("SUCCESS: Review submitted successfully");
             } catch (err) {
                 Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Failed to submit review; error: ${err}.`);

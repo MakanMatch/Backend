@@ -133,6 +133,42 @@ router.post("/addListing", validateToken, async (req, res) => {
     });
 });
 
+router.get("/getFavouritedListings", validateToken, async (req, res) => {
+    const userID = req.user.userID;
+    if (!userID) {
+        res.status(400).send("ERROR: Missing user ID");
+        return;
+    }
+    const userRecord = await UserRecord.findOne({
+        where: {
+            [Op.or]: [
+                { hID: userID },
+                { gID: userID },
+                { aID: userID }
+            ]
+        }
+    });
+    if (!userRecord) {
+        res.status(404).send("ERROR: User not found");
+        return;
+    }
+
+    const favouriteListingIDs = await FavouriteListing.findAll({
+        attributes: ["listingID"],
+        where: { userRecordID: userRecord.recordID }
+    });
+    if (favouriteListingIDs.length === 0) {
+        res.status(200).json([]);
+        return;
+    }
+    var listings = [];
+    for (let i = 0; i < favouriteListingIDs.length; i++) {
+        listings.push(favouriteListingIDs[i].listingID);
+    }
+    res.status(200).json(listings);
+    return;
+});
+
 router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
     const userID = req.user.userID;
     const { listingID } = req.body;

@@ -130,12 +130,12 @@ router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
     const { userID } = req.user;
     const { listingID } = req.body;
     if (!userID || !listingID) {
-        return res.status(400).send("UERROR: One or more required payloads were not provided");
+        return res.status(400).send("ERROR: One or more required payloads were not provided");
     }
 
     const findUser = await Guest.findByPk(userID) || await Host.findByPk(userID);
     if (!findUser) {
-        return res.status(404).send("UERROR: Your account details were not found");
+        return res.status(404).send("ERROR: Your account details were not found");
     }
 
     const findListing = await FoodListing.findByPk(listingID);
@@ -169,7 +169,7 @@ router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
 router.delete("/deleteListing", async (req, res) => {
     const { listingID } = req.body;
     if (!listingID) {
-        return res.status(400).send("UERROR: One or more required payloads were not provided");
+        return res.status(400).send("ERROR: One or more required payloads were not provided");
     }
     const findListing = await FoodListing.findByPk(listingID);
     if (!findListing) {

@@ -117,7 +117,7 @@ router.route("/")
                                     where: { userID: hostID }
                                 }
                             );
-                            if (updateHostFoodRating[0] === 0) {
+                            if (!updateHostFoodRating) {
                                 return res.status(500).send("ERROR: Failed to update host food rating");
                             }
                         } catch (err) {
@@ -139,7 +139,7 @@ router.route("/")
                                     where: { userID: hostID }
                                 }
                             );
-                            if (updateHostHygieneRating[0] === 0) {
+                            if (!updateHostHygieneRating) {
                                 return res.status(500).send("ERROR: Failed to update host hygiene rating");
                             }
                         } catch (err) {

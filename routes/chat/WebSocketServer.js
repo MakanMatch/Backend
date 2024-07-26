@@ -144,11 +144,16 @@ function startWebSocketServer(app) {
 
                             let chatID = await getChatID(userID, hostID);
                             clientStore[userID].chatIDs.push(chatID);  // Add chatID to chatIDs list
-                            let status = checkChatPartnerOnline(clientStore, chatID, userID);
+
+                            let status = await checkChatPartnerOnline(clientStore, chatID, userID);
+                            console.log("Status: ", status);
+                            console.log("hostID: ", hostID);
                             if (status === true) {
                                 ws.send(JSON.stringify({ action: "chat_partner_online" }));
+                                continue;
                             } else {
                                 ws.send(JSON.stringify({ action: "chat_partner_offline" }));
+                                continue;
                             }
                         }
                     } catch (error) {
@@ -187,6 +192,16 @@ function startWebSocketServer(app) {
 
                                 let chatID = await getChatID(userID, hostID);
                                 clientStore[userID].chatIDs.push(chatID);  // Add chatID to chatIDs list
+
+                                let status = await checkChatPartnerOnline(clientStore, chatID, userID);
+                                console.log("Status: ", status);
+                                if (status === true) {
+                                    ws.send(JSON.stringify({ action: "chat_partner_online" }));
+                                    break;
+                                } else {
+                                    ws.send(JSON.stringify({ action: "chat_partner_offline" }));
+                                    break;
+                                }
                             }
                         }
 
@@ -205,6 +220,14 @@ function startWebSocketServer(app) {
 
                                 let chatID = await getChatID(userID, guestID);
                                 clientStore[userID].chatIDs.push(chatID);  // Add chatID to chatIDs list
+                                let status = await checkChatPartnerOnline(clientStore, chatID, userID);
+                                if (status === true) {
+                                    ws.send(JSON.stringify({ action: "chat_partner_online" }));
+                                    break;
+                                } else {
+                                    ws.send(JSON.stringify({ action: "chat_partner_offline" }));
+                                    break;
+                                }
                             }
                         }
                     } catch (error) {
@@ -230,20 +253,26 @@ function startWebSocketServer(app) {
                 if (clientStore[userID].ws === ws) {
                     const chatIDs = clientStore[userID].chatIDs;
                     chatIDs.forEach((chatID) => {
+                        console.log("chatID: ", chatID);
                         const remainingUser = Object.entries(clientStore).find(([key, value]) => value.chatID === chatID && key !== userID);
                         if (remainingUser) {
-
                             const [remainingUserID, remainingUserData] = remainingUser;
                             if (remainingUserData.ws && remainingUserData.ws.readyState === WebSocket.OPEN) {
-                                console.log("online");
+                                console.log("Chat partner online");
                                 const message = JSON.stringify({ action: "chat_partner_online" });
                                 remainingUserData.ws.send(message);
                             }
-                        } else {
-                            console.log("offline");
-                            const message = JSON.stringify({ action: "chat_partner_offline" });
-                            broadcastMessage(message, [userID]);
                         }
+                    else {
+                        console.log("Chat partner offline");
+                        const message = JSON.stringify({ action: "chat_partner_offline" });
+                        const recipient = Object.entries(clientStore).find(([key, value]) => value.chatIDs.includes(chatID) && key !== userID);
+                        if (recipient) {
+                            const [recipientKey, recipientData] = recipient;
+                            broadcastMessage(message, [recipientData.userID]);
+                        }
+                    }
+
                     });
                     delete clientStore[userID];
                     break;
@@ -358,15 +387,12 @@ function startWebSocketServer(app) {
 
     async function checkChatPartnerOnline(clientStore, chatID, userID) {
         const chatPartner = Object.entries(clientStore).find(([key, value]) => value.chatIDs.includes(chatID) && key !== userID);
-        console.log(chatPartner);
         if (!chatPartner) {
-            console.log("Chat partner offline")
             return false;
         }
 
         const [partnerID, partnerData] = chatPartner;
         if (partnerData.ws && partnerData.ws.readyState === WebSocket.OPEN) {
-            console.log("Chat partner online")
             return true;
         }
 

@@ -355,7 +355,6 @@ function startWebSocketServer(app) {
     }
 
     async function handleMessageSend(receivedMessage, chatID) {
-        console.log("before savimg message");
         try {
             const message = {
                 messageID: Universal.generateUniqueID(),

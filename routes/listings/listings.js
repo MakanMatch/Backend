@@ -135,10 +135,7 @@ router.post("/addListing", validateToken, async (req, res) => {
 
 router.get("/getFavouritedListings", validateToken, async (req, res) => {
     const userID = req.user.userID;
-    if (!userID) {
-        res.status(400).send("ERROR: Missing user ID");
-        return;
-    }
+    
     const userRecord = await UserRecord.findOne({
         where: {
             [Op.or]: [

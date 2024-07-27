@@ -353,6 +353,7 @@ function startWebSocketServer(app) {
     }
 
     async function handleMessageSend(receivedMessage, chatID) {
+        console.log("before savimg message");
         try {
             const message = {
                 messageID: Universal.generateUniqueID(),
@@ -368,10 +369,14 @@ function startWebSocketServer(app) {
                 action: "send",
                 message: newMessage,
             };
-            const recipient = Object.entries(clientStore).find(([key, value]) => value.chatIDs.includes(chatID) && key !== receivedMessage.userID);
+            const recipient = await ChatHistory.findByPk(chatID);
             if (recipient) {
-                const [recipientKey, recipientData] = recipient;
-                broadcastMessage(JSON.stringify(responseMessage), [receivedMessage.userID, recipientData.userID]);
+                if(user1ID === receivedMessage.userID){
+                    recipientID = user2ID;
+                } else {
+                    recipientID = user1ID;
+                }
+                broadcastMessage(JSON.stringify(responseMessage), [receivedMessage.userID, recipientID]);
             }
         } catch (error) {
             console.error("Error sending message:", error);

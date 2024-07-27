@@ -306,10 +306,11 @@ function startWebSocketServer(app) {
             await findMessage.save();
 
             const responseMessage = { action: "edit", message: findMessage.message, messageID: messageId };
-            const recipient = Object.entries(clientStore).find(([key, value]) => value.chatIDs.includes(chatHistory.chatID) && key !== editedMessage.userID);
-            if (recipient) {
-                const [recipientKey, recipientValue] = recipient;
-                broadcastMessage(JSON.stringify(responseMessage), [userID, recipientValue.userID]);
+            const chathistoryID = await ChatHistory.findByPk(chatHistory.chatID);
+            if (chathistoryID) {
+                const user1ID = chathistoryID.user1ID;
+                const user2ID = chathistoryID.user2ID;
+                broadcastMessage(JSON.stringify(responseMessage), [user1ID, user2ID]);
             }
         } catch (error) {
             console.error("Error editing message:", error);
@@ -341,10 +342,11 @@ function startWebSocketServer(app) {
             await findMessage.destroy();
 
             const responseMessage = { action: "delete", messageID: findMessage.messageID };
-            const recipient = Object.entries(clientStore).find(([key, value]) => value.chatIDs.includes(chatHistory.chatID) && key !== deletedMessage.userID);
-            if (recipient) {
-                const [recipientKey, recipientValue] = recipient;
-                broadcastMessage(JSON.stringify(responseMessage), [deletedMessage.userID, recipientValue.userID]);
+            const chathistoryID = await ChatHistory.findByPk(chatHistory.chatID);
+            if (chathistoryID) {
+                const user1ID = chathistoryID.user1ID;
+                const user2ID = chathistoryID.user2ID;
+                broadcastMessage(JSON.stringify(responseMessage), [user1ID, user2ID]);
             }
         } catch (error) {
             console.error("Error deleting message:", error);
@@ -371,12 +373,9 @@ function startWebSocketServer(app) {
             };
             const recipient = await ChatHistory.findByPk(chatID);
             if (recipient) {
-                if(user1ID === receivedMessage.userID){
-                    recipientID = user2ID;
-                } else {
-                    recipientID = user1ID;
-                }
-                broadcastMessage(JSON.stringify(responseMessage), [receivedMessage.userID, recipientID]);
+                const user1ID = recipient.user1ID;
+                const user2ID = recipient.user2ID;
+                broadcastMessage(JSON.stringify(responseMessage), [user1ID, user2ID]);
             }
         } catch (error) {
             console.error("Error sending message:", error);

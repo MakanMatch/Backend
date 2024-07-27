@@ -147,10 +147,10 @@ function startWebSocketServer(app) {
 
                             let status = await checkChatPartnerOnline(clientStore, chatID, userID);
                             if (status === true) {
-                                ws.send(JSON.stringify({ action: "chat_partner_online" }));
+                                ws.send(JSON.stringify({ action: "chat_partner_online", chatID: chatID }));
                                 continue;
                             } else {
-                                ws.send(JSON.stringify({ action: "chat_partner_offline" }));
+                                ws.send(JSON.stringify({ action: "chat_partner_offline", chatID: chatID }));
                                 continue;
                             }
                         }
@@ -193,10 +193,10 @@ function startWebSocketServer(app) {
 
                                 let status = await checkChatPartnerOnline(clientStore, chatID, userID);
                                 if (status === true) {
-                                    ws.send(JSON.stringify({ action: "chat_partner_online" }));
+                                    ws.send(JSON.stringify({ action: "chat_partner_online" , chatID: chatID}));
                                     break;
                                 } else {
-                                    ws.send(JSON.stringify({ action: "chat_partner_offline" }));
+                                    ws.send(JSON.stringify({ action: "chat_partner_offline" , chatID: chatID}));
                                     break;
                                 }
                             }
@@ -219,10 +219,10 @@ function startWebSocketServer(app) {
                                 clientStore[userID].chatIDs.push(chatID);  // Add chatID to chatIDs list
                                 let status = await checkChatPartnerOnline(clientStore, chatID, userID);
                                 if (status === true) {
-                                    ws.send(JSON.stringify({ action: "chat_partner_online" }));
+                                    ws.send(JSON.stringify({ action: "chat_partner_online" , chatID: chatID}));
                                     break;
                                 } else {
-                                    ws.send(JSON.stringify({ action: "chat_partner_offline" }));
+                                    ws.send(JSON.stringify({ action: "chat_partner_offline" , chatID: chatID}));
                                     break;
                                 }
                             }

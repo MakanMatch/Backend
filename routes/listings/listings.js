@@ -133,7 +133,7 @@ router.post("/addListing", validateToken, async (req, res) => {
     });
 });
 
-router.get("/getFavouritedListings", validateToken, async (req, res) => {
+router.get("/getFavouritedListingsID", validateToken, async (req, res) => {
     const userID = req.user.userID;
     
     const userRecord = await UserRecord.findOne({

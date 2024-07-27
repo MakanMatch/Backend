@@ -143,10 +143,19 @@ router.get("/getFavouritedListings", validateToken, async (req, res) => {
                 { gID: userID },
                 { aID: userID }
             ]
-        }
+        },
+        include: [{
+            model: FoodListing,
+            as: "favourites",
+        }]
     });
     if (!userRecord) {
         res.status(404).send("ERROR: User not found");
+        return;
+    }
+
+    if (userRecord.favourites.length === 0) {
+        res.status(200).json([]);
         return;
     }
 
@@ -154,10 +163,7 @@ router.get("/getFavouritedListings", validateToken, async (req, res) => {
         attributes: ["listingID"],
         where: { userRecordID: userRecord.recordID }
     });
-    if (favouriteListingIDs.length === 0) {
-        res.status(200).json([]);
-        return;
-    }
+
     var listings = [];
     for (let i = 0; i < favouriteListingIDs.length; i++) {
         listings.push(favouriteListingIDs[i].listingID);

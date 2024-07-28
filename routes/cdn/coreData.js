@@ -298,40 +298,28 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
     const fetchHostsOnly = req.query.fetchHostsOnly || "false";
 
     const findHosts = await Host.findAll();
-        const hostsWithUserType = await Promise.all(findHosts.map(async host => {
-            const hostObj = host.toJSON(); // Convert Sequelize instance to plain object
-            hostObj.userType = "Host";
-            if (hostObj.profilePicture != null) {
-                const findImageName = await FileManager.prepFile(hostObj.profilePicture);
-                if (findImageName.startsWith("SUCCESS")) {
-                    hostObj.profilePicture = `localhost:8000/${findImageName.substring("SUCCESS: File path: ".length)}`;
-                }
-            }
-            return hostObj;
-        }));
+    const hostsWithUserType = await Promise.all(findHosts.map(async host => {
+        const hostObj = host.toJSON(); // Convert Sequelize instance to plain object
+        hostObj.userType = "Host";
+        return hostObj;
+    }));
 
     if (fetchHostsOnly === "false") {
         const findGuests = await Guest.findAll();
         const guestsWithUserType = await Promise.all(findGuests.map(async guest => {
             const guestObj = guest.toJSON(); // Convert Sequelize instance to plain object
             guestObj.userType = "Guest";
-            if (guestObj.profilePicture != null) {
-                const findImageName = await FileManager.prepFile(guestObj.profilePicture);
-                if (findImageName.startsWith("SUCCESS")) {
-                    guestObj.profilePicture = findImageName.substring("SUCCESS: File path: ".length);
-                }
-            }
             return guestObj;
         }));
         const allUsers = hostsWithUserType.concat(guestsWithUserType);
         if (allUsers) {
-            res.status(200).json(allUsers);
+            res.status(200).json(Extensions.sanitiseData(allUsers, ["userID", "username", "email", "userType", "hygieneGrade"], ["password"]));
         } else {
             res.status(200).send([]);
         }
     } else {
         if (hostsWithUserType) {
-            res.status(200).json(hostsWithUserType);
+            res.status(200).json(Extensions.sanitiseData(hostsWithUserType, ["userID", "username", "email", "userType", "hygieneGrade"], ["password"]));
         } else {
             res.status(200).send([]);
         }

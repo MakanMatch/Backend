@@ -81,26 +81,46 @@ function startWebSocketServer(app) {
         }
 
         try {
-            let chatHistory = await ChatHistory.findByPk(chatID, {
-                include: [{
-                    model: ChatMessage,
-                    as: "messages",
-                    order: [["datetime", "ASC"]]
-                }]
-            });
+            let chatHistory = await ChatHistory.findByPk(chatID);
             if (!chatHistory) {
                 ws.send(ChatEvent.error("Chat history not found."))
                 return;
             }
 
-            const previousMessages = chatHistory.toJSON().messages;
+            var previousMessages = await ChatMessage.findAll({
+                where: {
+                    chatID: chatID
+                },
+                order: [["datetime", "ASC"]]
+            })
+            if (!Array.isArray(previousMessages)) {
+                ws.send(ChatEvent.error("Failed to retrieve chat messages. Please try again."))
+                return;
+            }
+
+            // Convert messages to JSON
+            previousMessages = previousMessages.map(msg => msg.toJSON());
+
+            // Process and add the replyTo parameter for messages with replies
+            const processedMessages = previousMessages.map(msg => {
+                if (msg.replyToID) {
+                    const targetMessage = previousMessages.filter(filterMsg => filterMsg.messageID == msg.messageID)
+                    if (targetMessage[0]) {
+                        msg.replyTo = targetMessage[0].message
+                    }
+                }
+
+                return msg;
+            })
 
             const message = {
                 action: "chat_history",
-                previousMessages: previousMessages,
+                previousMessages: processedMessages,
                 chatID: chatHistory.chatID,
             };
-            
+
+            console.log(processedMessages)
+
             broadcastMessage(message, chatID);
             return;
         } catch (error) {
@@ -252,7 +272,7 @@ function startWebSocketServer(app) {
                             {
                                 model: Guest,
                                 as: "guests",
-                                attributes: ["user", "username"]
+                                attributes: ["userID", "username"]
                             }
                         ]
                     })
@@ -270,7 +290,7 @@ function startWebSocketServer(app) {
 
                             // Get chat ID
                             const chatID = await getChatID(guestID, user.userID)
-                            if (chatID instanceof "string" && chatID.startsWith("ERROR")) {
+                            if (typeof chatID == "string" && chatID.startsWith("ERROR")) {
                                 Logger.log(`CHAT WEBSOCKETSERVER CONNECTION ERROR: Failed to retrieve/generate chat history for guest ${guestID} and host ${userID}; error: ${chatID}`)
                                 ws.send(ChatEvent.error("Failed to formulate chat history. Please try again."))
                                 return
@@ -408,13 +428,22 @@ function startWebSocketServer(app) {
         }
         
         try {
-            const message = {
+            var message = {
                 messageID: Universal.generateUniqueID(),
                 chatID,
                 sender: receivedMessage.sender,
                 message: receivedMessage.message,
                 datetime: new Date().toISOString(),
             };
+            var broadcastJSON = message;
+
+            if (receivedMessage.replyToID && typeof receivedMessage.replyToID == "string") {
+                const replyTargetMessage = await ChatMessage.findByPk(receivedMessage.replyToID, { attributes: ["messageID", "message"] })
+                if (replyTargetMessage) {
+                    message.replyToID = replyTargetMessage.messageID
+                    broadcastJSON.replyTo = replyTargetMessage.message
+                }
+            }
 
             const newMessage = await ChatMessage.create(message);
 
@@ -425,8 +454,13 @@ function startWebSocketServer(app) {
 
             const responseMessage = {
                 action: "send",
-                message: message,
+                message: broadcastJSON,
             };
+
+            console.log("SQL Message:")
+            console.log(message)
+            console.log("Broadcast message:")
+            console.log(broadcastJSON)
             
             broadcastMessage(responseMessage, chatID)
         } catch (error) {

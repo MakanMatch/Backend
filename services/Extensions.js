@@ -10,6 +10,12 @@ class Extensions {
         return Object.fromEntries(Object.entries(dictionary).filter(([k, v]) => predicate(k, v)))
     }
 
+    /**
+     * 
+     * @param {Date} beforeDate 
+     * @param {Date} afterDate 
+     * @returns {number}
+     */
     static timeDiffInSeconds(beforeDate, afterDate) {
         return (afterDate.getTime() - beforeDate.getTime()) / 1000;
     }

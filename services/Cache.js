@@ -1,5 +1,14 @@
 const FileOps = require("./FileOps");
 
+/**
+ * Cache class to store data in memory and persist to disk. Key-value store for small persistence needs.
+ * 
+ * @method load: Load the cache from disk
+ * @method save: Save the cache to disk
+ * @method set: Set a key-value pair in the cache
+ * @method get: Get a value from the cache using the key
+ * @method delete: Delete a key-value pair from the cache
+ */
 class Cache {
     static cache = {};
     static dataFile = "cache.json"

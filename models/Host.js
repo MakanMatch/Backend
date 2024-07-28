@@ -1,3 +1,6 @@
+const { v4: uuidv4 } = require('uuid');
+const Logger = require('../services/Logger');
+
 /**
  * 
  * @param {import('sequelize').Sequelize} sequelize 
@@ -10,6 +13,14 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: false,
             primaryKey: true
+        },
+        fname: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        lname: {
+            type: DataTypes.STRING,
+            allowNull: false
         },
         username: {
             type: DataTypes.STRING,
@@ -47,11 +58,13 @@ module.exports = (sequelize, DataTypes) => {
         },
         foodRating: {
             type: DataTypes.DOUBLE,
-            allowNull: true
+            allowNull: true,
+            defaultValue: 0
         },
         hygieneGrade: {
             type: DataTypes.DOUBLE,
-            allowNull: true
+            allowNull: true,
+            defaultValue: 0
         },
         paymentImage: {
             type: DataTypes.STRING,
@@ -72,16 +85,40 @@ module.exports = (sequelize, DataTypes) => {
         emailVerificationTokenExpiration: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        reviewsCount: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 0
         }
     }, { tableName: 'hosts' })
 
     // Associations
     Host.associate = (models) => {
-        Host.hasMany(models.FoodListing)
+        Host.hasMany(models.FoodListing, {
+            foreignKey: "hostID"
+        })
+
         Host.hasMany(models.Review)
+
         Host.belongsToMany(models.Admin, {
             through: models.Warning,
             as: "warnings"
+        })
+    }
+
+    Host.hook = (models) => {
+        Host.afterCreate("createUserRecord", async (host, options) => {
+            try {
+                await models.UserRecord.create({
+                    recordID: uuidv4(),
+                    hID: host.userID,
+                    gID: null,
+                    aID: null
+                })
+            } catch (err) {
+                Logger.log(`SEQUELIZE HOST AFTERCREATE HOOK ERROR: Failed to auto-create UserRecord for new Host with ID ${host.userID}; error: ${err}`)
+            }
         })
     }
 

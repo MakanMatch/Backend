@@ -1,73 +1,52 @@
 const express = require('express');
 const router = express.Router();
-const { Universal } = require("../../services")
 const { Review, ReviewLike } = require('../../models');
 const Logger = require('../../services/Logger');
+const { validateToken } = require('../../middleware/auth');
 
 router.route("/")
-    .post(async (req, res) => {
-        const { reviewID, guestID } = req.body;
-        if (!reviewID || !guestID) {
-            return res.status(400).send("ERROR: Missing required fields");
+    .post(validateToken, async (req, res) => {
+        const guestID = req.user.userID;
+        if (!guestID) {
+            return res.status(400).send("ERROR: Missing guest ID");
+        }
+        const { reviewID } = req.body;
+        if (!reviewID) {
+            return res.status(400).send("ERROR: Missing review ID");
         }
 
         try {
-            const existingLike = await ReviewLike.findOne({
-                where: {
-                    reviewID: reviewID,
-                    guestID: guestID
-                }
-            });
+            const review = await Review.findByPk(reviewID)
+            if (!review) {
+                return res.status(404).send("ERROR: Review not found");
+            }
+            const existingLike = await ReviewLike.findOne({ where: { reviewID, guestID } });
             if (existingLike) {
-                await ReviewLike.destroy({
-                    where: {
-                        reviewID: reviewID,
-                        guestID: guestID
-                    }
-                });
-                await Review.decrement('likeCount', {
-                    where: {
-                        reviewID: reviewID
-                    }
-                });
-                const updateReview = await Review.findOne({
-                    where: {
-                        reviewID: reviewID
-                    },
-                    attributes: ['likeCount']
-                });
-
-                res.json({
-                    message: "SUCCESS: Review unliked.",
-                    liked: false,
-                    likeCount: updateReview.likeCount
-                })
-            } else {
-                const createLike = await ReviewLike.create({
-                    reviewID: reviewID,
-                    guestID: guestID,
-                });
-                if (!createLike) {
-                    return res.status(500).send("ERROR: Failed to like review");
+                const unlikeReview = await ReviewLike.destroy({ where: { reviewID, guestID } }); // Unlike review
+                review.likeCount -= 1;
+                const updateReview = await review.save()
+                if (!unlikeReview || !updateReview) {
+                    return res.status(500).send("ERROR: Failed to unlike review");
+                } else {
+                    res.json({
+                        message: "SUCCESS: Review unliked.",
+                        liked: false,
+                        likeCount: review.likeCount
+                    })
                 }
-                await Review.increment('likeCount', {
-                    where: {
-                        reviewID: reviewID
-                    }
-                });
-
-                const updateReview = await Review.findOne({
-                    where: {
-                        reviewID: reviewID
-                    },
-                    attributes: ['likeCount']
-                });
-
-                res.json({
-                    message: "SUCCESS: Review liked.",
-                    liked: true,
-                    likeCount: updateReview.likeCount
-                })
+            } else {
+                const likeReview = await ReviewLike.create({ reviewID, guestID }); // Like review
+                review.likeCount += 1;
+                const updateReview = await review.save()
+                if (!likeReview || !updateReview) {
+                    return res.status(500).send("ERROR: Failed to like review");
+                } else {
+                    res.json({
+                        message: "SUCCESS: Review liked.",
+                        liked: true,
+                        likeCount: review.likeCount
+                    })
+                }
             }
         } catch (err) {
             Logger.log(`REVIEWS LIKEREVIEW POST ERROR: Failed to like / unlike review; error: ${err}.`);

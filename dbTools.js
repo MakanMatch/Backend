@@ -118,47 +118,6 @@ async function createGuest() {
     console.log(createdGuestIDs.length + " guests created successfully.")
 }
 
-async function createReservation() {
-    var creating = true;
-    var createdReservationIDs = []
-    const allReservationReferences = (await Reservation.findAll({ attributes: ['referenceNum'] })).map(r => r.referenceNum)
-    while (creating) {
-        console.log("")
-        console.log("Creating a new reservation...")
-
-        const referenceNum = Universal.generateUniqueID(6, allReservationReferences).toUpperCase()
-        try {
-            const reservation = await Reservation.create({
-                guestID: prompt("Guest ID: "),
-                listingID: prompt("Listing ID: "),
-                referenceNum: referenceNum,
-                datetime: new Date().toISOString(),
-                portions: parseInt(prompt("Portion: ")),
-                totalPrice: parseFloat(prompt("Total price: ")),
-                markedPaid: prompt("Marked paid? (1/0): "),
-                paidAndPresent: prompt("Paid and present? (1/0): ")
-            })
-        } catch (err) {
-            console.log("Failed to create reservation; error: " + err)
-            creating = prompt("Try again? (y/n) ") == "y"
-            console.log("")
-            continue
-        }
-
-        console.log("Reservation created!")
-        console.log(`Food Listing ID: ${referenceNum}`)
-        console.log("")
-        createdReservationIDs.push(referenceNum)
-
-        if (prompt("Create another reservations? (y/n): ").toLowerCase() !== 'y') {
-            creating = false;
-            console.log("")
-        }
-    }
-
-    console.log(createdReservationIDs.length + " reservation created successfully.")
-}
-
 async function signJWT() {
     console.log("")
     if (!process.env.JWT_KEY) { console.log("JWT_KEY not found in .env; aborting..."); return; }
@@ -234,11 +193,7 @@ sequelize.sync({ alter: true })
         if (tools.includes("createguest")) {
             await createGuest()
         }
-
-        if (tools.includes("createreservation")) {
-            await createReservation()
-        }
-
+  
         if (tools.includes("signjwt")) {
             await signJWT()
         }

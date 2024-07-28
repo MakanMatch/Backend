@@ -51,6 +51,10 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.BOOLEAN,
             alowNull: false,
             defaultValue: false
+        },
+        coordinates: {
+            type: DataTypes.STRING,
+            allowNull: false
         }
     }, { tableName: 'foodListings' })
 
@@ -60,9 +64,16 @@ module.exports = (sequelize, DataTypes) => {
             foreignKey: "hostID",
             onDelete: "cascade"
         })
+        
         FoodListing.belongsToMany(models.Guest, {
             through: models.Reservation,
             as: "guests",
+            foreignKey: "listingID"
+        })
+
+        FoodListing.belongsToMany(models.UserRecord, {
+            through: models.FavouriteListing,
+            as: "favouredBy",
             foreignKey: "listingID"
         })
     }

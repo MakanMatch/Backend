@@ -1,5 +1,12 @@
 const { v4: uuidv4 } = require('uuid');
 
+/**
+ * Universal class to store standardised data and functions.
+ * 
+ * @var data: Object - Data store
+ * @var booted: boolean - Whether the class has been booted
+ * @method generateUniqueID: Generate a unique ID. Default generation is with `uuid`. Provide custom length to generate a custom length ID. Provide an array of IDs to avoid in the `notIn` parameter (recommended if specifying custom length).
+ */
 class Universal {
     static data = {};
     static booted = false;

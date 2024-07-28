@@ -2,7 +2,20 @@ const FireStorage = require('./FireStorage');
 const FileOps = require('./FileOps')
 const path = require('path');
 
-// Uses on-demand principle with a local file store for performance efficiency. Cloud remains the source of truth.
+/**
+ * Uses on-demand principle with a local file store for performance efficiency. Cloud remains the source of truth.
+ * 
+ * Files are stored in `./FileStore` directory. File metadata is stored in `./FileStore/context.json`. Both data stores are maintained by this service.
+ * 
+ * Calling `prepFile` will guarantee the existence of the most updated version of the file in the `FileStore` directory if it exists in Firebase Cloud Storage.
+ * 
+ * Calling `saveFile` will persist a file in `FileStore` to Firebase Cloud Storage and will also synchronise with the file store context.
+ * 
+ * Example usage:
+ * ```js
+ * 
+ * ```
+ */
 class FileManager {
     static #initialized = false;
     static fileStorePath = path.join(__dirname, '../FileStore')

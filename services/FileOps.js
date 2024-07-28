@@ -1,6 +1,18 @@
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * FileOps class to perform file operations. Helps you carry out file operations more easily. Uses `fs` module internally.
+ * 
+ * @method exists: Checks if a file or directory exists
+ * @method read: Reads a file
+ * @method writeTo: Writes to a file
+ * @method appendTo: Appends to a file
+ * @method getFilenames: Gets all filenames in a directory
+ * @method deleteFile: Deletes a file
+ * @method createFolder: Creates a directory
+ * @method deleteFolder: Deletes a directory
+ */
 class FileOps {
     static exists(path) {
         return fs.existsSync(path);

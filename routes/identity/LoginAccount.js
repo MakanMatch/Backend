@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
 const { Encryption, Logger } = require('../../services');
+const TokenManager = require('../../services/TokenManager').default();
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
@@ -60,11 +61,7 @@ router.post("/", async (req, res) => {
         }
 
         // Generate jwt
-        const accessToken = jwt.sign(
-            userInfo,
-            process.env.JWT_KEY,
-            { expiresIn: '24h' }
-        );
+        const accessToken = TokenManager.sign(userInfo);
 
         // Login success
         Logger.log(`IDENTITY LOGINACCOUNT: Account with userID ${user.userID} logged in.`)

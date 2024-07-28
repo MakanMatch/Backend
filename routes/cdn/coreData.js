@@ -294,4 +294,40 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
     }
 })
 
+router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all users
+    const findGuests = await Guest.findAll();
+    const findHosts = await Host.findAll();
+
+    const guestsWithUserType = await Promise.all(findGuests.map(async guest => {
+        const guestObj = guest.toJSON(); // Convert Sequelize instance to plain object
+        guestObj.userType = "Guest";
+        if (guestObj.profilePicture != null) {
+            const findImageName = await FileManager.prepFile(guestObj.profilePicture);
+            if (findImageName.startsWith("SUCCESS")) {
+                guestObj.profilePicture = findImageName.substring("SUCCESS: File path: ".length);
+            }
+        }
+        return guestObj;
+    }));
+
+    const hostsWithUserType = await Promise.all(findHosts.map(async host => {
+        const hostObj = host.toJSON(); // Convert Sequelize instance to plain object
+        hostObj.userType = "Host";
+        if (hostObj.profilePicture != null) {
+            const findImageName = await FileManager.prepFile(hostObj.profilePicture);
+            if (findImageName.startsWith("SUCCESS")) {
+                hostObj.profilePicture = `localhost:8000/${findImageName.substring("SUCCESS: File path: ".length)}`;
+            }
+        }
+        return hostObj;
+    }));
+    
+    const allUsers = guestsWithUserType.concat(hostsWithUserType);
+    if (allUsers) {
+        res.status(200).json(allUsers);
+    } else {
+        res.status(200).send([]);
+    }
+});
+
 module.exports = { router, at: '/cdn' };

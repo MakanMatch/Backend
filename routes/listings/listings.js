@@ -145,6 +145,7 @@ router.get("/getFavouritedListingsID", validateToken, async (req, res) => {
             ]
         },
         include: [{
+            attributes: ["listingID"],
             model: FoodListing,
             as: "favourites",
         }]
@@ -159,15 +160,11 @@ router.get("/getFavouritedListingsID", validateToken, async (req, res) => {
         return;
     }
 
-    const favouriteListingIDs = await FavouriteListing.findAll({
-        attributes: ["listingID"],
-        where: { userRecordID: userRecord.recordID }
-    });
-
     var listings = [];
-    for (let i = 0; i < favouriteListingIDs.length; i++) {
-        listings.push(favouriteListingIDs[i].listingID);
+    for (let i = 0; i < userRecord.favourites.length; i++) {
+        listings.push(userRecord.favourites[i].listingID);
     }
+    
     res.status(200).json(listings);
     return;
 });

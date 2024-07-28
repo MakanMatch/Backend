@@ -20,7 +20,7 @@ router.post("/addListing", validateToken, async (req, res) => {
             portionPrice: yup.number().min(1).max(10).required(),
             totalSlots: yup.number().min(1).max(10).required(),
             datetime: yup.string().trim().required(),
-            publishInstantly: yup.boolean().required(),
+            publishInstantly: yup.boolean().required()
         });
 
         if (req.files.length === 0) {

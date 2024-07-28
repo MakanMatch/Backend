@@ -1,6 +1,22 @@
 const FileOps = require('./FileOps')
 require('dotenv').config()
 
+/**
+ * Logger class to log messages to a file
+ * 
+ * Recommended format for log messages:
+ * 
+ * `ROUTENAME SERVICENAME FUNCTIONNAME [METHOD] [ERROR]: Message here`
+ * 
+ * Provide as many log tags as you wish to help identify the source of the log message. These log tags can be used for filtering later on to group and analyse log messages.
+ * 
+ * @method checkPermission: Checks if the system has permission to log messages
+ * @method setup: Sets up the logger database file
+ * @method log: Logs a message
+ * @method destroyLogs: Deletes the logs file
+ * @method readLogs: Reads all logs
+ * @method logAndThrow: Logs a message and throws an error (`Error` object)
+ */
 class Logger {
     static logsFile = "logs.txt"
 

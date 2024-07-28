@@ -16,14 +16,33 @@ router.get('/myAccount', validateToken, (req, res) => {
 });
 
 router.get("/listings", async (req, res) => { // GET all food listings
+    const hostID = req.query.hostID;
+    const includeHost = req.query.includeHost;
+    const includeReservations = req.query.includeReservations;
+    var whereClause = { published: true };
+    if (hostID) {
+        whereClause.hostID = hostID;
+    }
+
+    var includeClause = []
+    if (includeHost == 'true') {
+        includeClause.push({
+            model: Host,
+            as: "Host",
+            attributes: ["userID", "username", "foodRating"]
+        })
+    }
+    if (includeReservations == 'true') {
+        includeClause.push({
+            model: Guest,
+            as: "guests"
+        })
+    }
+
     try {
         const foodListings = await FoodListing.findAll({
-            where: { published: true },
-            include: [{
-                model: Host,
-                as: "Host",
-                attributes: ["userID", "username", "foodRating"]
-            }]
+            where: whereClause,
+            include: includeClause
         });
 
         const listingsWithImagesArray = foodListings.map(listing => {
@@ -69,26 +88,70 @@ router.get("/checkFavouriteListing", async (req, res) => { // GET favourite list
     }
 });
 
-router.get("/getListing", async (req, res) => {
+router.get("/getListing", checkUser, async (req, res) => {
     const listingID = req.query.id || req.body.listingID;
     const includeReservations = req.query.includeReservations;
+    const includeHost = req.query.includeHost;
+
+    var includeClause = []
+    if (includeReservations == 'true') {
+        includeClause.push({
+            model: Guest,
+            as: "guests"
+        })
+    }
+    if (includeHost == 'true') {
+        includeClause.push({
+            model: Host,
+            as: "Host"
+        })
+    }
+
     if (!listingID) {
         res.status(400).send("ERROR: Listing ID not provided.")
         return
     }
 
     const listing = await FoodListing.findByPk(listingID, {
-        include: includeReservations ? [{
-            model: Guest,
-            as: "guests"
-        }] : []
+        include: includeClause
     })
 
     if (!listing || listing == null) {
         res.status(404).send("ERROR: Listing not found")
         return
     }
-    res.json(listing)
+
+    var isHost = req.user && listing.hostID == req.user.userID;
+    if (!isHost && !listing.published) {
+        res.status(404).send("ERROR: Listing not found")
+        return
+    }
+    
+    res.json(
+        Extensions.sanitiseData(listing.toJSON(), [
+            "listingID",
+            "title",
+            "images",
+            "shortDescription",
+            "longDescription",
+            "datetime",
+            "portionPrice",
+            "approxAddress",
+            "address",
+            "totalSlots",
+            "published",
+            "hostID",
+            "userID",
+            "username",
+            "mealsMatched",
+            "foodRating",
+            "hygieneGrade",
+            "referenceNum",
+            "guestID",
+            "portions",
+            "totalPrice"
+        ], ["createdAt", "updatedAt"])
+    )
     return
 })
 
@@ -120,6 +183,8 @@ router.get("/accountInfo", async (req, res) => { // GET account information
 
         const accountInfo = {
             userID: user.userID,
+            fname: user.fname,
+            lname: user.lname,
             username: user.username,
             email: user.email,
             contactNum: user.contactNum,
@@ -200,22 +265,30 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
                         attributes: ['username']
                     }]
                 })
+
+                const reviewsJSON = reviews.map(review => review.toJSON());
+                
                 if (!checkGuest) {
                     const likedReviews = await ReviewLike.findAll({
                         where: {
                             guestID: guestID
-                        }
+                        },
+                        attributes: ['reviewID']
                     });
                     if (likedReviews.length > 0) {
                         const likedReviewIDs = likedReviews.map(likedReview => likedReview.reviewID);
-                        reviews.forEach(review => {
-                            review.dataValues.isLiked = likedReviewIDs.includes(review.reviewID);
+                        reviewsJSON.forEach(review => { 
+                            review.isLiked = likedReviewIDs.includes(review.reviewID); 
                         });
                     }
+                } else {
+                    reviewsJSON.forEach(review => { 
+                        review.isLiked = false; 
+                    });
                 }
 
                 if (order === "images") {
-                    reviews.sort((a, b) => {
+                    reviewsJSON.sort((a, b) => {
                         const imageCountA = a.images ? a.images.split("|").length : 0;
                         const imageCountB = b.images ? b.images.split("|").length : 0;
                         return imageCountB - imageCountA;
@@ -223,7 +296,7 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
                 }
 
                 if (reviews.length > 0) {
-                    res.json(reviews);
+                    res.json(reviewsJSON.length > 0 ? reviewsJSON : []);
                 } else {
                     return res.status(200).json([]);
                 }

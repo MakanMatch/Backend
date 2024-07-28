@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
 const { Emailer, Universal, Encryption, Logger } = require('../../services');
+const axios = require('axios');
 require('dotenv').config();
 
 async function isUniqueUsername(username) {
@@ -26,11 +27,26 @@ async function isUniqueContactNum(contactNum) {
 }
 
 router.post("/", async (req, res) => {
-    // console.log("Received at CreateAccount");
-    const { username, email, password, contactNum, address, isHostAccount } = req.body;
-    console.log(req.body);
+    const { username, fname, lname,  email, password, contactNum, blkNo, street, postalCode, unitNum, isHostAccount } = req.body;
+
+    // const address = `Block ${blkNo} ${street} ${postalCode} #${unitNum}`;
+    let address = '';
+    if (blkNo && unitNum) {
+        address = `Block ${blkNo} ${street} ${postalCode} #${unitNum}`;
+    } else if (blkNo) {
+        address = `Block ${blkNo} ${street} ${postalCode}`;
+    } else if (unitNum) {
+        address = `${street} ${postalCode} #${unitNum}`;
+    } else {
+        address = `${street} ${postalCode}`;
+    }
+    const nameRegex = /^[a-zA-Z]+$/;
 
     try {
+        if (!nameRegex.test(fname) || !nameRegex.test(lname)) {
+            return res.status(400).send("UERROR: First name and last name cannot contain numbers.");
+        }
+        
         if (!await isUniqueUsername(username)) {
             return res.status(400).send("UERROR: Username already exists.");
         }
@@ -45,6 +61,8 @@ router.post("/", async (req, res) => {
         const emailVeriTokenExpiration = new Date(Date.now() + 86400000).toISOString();
         const accountData = {
             userID,
+            fname,
+            lname,
             username,
             email,
             password: hashedPassword,
@@ -62,7 +80,16 @@ router.post("/", async (req, res) => {
                 return res.status(400).send("UERROR: Contact number already exists.");
             }
 
-            accountData.contactNum = parseInt(contactNum);
+            const encodedAddress = encodeURIComponent(String(address));
+            const apiKey = process.env.GMAPS_API_KEY;
+            const url = `https://maps.googleapis.com/maps/api/geocode/json?address="${encodedAddress}"&key=${apiKey}`;
+            const response = await axios.get(url);
+            const location = response.data.results[0];
+            if (!location) {
+                return res.status(400).send("UERROR: Invalid address.");
+            }
+
+            accountData.contactNum = contactNum;
             accountData.address = address;
 
             user = await Host.create(accountData);
@@ -71,10 +98,10 @@ router.post("/", async (req, res) => {
         }
 
         if (!user) {
-            return res.status(500).send("ERROR: Failed to create user.")
+            return res.status(500).send("ERROR: Failed to create user.");
         }
 
-        const origin = req.headers.origin
+        const origin = req.headers.origin;
         const verificationLink = `${origin}/auth/verifyToken?userID=${userID}&token=${emailVeriToken}`;
 
         // Send email with verification link using the Emailer service
@@ -97,8 +124,7 @@ router.post("/", async (req, res) => {
         Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created. Verification email auto-dispatched.`);
         res.send("SUCCESS: Account created. Please verify your email.");
     } catch (err) {
-        console.log(err)
-        Logger.log(`IDENTITY CREATEACCOUNT: Fail to create ${isHostAccount ? 'Host' : 'Guest'} account for user email ${email}.`)
+        Logger.log(`IDENTITY CREATEACCOUNT ERROR: Failed to create ${isHostAccount ? 'Host' : 'Guest'} account for user email ${email}.`);
         res.status(500).send("ERROR: Internal server error.");
     }
 });

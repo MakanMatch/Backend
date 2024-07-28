@@ -8,11 +8,13 @@ const router = express.Router();
 
 router.post("/createReservation", validateToken, async (req, res) => {
     const guestID = req.user.userID;
-    const { listingID, portions } = req.body;
+    var { listingID, portions } = req.body;
     if (!listingID || !portions) {
         return res.status(400).send("ERROR: One or more payloads not provided.")
-    } else if (typeof portions !== 'number' || portions <= 0) {
-        return res.status(400).send("ERROR: Payloads must be in the right format.")
+    }
+    portions = parseInt(portions)
+    if (portions == NaN || portions <= 0) {
+        return res.status(400).send("ERROR: Invalid portions value.")
     }
 
     const listing = await FoodListing.findByPk(listingID, {

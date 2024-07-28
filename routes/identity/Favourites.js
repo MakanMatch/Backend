@@ -31,6 +31,7 @@ router.get('/getFavouritedListings', validateToken, async (req, res) => {
         })
     } catch (err) {
         Logger.log(`IDENTITY FAVOURITES GETFAVOURITEDLISTINGS ERROR: Failed to retrieve favourited listings; error: ${err}.`);
+        return res.status(500).send("Failed to retrieve favourited listings.");
     }
 
     const listings = userRecord.favourites.map(listing => {

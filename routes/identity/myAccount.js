@@ -36,7 +36,9 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
     const schema = yup.object().shape({
         username: yup.string().required().trim().min(1).max(50),
         email: yup.string().required().email(),
-        contactNum: yup.string().matches(/^\d{8}$/),
+        contactNum: yup.string().matches(/^\d{8}$/, {
+            excludeEmptyString: true
+        }),
     });
 
     const userID = req.user.userID;

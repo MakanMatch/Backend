@@ -164,7 +164,7 @@ router.get("/getFavouritedListingsID", validateToken, async (req, res) => {
     for (let i = 0; i < userRecord.favourites.length; i++) {
         listings.push(userRecord.favourites[i].listingID);
     }
-    
+
     res.status(200).json(listings);
     return;
 });
@@ -172,8 +172,8 @@ router.get("/getFavouritedListingsID", validateToken, async (req, res) => {
 router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
     const userID = req.user.userID;
     const { listingID } = req.body;
-    if (!userID || !listingID) {
-        res.status(400).send("ERROR: One or more required payloads were not provided");
+    if (!listingID) {
+        res.status(400).send("ERROR: Listing ID not provided");
         return;
     }
  

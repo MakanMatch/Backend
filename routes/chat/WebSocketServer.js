@@ -5,9 +5,7 @@ const { ChatHistory, ChatMessage, Reservation, FoodListing, Host, Guest } = requ
 const Universal = require("../../services/Universal");
 const Logger = require("../../services/Logger");
 const { Op } = require('sequelize');
-const { Json } = require("sequelize/lib/utils");
 const TokenManager = require("../../services/TokenManager").default();
-const util = require('util');
 
 class ChatEvent {
     static errorEvent = "error";
@@ -45,28 +43,6 @@ function startWebSocketServer(app) {
     const PORT = 8080;
     const server = http.createServer(app);
     const wss = new WebSocket.Server({ server });
-
-    // {
-    //     "urmomconnection": {
-    //         "urmomID",
-    //         "urmomUserType",
-    //         "urmom",
-    //         "urmomWS",
-    //         "conversations": {
-    //             "urmomchatID": "urmomrecipientID"
-    //         }
-    //     }
-    // }
-
-    /**
-     * connectionID:
-     * - ws
-     * - userID (nullable, required for chat which is authorised)
-     * - user
-     * - userType
-     * - conversations
-     *   - chatID: { recipientID, reservationReferenceNum }
-     */
     let clientStore = {};
 
     async function getChatAndMessages(connectionID, parsedMessage) {
@@ -178,20 +154,7 @@ function startWebSocketServer(app) {
         }
 
         ws.on("message", async (message) => {
-            // if (clientStore[connectionID].user) {
-            //     try {
-            //         await clientStore[connectionID].user.reload()
-            //     } catch (err) {
-            //         Logger.log(`CHAT WEBSOCKETSERVER WEBSOCKET ONMESSAGE ERROR: Failed to reload user record; error: ${err}`)
-            //         ws.send(ChatEvent.error("Failed to process request. Please try again."))
-            //         ws.close(); // A failure to retrieve the user record means that the connection can no longer be sustained
-            //         return;
-            //     }
-            // }
-
             const parsedMessage = JSON.parse(message);
-            // console.log(`Action ${parsedMessage.action || "NULL"}; client store:`)
-            // console.log(util.inspect(clientStore, true))
 
             if (parsedMessage.action != "connect" && clientStore[connectionID].userID == null) {
                 ws.send(ChatEvent.error("Connect and authenticate this connection before proceeding with other actions."))
@@ -353,7 +316,6 @@ function startWebSocketServer(app) {
         })
 
         ws.on("close", () => {
-            console.log(`${connectionID} closed!`)
             broadcastActivity(connectionID, false);
             delete clientStore[connectionID];
         })

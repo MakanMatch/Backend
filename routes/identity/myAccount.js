@@ -3,7 +3,7 @@ const router = express.Router();
 const yup = require('yup');
 const axios = require('axios');
 const { Logger, Encryption } = require('../../services');
-const { Guest, Host, Admin } = require('../../models');
+const { Guest, Host, Admin, FoodListing } = require('../../models');
 const { validateToken } = require('../../middleware/auth');
 
 async function isUniqueUsername(username, currentUser) {
@@ -107,7 +107,7 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
         }
 
         deleteUser = await user.destroy();
-        
+
         if (!deleteUser) {
             Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT ERROR: Failed to delete user ${userID}`)
             res.status(500).send(`ERROR: Failed to delete user ${userID}`)
@@ -159,7 +159,7 @@ router.put('/changePassword', validateToken, async (req, res) => {
         // Update user's password
         newPasswordHashed = await Encryption.hash(newPassword);
         user.password = newPasswordHashed;
-        
+
         saveNewPassword = await user.save();
 
         if (!saveNewPassword) {
@@ -277,10 +277,28 @@ router.put('/changeAddress', validateToken, async (req, res) => {
 
         user.address = address;
         saveUser = await user.save();
-
-        if(!saveUser) {
+        if (!saveUser) {
             Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to save address for user ${userID}`);
             return res.status(500).send("ERROR: Failed to save address.");
+        }
+
+        // Update all of the host's listings
+        if (req.user.userType == "Host") {
+            const geoLocation = location.geometry.location;
+            const coordinates = { lat: geoLocation.lat, lng: geoLocation.lng };
+            const updatedListings = await FoodListing.update(
+                {
+                    coordinates: `${coordinates.lat},${coordinates.lng}`
+                },
+                {
+                    where: { hostID: user.userID }
+                }
+            )
+
+            if (!updatedListings) {
+                Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to update listings for user ${userID}`);
+                return res.status(500).send("ERROR: Failed to update listings.");
+            }
         }
 
         Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS: Address updated successfully for user ${userID}.`);

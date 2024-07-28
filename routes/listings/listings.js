@@ -19,7 +19,7 @@ router.post("/addListing", validateToken, async (req, res) => {
             longDescription: yup.string().trim().required(),
             portionPrice: yup.number().required(),
             totalSlots: yup.number().required(),
-            datetime: yup.date().required()
+            datetime: yup.string().trim().required()
         });
 
         if (req.files.length === 0) {
@@ -96,7 +96,6 @@ router.post("/addListing", validateToken, async (req, res) => {
                     approximateAddress += `, ${state}`; // For contexts outside of Singapore
                 }
 
-                const formattedDatetime = validatedData.datetime + ":00.000Z";
                 const listingDetails = {
                     listingID: Universal.generateUniqueID(),
                     title: validatedData.title,
@@ -108,7 +107,7 @@ router.post("/addListing", validateToken, async (req, res) => {
                     datetime: validatedData.datetime,
                     approxAddress: approximateAddress,
                     address: hostInfo.address,
-                    hostID: req.user.userID,
+                    hostID: hostInfo.userID,
                     coordinates: coordinates.lat + "," + coordinates.lng,
                     published: true,
                 };

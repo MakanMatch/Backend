@@ -73,31 +73,37 @@ db.Guest = require('./Guest')(sequelize, Sequelize.DataTypes);
 db.Host = require('./Host')(sequelize, Sequelize.DataTypes);
 db.Reservation = require('./Reservation')(sequelize, Sequelize.DataTypes);
 db.Review = require('./Review')(sequelize, Sequelize.DataTypes);
-db.Warning = require('./Admin')(sequelize, Sequelize.DataTypes);
+db.Warning = require('./Warning')(sequelize, Sequelize.DataTypes);
 db.ReviewLike = require('./ReviewLike')(sequelize, Sequelize.DataTypes);
+db.UserRecord = require('./UserRecord')(sequelize, Sequelize.DataTypes);
+db.FavouriteListing = require('./FavouriteListing')(sequelize, Sequelize.DataTypes);
 
 // Auto-detect and import other models (intellisense will not work for these models)
-fs
-    .readdirSync(__dirname)
-    .filter(file => {
-        return (
-            file.indexOf('.') !== 0 &&
-            file !== basename &&
-            file.slice(-3) === '.js' &&
-            file.indexOf('.test.js') === -1
-        );
-    })
-    .forEach(file => {
-        const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
-        // Add model if model not hard-imported
-        if (db[model.name] !== undefined) {
-            db[model.name] = model;
-        }
-    });
+// fs
+//     .readdirSync(__dirname)
+//     .filter(file => {
+//         return (
+//             file.indexOf('.') !== 0 &&
+//             file !== basename &&
+//             file.slice(-3) === '.js' &&
+//             file.indexOf('.test.js') === -1
+//         );
+//     })
+//     .forEach(file => {
+//         const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
+//         // Add model if model not hard-imported
+//         if (db[model.name] == undefined) {
+//             db[model.name] = model;
+//         }
+//     });
 
 Object.keys(db).forEach(modelName => {
     if (db[modelName].associate) {
         db[modelName].associate(db);
+    }
+
+    if (db[modelName].hook) {
+        db[modelName].hook(db);
     }
 });
 

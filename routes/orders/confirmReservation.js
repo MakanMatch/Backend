@@ -4,6 +4,7 @@ const { FoodListing, Guest, Reservation } = require('../../models');
 const Logger = require('../../services/Logger');
 const Universal = require('../../services/Universal');
 const yup = require('yup');
+const { Op } = require('sequelize');
 const router = express.Router();
 
 router.post("/createReservation", validateToken, async (req, res) => {
@@ -90,6 +91,7 @@ router.post("/createReservation", validateToken, async (req, res) => {
 router.post("/getReservation", validateToken, async (req, res) => {
     const guestID = req.user.userID;
     const { referenceNum, listingID } = req.body;
+
     var identifierMode = null;
     if (!referenceNum) {
         if (!listingID) {
@@ -117,6 +119,52 @@ router.post("/getReservation", validateToken, async (req, res) => {
     if (processedData['paidAndPresent'] !== undefined) { delete processedData['paidAndPresent'] }
 
     return res.status(200).json(processedData)
+})
+
+router.get("/getReservations", validateToken, async (req, res) => {
+    const guestID = req.user.userID;
+    const includeListing = req.query.includeListing == 'true' ? true : false;
+
+    var reservationsJSON;
+    try {
+        const reservations = await Reservation.findAll({
+            where: { guestID: guestID }
+        })
+        if (!reservations || reservations.length == 0) {
+            return res.send([])
+        }
+
+        reservationsJSON = reservations.map(r => r.toJSON())
+    } catch (err) {
+        Logger.log(`ORDERS CONFIRMRESERVATION GETRESERVATIONS ERROR: Failed to find reservations for user ${guestID}. Error: ${err}`)
+        return res.status(500).send("ERROR: Failed to process request.")
+    }
+
+    if (includeListing) {
+        try {
+            const listingIDs = reservationsJSON.map(r => r.listingID)
+            const listings = await FoodListing.findAll({
+                where: {
+                    listingID: {
+                        [Op.in]: listingIDs
+                    }
+                }
+            })
+
+            reservationsJSON = reservationsJSON.map(r => {
+                const listing = listings.find(l => l.listingID == r.listingID)
+                if (listing) {
+                    r['listing'] = listing.toJSON()
+                }
+                return r
+            })
+        } catch (err) {
+            Logger.log(`ORDERS CONFIRMRESERVATION GETRESERVATIONS ERROR: Failed to find listings for reservations for user ${guestID}. Error: ${err}`)
+            return res.status(500).send("ERROR: Failed to process request.")
+        }
+    }
+
+    return res.status(200).json(reservationsJSON)
 })
 
 router.put("/updateReservation", validateToken, async (req, res) => {

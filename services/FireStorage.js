@@ -2,6 +2,24 @@ const admin = require('firebase-admin');
 var serviceAccount;
 require('dotenv').config()
 
+/**
+ * FireStorage class providing low-level interaction with Firebase Cloud Storage with `firebase-admin` module
+ * 
+ * To use this class, you must have a `serviceAccountKey.json` file in the root folder
+ * 
+ * To initialize the class, call the `initialize()` method. This must be done before any other operation.
+ * 
+ * @method checkPermission: Checks if the operation is allowed
+ * @method initialize: Initializes the FireStorage class
+ * @method uploadFile: Uploads a file to the storage
+ * @method downloadFile: Downloads a file from the storage
+ * @method deleteFile: Deletes a file from the storage
+ * @method deleteAll: Deletes all files from the storage
+ * @method fileExistsAt: Checks if a file exists at the specified path in cloud storage
+ * @method getMetadata: Gets the metadata of a file in cloud storage
+ * @method listFiles: Lists all files in cloud storage
+ * @method generateSignedUrl: Generates a signed URL for a file in cloud storage
+ */
 class FireStorage {
     /**
      * @type {import('@google-cloud/storage').Bucket}

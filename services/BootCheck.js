@@ -1,5 +1,14 @@
 require('dotenv').config()
 
+/**
+ * BootCheck class to check if all required environment variables are set
+ * 
+ * Add required environment variables to the `requiredVariables` array. You can add additional checks of your own in the for loop.
+ * 
+ * Add optional environment variables to the `optionalVariables` array. The class will check if they are set and log a warning if they are not.
+ * 
+ * @method check: Checks if all required environment variables are set
+ */
 class BootCheck {
     static check() {
         let requiredVariables = ["SERVER_PORT", "DB_MODE", "EMAILING_ENABLED", "JWT_KEY", "WS_PORT", "FILEMANAGER_ENABLED", "FIRESTORAGE_ENABLED", "API_KEY"]

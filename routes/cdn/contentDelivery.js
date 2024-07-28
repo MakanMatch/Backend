@@ -8,32 +8,26 @@ const { FoodListing,Review } = require("../../models");
 router.get("/getImageForListing", async (req, res) => {
     const { listingID, imageName } = req.query;
     if (!listingID || !imageName) {
-        res.status(400).send("ERROR: Invalid request parameters.");
-        return;
+        return res.status(400).send("ERROR: Invalid request parameters.");
     }
 
     // Find the listing
     const findListing = await FoodListing.findByPk(listingID);
     if (!findListing) {
-        res.status(404).send("ERROR: Listing not found.");
-        return;
+        return res.status(404).send("ERROR: Listing not found.");
     }
 
     const findImageName = await FileManager.prepFile(imageName);
     if (!findImageName.startsWith("SUCCESS")) {
-        res.status(404).send("ERROR: Image not found.");
-        return;
+        return res.status(404).send("ERROR: Image not found.");
     }
 
     const listingImages = findListing.images.split("|");
     
     if (listingImages.includes(imageName) !== true) {
-        res.status(404).send("ERROR: Requested image does not belong to its corresponding listing.");
-        return;
+        return res.status(404).send("ERROR: Requested image does not belong to its corresponding listing.");
     }
-    res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length))
-    // Logger.log(`CDN GETIMAGEFORLISTING: Image(s) for listing ${listingID} sent successfully.`)
-    return;
+    return res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length));
 });
 
 router.get("/getImageForReview", async (req, res) => {

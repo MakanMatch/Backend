@@ -1,5 +1,13 @@
 const bcrypt = require('bcrypt');
 
+/**
+ * Encryption class to perform encryption operations
+ * 
+ * @method hash: Hashes a string
+ * @method compare: Compares a string with a hash
+ * @method encodeToBase64: Encodes a string to base64
+ * @method decodeFromBase64: Decodes a base64 string
+ */
 class Encryption {
     static async hash(data, saltRounds=10) {
         let hashed = await bcrypt.hash(data, saltRounds);

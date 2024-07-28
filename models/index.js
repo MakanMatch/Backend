@@ -92,12 +92,8 @@ db.FavouriteListing = require('./FavouriteListing')(sequelize, Sequelize.DataTyp
 //     .forEach(file => {
 //         const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
 //         // Add model if model not hard-imported
-//         console.log("Detected: " + model.name)
-//         if (db[model.name] === undefined) {
-//             console.log(`Auto-imported model: ${model.name}`)
+//         if (db[model.name] == undefined) {
 //             db[model.name] = model;
-//         } else {
-//             console.log("ignored")
 //         }
 //     });
 

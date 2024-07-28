@@ -5,314 +5,369 @@ const { ChatHistory, ChatMessage, Reservation, FoodListing, Host, Guest } = requ
 const Universal = require("../../services/Universal");
 const Logger = require("../../services/Logger");
 const { Op } = require('sequelize');
+const { Json } = require("sequelize/lib/utils");
+const TokenManager = require("../../services/TokenManager").default();
+const util = require('util');
+
+class ChatEvent {
+    static errorEvent = "error";
+    static error(message, errorType="error") {
+        return JSON.stringify({
+            event: "error",
+            message: errorType == "user" ? "UERROR: " + message: "ERROR: " + message
+        })
+    }
+
+    static responseEvent = "response";
+    static response(message) {
+        return {
+            event: "response",
+            message: "SUCCESS: " + message
+        }
+    }
+}
+
+async function authenticateConnection(authToken) {
+    const { payload, token, refreshed } = TokenManager.verify(authToken, false)
+    if (!payload || !payload.userID) {
+        return "ERROR: Invalid JWT."
+    }
+
+    const user = await Host.findByPk(payload.userID) || await Guest.findByPk(guestID)
+    if (!user) {
+        return "ERROR: User not found."
+    }
+
+    return user;
+}
 
 function startWebSocketServer(app) {
     const PORT = 8080;
     const server = http.createServer(app);
     const wss = new WebSocket.Server({ server });
+
+    // {
+    //     "urmomconnection": {
+    //         "urmomID",
+    //         "urmomUserType",
+    //         "urmom",
+    //         "urmomWS",
+    //         "conversations": {
+    //             "urmomchatID": "urmomrecipientID"
+    //         }
+    //     }
+    // }
+
+    /**
+     * connectionID:
+     * - ws
+     * - userID (nullable, required for chat which is authorised)
+     * - user
+     * - userType
+     * - conversations
+     *   - chatID: { recipientID, reservationReferenceNum }
+     */
     let clientStore = {};
 
-    async function getChatAndMessages(chatID) {
-        try {
-            let chatHistory = await ChatHistory.findOne({
-                where: { chatID: chatID },
-            });
-            const previousMessages = await ChatMessage.findAll({
-                where: { chatID: chatID },
-                order: [["datetime", "ASC"]],
-            });
+    async function getChatAndMessages(connectionID, parsedMessage) {
+        const ws = clientStore[connectionID].ws;
 
-            const message = JSON.stringify({
+        const chatID = parsedMessage.chatID;
+
+        // Quick vibe check
+        if (!Object.keys(clientStore[connectionID].conversations).includes(chatID)) {
+            ws.send(ChatEvent.error("Chat history not found."))
+            return;
+        }
+
+        try {
+            let chatHistory = await ChatHistory.findByPk(chatID, {
+                include: [{
+                    model: ChatMessage,
+                    as: "messages",
+                    order: [["datetime", "ASC"]]
+                }]
+            });
+            if (!chatHistory) {
+                ws.send(ChatEvent.error("Chat history not found."))
+                return;
+            }
+
+            const previousMessages = chatHistory.toJSON().messages;
+
+            const message = {
+                action: "chat_history",
                 previousMessages: previousMessages,
                 chatID: chatHistory.chatID,
-            });
-            broadcastMessage(message, [chatHistory.user1ID, chatHistory.user2ID]);
+            };
+            
+            broadcastMessage(message, chatID);
+            return;
         } catch (error) {
-            console.error("Error fetching chat and messages:", error);
+            Logger.log(`CHAT WEBSOCKETSERVER GETCHATANDMESSAGES ERROR: Failed to retrieve chat history for connection ${connectionID}; error: ${error}`)
+            ws.send(ChatEvent.error("Failed to retrieve chat history. Please try again."))
+            return;
         }
     }
 
-    async function getChatID(user1ID, user2ID) {
+    async function getChatID(guestID, hostID) {
         try {
             let chatHistory = await ChatHistory.findOne({
                 where: {
-                    [Op.or]: [
-                        { user1ID: user1ID, user2ID: user2ID },
-                        { user1ID: user2ID, user2ID: user1ID }
-                    ]
+                    user1ID: hostID,
+                    user2ID: guestID
                 },
+                attributes: ["chatID"]
             });
 
             if (!chatHistory) {
                 chatHistory = await ChatHistory.create({
                     chatID: Universal.generateUniqueID(),
-                    user1ID,
-                    user2ID,
+                    user1ID: hostID,
+                    user2ID: guestID,
                     datetime: new Date().toISOString(),
                 });
             }
 
-            const username1 = await Guest.findOne({
-                where: { userID: user1ID },
-            }) || await Host.findOne({
-                where: { userID: user1ID },
-            });
-
-            const username2 = await Guest.findOne({
-                where: { userID: user2ID },
-            }) || await Host.findOne({
-                where: { userID: user2ID },
-            });
-
-            const message = JSON.stringify({
-                action: "chat_id",
-                username1: username1.username,
-                username2: username2.username,
-                chatID: chatHistory.chatID,
-            });
-
-            broadcastMessage(message, [user1ID, user2ID]);
             return chatHistory.chatID;
         } catch (error) {
-            console.error("Error fetching chat history and messages:", error);
-            const errorMessage = JSON.stringify({
-                action: "error",
-                message: "Error fetching chat history and messages",
-            });
-            broadcastMessage(errorMessage, [user1ID, user2ID]);
+            return `ERROR: Failed to retrieve/create chat history. Error: ${error}`
         }
     }
 
     wss.on("connection", (ws) => {
+        console.log("New connection! Generating unique ID.")
+        const connectionID = Universal.generateUniqueID();
+        clientStore[connectionID] = {
+            ws: ws,
+            userID: null,
+            user: null,
+            userType: null,
+            conversations: {}
+        }
+
         ws.on("message", async (message) => {
             const parsedMessage = JSON.parse(message);
-            if (parsedMessage.action === "connect") {
-                let userID = parsedMessage.userID;
-                let chatPartnerUsername = null;
-                let userType;
-                let userName;
+            console.log(`Action ${parsedMessage.action || "NULL"}; client store:`)
+            console.log(util.inspect(clientStore, true))
 
-                try {
-                    const user = await Guest.findByPk(userID) || await Host.findByPk(userID);
-                    if (user) {
-                        connectionID = Universal.generateUniqueID();
-                        userType = user instanceof Guest ? "Guest" : "Host";
-                        userName = user.username;
-                        // Store user data in clientStore
-                        clientStore[userID] = {
-                            connectionID,
-                            ws,
-                            userID,
-                            userType,
-                            userName,
-                            chatIDs: []  // Initialize chatIDs as an empty array
-                        };
-                    } else {
-                        throw new Error("User not found");
-                    }
-                } catch (error) {
-                    console.error("Error fetching user:", error);
-                    const jsonMessage = { action: "error", message: "Error fetching user" };
-                    ws.send(JSON.stringify(jsonMessage));
+            if (parsedMessage.action != "connect" && clientStore[connectionID].userID == null) {
+                ws.send(ChatEvent.error("Connect and authenticate this connection before proceeding with other actions."))
+                return;
+            }
+
+            if (parsedMessage.action === "connect") {
+                // Retrieve the user record
+                /// (needs to be changed to use authenticateConnection later on)
+                const userID = parsedMessage.userID
+                if (!userID) {
+                    ws.send(ChatEvent.error("User ID not provided."))
                     return;
                 }
 
-                // Handle connection for Guests
-                if (userType === "Guest") {
-                    try {
-                        const reservations = await Reservation.findAll({ where: { guestID: userID } });
-                        if (reservations.length === 0) {
-                            ws.send(JSON.stringify({ action: "error", message: "Guest has no reservations" }));
-                            return;
-                        }
-
-                        for (const reservation of reservations) {
-                            if (reservation.listingID === null) {
-                                ws.send(JSON.stringify({ action: "error", message: "Reservation has no listing" }));
-                                return;
-                            }
-
-                            const listing = await FoodListing.findByPk(reservation.listingID);
-                            if (!listing) {
-                                ws.send(JSON.stringify({ action: "error", message: "Listing not found" }));
-                                return;
-                            }
-
-                            let hostID = listing.hostID;
-                            const host = await Host.findByPk(hostID);
-                            chatPartnerUsername = host.username;
-
-                            let chatID = await getChatID(userID, hostID);
-                            clientStore[userID].chatIDs.push(chatID);  // Add chatID to chatIDs list
-
-                            let status = await checkChatPartnerOnline(clientStore, chatID, userID);
-                            if (status === true) {
-                                ws.send(JSON.stringify({ action: "chat_partner_online", chatID: chatID }));
-                                continue;
-                            } else {
-                                ws.send(JSON.stringify({ action: "chat_partner_offline", chatID: chatID }));
-                                continue;
-                            }
-                        }
-                    } catch (error) {
-                        console.error("Error connecting guest:", error);
-                        ws.send(JSON.stringify({ action: "error", message: "Error connecting guest" }));
+                var user = await Host.findByPk(userID)
+                var userType = "Host"
+                if (!user) {
+                    user = await Guest.findByPk(userID);
+                    if (!user) {
+                        ws.send(ChatEvent.error("User not found."));
+                        return;
                     }
-                }
-                // Handle connection for Hosts
-                else if (userType === "Host") {
-                    try {
-                        const reservations = await Reservation.findAll({ where: { guestID: userID } });
-                        const listings = await FoodListing.findAll({ where: { hostID: userID } });
 
-                        if (listings.length === 0 && reservations.length === 0) {
-                            ws.send(JSON.stringify({ action: "error", message: "User not found" }));
+                    userType = "Guest"
+                }
+
+                // Store in client store
+                clientStore[connectionID].userID = userID
+                clientStore[connectionID].user = user
+                clientStore[connectionID].userType = userType
+
+                // Identify whether host or guest
+                if (userType == "Guest") {
+                    /// Get reservations if guest
+                    const reservations = await Reservation.findAll({
+                        where: {
+                            guestID: userID
+                        }
+                    })
+                    if (!reservations) {
+                        ws.send(ChatEvent.error("Failed to retrieve your reservations. Please try again.", "user"))
+                        return;
+                    }
+                    const reservationsJSON = reservations.map(reservation => reservation.toJSON());
+                    const listingIDs = reservationsJSON.map(reservation => reservation.listingID);
+
+                    const listings = await FoodListing.findAll({
+                        where: {
+                            listingID: {
+                                [Op.in]: listingIDs
+                            }
+                        },
+                        include: [
+                            {
+                                model: Host,
+                                as: "Host",
+                                attributes: ["userID", "username"]
+                            }
+                        ]
+                    })
+                    const listingsJSON = listings.map(listing => listing.toJSON());
+    
+                    /// Add recipients with chatID
+                    for (const reservation of reservationsJSON) {
+                        // Get host of reservation
+                        const reservationListing = listingsJSON.find(listing => listing.listingID == reservation.listingID)
+                        const hostID = reservationListing.Host.userID;
+                        const hostUsername = reservationListing.Host.username;
+
+                        // Get/create chat history ID
+                        const chatID = await getChatID(userID, hostID);
+                        if (typeof chatID == "string" && chatID.startsWith("ERROR")) {
+                            Logger.log(`CHAT WEBSOCKETSERVER CONNECTION ERROR: Failed to retrieve/generate chat history for guest ${userID} and host ${hostID}; error: ${chatID}`)
+                            ws.send(ChatEvent.error("Failed to formulate chat history. Please try again."))
                             return;
                         }
-
-                        // If the Host is also a Guest
-                        if (reservations.length > 0) {
-                            for (const reservation of reservations) {
-                                if (reservation.listingID === null) {
-                                    ws.send(JSON.stringify({ action: "error", message: "Guest has no listing" }));
-                                    return;
-                                }
-
-                                const listing = await FoodListing.findByPk(reservation.listingID);
-                                if (!listing) {
-                                    ws.send(JSON.stringify({ action: "error", message: "Host not found" }));
-                                    return;
-                                }
-
-                                let hostID = listing.hostID;
-                                const host = await Host.findByPk(hostID);
-                                chatPartnerUsername = host.username;
-
-                                let chatID = await getChatID(userID, hostID);
-                                clientStore[userID].chatIDs.push(chatID);  // Add chatID to chatIDs list
-
-                                let status = await checkChatPartnerOnline(clientStore, chatID, userID);
-                                if (status === true) {
-                                    ws.send(JSON.stringify({ action: "chat_partner_online" , chatID: chatID}));
-                                    break;
-                                } else {
-                                    ws.send(JSON.stringify({ action: "chat_partner_offline" , chatID: chatID}));
-                                    break;
-                                }
-                            }
+                        // Add conversation to clientStore
+                        clientStore[connectionID]["conversations"][chatID] = {
+                            recipientID: hostID,
+                            reservationReferenceNum: reservation.referenceNum
                         }
 
-                        // If the Host is managing listings
-                        if (listings.length > 0) {
-                            for (const listing of listings) {
-                                const reservation = await Reservation.findOne({ where: { listingID: listing.listingID } });
-                                if (!reservation) {
-                                    ws.send(JSON.stringify({ action: "error", message: "Guest not found" }));
-                                    return;
-                                }
-
-                                let guestID = reservation.guestID;
-                                const guest = await Guest.findByPk(guestID);
-                                chatPartnerUsername = guest.username;
-
-                                let chatID = await getChatID(userID, guestID);
-                                clientStore[userID].chatIDs.push(chatID);  // Add chatID to chatIDs list
-                                let status = await checkChatPartnerOnline(clientStore, chatID, userID);
-                                if (status === true) {
-                                    ws.send(JSON.stringify({ action: "chat_partner_online" , chatID: chatID}));
-                                    break;
-                                } else {
-                                    ws.send(JSON.stringify({ action: "chat_partner_offline" , chatID: chatID}));
-                                    break;
-                                }
+                        // Send down chat ID event
+                        const message = JSON.stringify({
+                            action: "chat_id",
+                            chatID: chatID,
+                            username1: hostUsername,
+                            username2: user.username,
+                        })
+                        ws.send(message);
+                    }
+                } else {
+                    /// Get listings hosted
+                    const listings = await FoodListing.findAll({
+                        where: {
+                            hostID: user.userID
+                        },
+                        include: [
+                            {
+                                model: Guest,
+                                as: "guests",
+                                attributes: ["user", "username"]
                             }
+                        ]
+                    })
+                    const listingsJSON = listings.map(listing => listing.toJSON());
+
+                    for (const listing of listingsJSON) {
+                        // Get guests of listing
+                        const guests = listing.guests;
+
+                        for (const listingGuest of guests) {
+                            // Get guest information
+                            const guestID = listingGuest.userID
+                            const reservationReferenceNum = listingGuest.Reservation.referenceNum;
+                            const guestUsername = listingGuest.username;
+
+                            // Get chat ID
+                            const chatID = await getChatID(guestID, user.userID)
+                            if (chatID instanceof "string" && chatID.startsWith("ERROR")) {
+                                Logger.log(`CHAT WEBSOCKETSERVER CONNECTION ERROR: Failed to retrieve/generate chat history for guest ${guestID} and host ${userID}; error: ${chatID}`)
+                                ws.send(ChatEvent.error("Failed to formulate chat history. Please try again."))
+                                return
+                            }
+
+                            // Add guest information to client store, including reservation reference
+                            clientStore[connectionID]["conversations"][chatID] = {
+                                recipientID: guestID,
+                                reservationReferenceNum: reservationReferenceNum
+                            }
+
+                            // Send down the chat ID event
+                            const message = JSON.stringify({
+                                action: "chat_id",
+                                chatID: chatID,
+                                username1: user.username,
+                                username2: guestUsername
+                            })
+                            ws.send(message);
                         }
-                    } catch (error) {
-                        console.error("Error connecting host:", error);
-                        ws.send(JSON.stringify({ action: "error", message: "Error connecting host" }));
                     }
                 }
             } else if (parsedMessage.action === "edit") {
-                handleEditMessage(parsedMessage);
+                handleEditMessage(parsedMessage, connectionID, parsedMessage.chatID);
             } else if (parsedMessage.action === "delete") {
-                handleDeleteMessage(parsedMessage);
+                handleDeleteMessage(parsedMessage, connectionID, parsedMessage.chatID);
             } else if (parsedMessage.action === "send") {
-                handleMessageSend(parsedMessage, parsedMessage.chatID);
+                handleMessageSend(parsedMessage, connectionID, parsedMessage.chatID);
             } else if (parsedMessage.action === "chat_history") {
-                getChatAndMessages(parsedMessage.chatID);
+                getChatAndMessages(connectionID, parsedMessage);
             } else {
                 ws.send(JSON.stringify({ action: "error", message: "Invalid action" }));
             }
-        });
+        })
 
         ws.on("close", () => {
-            for (const userID in clientStore) {
-                if (clientStore[userID].ws === ws) {
-                    const chatIDs = clientStore[userID].chatIDs;
-                    chatIDs.forEach((chatID) => {
-                        const remainingUser = Object.entries(clientStore).find(([key, value]) => value.chatID === chatID && key !== userID);
-                        if (remainingUser) {
-                            const [remainingUserID, remainingUserData] = remainingUser;
-                            if (remainingUserData.ws && remainingUserData.ws.readyState === WebSocket.OPEN) {
-                                const message = JSON.stringify({ action: "chat_partner_online" });
-                                remainingUserData.ws.send(message);
-                            }
-                        }
-                    else {
-                        const message = JSON.stringify({ action: "chat_partner_offline" });
-                        const recipient = Object.entries(clientStore).find(([key, value]) => value.chatIDs.includes(chatID) && key !== userID);
-                        if (recipient) {
-                            const [recipientKey, recipientData] = recipient;
-                            broadcastMessage(message, [recipientData.userID]);
-                        }
-                    }
+            delete clientStore[connectionID];
+        })
 
-                    });
-                    delete clientStore[userID];
-                    break;
-                }
-            }
-        });
-    });
+        ws.on("error", (error) => {
+            Logger.log(`CHAT WEBSOCKETSERVER WEBSOCKET ONERROR: Error occurred in web socket with connection ID ${connectionID}; error: ${error}`)
+        })
+    })
 
     wss.on("error", (error) => {
-        console.error("WebSocket server error:", error);
         Logger.log("CHAT WEBSOCKETSERVER ERROR: WebSocket server error: " + error);
-    });
+    })
 
-    async function handleEditMessage(editedMessage) {
-        const messageId = editedMessage.id;
-        const userID = editedMessage.userID;
-        if (!messageId) {
-            broadcastMessage({ action: "error", message: "ID not provided" }, [userID]);
+    async function handleEditMessage(editedMessage, connectionID, chatID) {
+        const ws = clientStore[connectionID].ws;
+
+        // Quick vibe check
+        if (!Object.keys(clientStore[connectionID].conversations).includes(chatID)) {
+            ws.send(ChatEvent.error("Chat history not found."))
             return;
         }
 
-        const chatHistory = await ChatMessage.findByPk(messageId);
-        if (!chatHistory) {
-            broadcastMessage({ action: "error", message: "Chat ID for message not found" }, [userID]);
+        const messageId = editedMessage.id;
+        if (!messageId) {
+            ws.send(ChatEvent.error("Target message ID not provided."))
+            return;
+        }
+
+        const targetMessage = await ChatMessage.findByPk(messageId);
+        if (!targetMessage) {
+            ws.send(ChatEvent.error("Target message not found."))
             return;
         }
 
         try {
-            chatHistory.message = editedMessage.message;
-            chatHistory.edited = true;
-            await chatHistory.save();
-
-            const responseMessage = { action: "edit", message: chatHistory.message, messageID: messageId };
-            const chathistoryID = await ChatHistory.findByPk(chatHistory.chatID);
-            if (chathistoryID) {
-                const user1ID = chathistoryID.user1ID;
-                const user2ID = chathistoryID.user2ID;
-                broadcastMessage(JSON.stringify(responseMessage), [user1ID, user2ID]);
+            targetMessage.message = editedMessage.message;
+            targetMessage.edited = true;
+            const saveResult = await targetMessage.save();
+            if (!saveResult) {
+                ws.send(ChatEvent.error("Failed to update message. Please try again."))
+                return;
             }
+
+            const responseMessage = { action: "edit", message: targetMessage.message, messageID: messageId };
+            broadcastMessage(responseMessage, chatID)
+            return;
         } catch (error) {
-            console.error("Error editing message:", error);
-            broadcastMessage({ action: "error", message: "Error editing message" }, [userID]);
+            Logger.log(`CHAT WEBSOCKETSERVER HANDLEEDITMESSAGE ERROR: Failed to edit message with ID ${messageId} by user ${clientStore[connectionID].userID} in chat ${chatID}; error: ${error}`)
+            ws.send(ChatEvent.error("Failed to edit message. Please try again."))
+            return;
         }
     }
 
-    async function handleDeleteMessage(deletedMessage) {
+    async function handleDeleteMessage(deletedMessage, connectionID, chatID) {
+        const ws = clientStore[connectionID].ws;
+
+        // Quick vibe check
+        if (!Object.keys(clientStore[connectionID].conversations).includes(chatID)) {
+            ws.send(ChatEvent.error("Chat history not found."))
+            return;
+        }
+
         const messageId = deletedMessage.id;
         const userID = deletedMessage.userID;
         if (!messageId) {
@@ -343,7 +398,15 @@ function startWebSocketServer(app) {
         }
     }
 
-    async function handleMessageSend(receivedMessage, chatID) {
+    async function handleMessageSend(receivedMessage, connectionID, chatID) {
+        const ws = clientStore[connectionID].ws;
+
+        // Quick vibe check
+        if (!Object.keys(clientStore[connectionID].conversations).includes(chatID)) {
+            ws.send(ChatEvent.error("Chat history not found."))
+            return;
+        }
+        
         try {
             const message = {
                 messageID: Universal.generateUniqueID(),
@@ -355,19 +418,20 @@ function startWebSocketServer(app) {
 
             const newMessage = await ChatMessage.create(message);
 
+            if (!newMessage) {
+                ws.send(ChatEvent.error("Failed to create message. Please try again."))
+                return;
+            }
+
             const responseMessage = {
                 action: "send",
-                message: newMessage,
+                message: message,
             };
-            const recipient = await ChatHistory.findByPk(chatID);
-            if (recipient) {
-                const user1ID = recipient.user1ID;
-                const user2ID = recipient.user2ID;
-                broadcastMessage(JSON.stringify(responseMessage), [user1ID, user2ID]);
-            }
+            
+            broadcastMessage(responseMessage, chatID)
         } catch (error) {
-            console.error("Error sending message:", error);
-            broadcastMessage({ action: "error", message: "Error sending message" });
+            Logger.log(`CHAT WEBSOCKETSERVER HANDLEMESSAGESEND ERROR: Failed to create message sent by user ${clientStore[connectionID].userID} for chat ${chatID}; error: ${error}`)
+            ws.send(ChatEvent.error("Failed to create message. Please try again."))
         }
     }
 
@@ -385,11 +449,19 @@ function startWebSocketServer(app) {
         return false;
     }
 
-    function broadcastMessage(message, recipients) {
-        for (const userID of recipients) {
-            const client = clientStore[userID];
-            if (client && client.ws && client.ws.readyState === WebSocket.OPEN) {
-                client.ws.send(message);
+    function broadcastMessage(message, chatID) {
+        const processedMessage = JSON.stringify(message);
+        var sockets = [];
+        for (const connectionID of Object.keys(clientStore)) {
+            const connectionConversations = clientStore[connectionID]["conversations"]
+            if (Object.keys(connectionConversations).includes(chatID)) {
+                sockets.push(clientStore[connectionID]["ws"])
+            }
+        }
+
+        for (const socket of sockets) {
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(processedMessage);
             }
         }
     }

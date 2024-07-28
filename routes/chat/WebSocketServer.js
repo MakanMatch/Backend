@@ -132,14 +132,14 @@ function startWebSocketServer(app) {
                                 return;
                             }
 
-                            const listing = await FoodListing.findOne({ where: { listingID: reservation.listingID } });
+                            const listing = await FoodListing.findByPk(reservation.listingID);
                             if (!listing) {
                                 ws.send(JSON.stringify({ action: "error", message: "Listing not found" }));
                                 return;
                             }
 
                             let hostID = listing.hostID;
-                            const host = await Host.findOne({ where: { userID: hostID } });
+                            const host = await Host.findByPk(hostID);
                             chatPartnerUsername = host.username;
 
                             let chatID = await getChatID(userID, hostID);
@@ -178,14 +178,14 @@ function startWebSocketServer(app) {
                                     return;
                                 }
 
-                                const listing = await FoodListing.findOne({ where: { listingID: reservation.listingID } });
+                                const listing = await FoodListing.findByPk(reservation.listingID);
                                 if (!listing) {
                                     ws.send(JSON.stringify({ action: "error", message: "Host not found" }));
                                     return;
                                 }
 
                                 let hostID = listing.hostID;
-                                const host = await Host.findOne({ where: { userID: hostID } });
+                                const host = await Host.findByPk(hostID);
                                 chatPartnerUsername = host.username;
 
                                 let chatID = await getChatID(userID, hostID);
@@ -212,7 +212,7 @@ function startWebSocketServer(app) {
                                 }
 
                                 let guestID = reservation.guestID;
-                                const guest = await Guest.findOne({ where: { userID: guestID } });
+                                const guest = await Guest.findByPk(guestID);
                                 chatPartnerUsername = guest.username;
 
                                 let chatID = await getChatID(userID, guestID);
@@ -326,7 +326,7 @@ function startWebSocketServer(app) {
             return;
         }
 
-        const chatHistory = await ChatMessage.findOne({ where: { messageID: messageId } });
+        const chatHistory = await ChatMessage.findByPk(messageId);
         if (!chatHistory) {
             broadcastMessage({ action: "error", message: "Chat ID for message not found" }, [userID]);
             return;

@@ -50,21 +50,36 @@ router.get("/getImageForReview", async (req, res) => {
         return;
     }
 
-    const findImageName = await FileManager.prepFile(imageName);
-    if (!findImageName.startsWith("SUCCESS")) {
-        res.status(404).send("ERROR: Image not found.");
-        return;
-    }
-
     const reviewImages = findReview.images.split("|");
 
     if (reviewImages.includes(imageName) !== true) {
-        res.status(404).send("ERROR: Requested image does not belong to its corresponding review.");
-        return;
+        return res.status(404).send("ERROR: Image not found.");
+    }
+
+    const findImageName = await FileManager.prepFile(imageName);
+    if (!findImageName.startsWith("SUCCESS")) {
+        return res.status(404).send("ERROR: Image not found.");
     }
 
     res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length))
     return;
 });
+
+// router.get("/getProfilePicture", async (req, res) => {
+//     const { userID } = req.query;
+//     if (!userID) {
+//         res.status(400).send("ERROR: Invalid request parameters.");
+//         return;
+//     }
+
+//     const findImageName = await FileManager.prepFile(imageName);
+//     if (!findImageName.startsWith("SUCCESS")) {
+//         res.status(404).send("ERROR: Image not found.");
+//         return;
+//     }
+
+//     res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length))
+//     return;
+// });
 
 module.exports = { router, at: '/cdn' };

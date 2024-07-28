@@ -73,8 +73,10 @@ db.Guest = require('./Guest')(sequelize, Sequelize.DataTypes);
 db.Host = require('./Host')(sequelize, Sequelize.DataTypes);
 db.Reservation = require('./Reservation')(sequelize, Sequelize.DataTypes);
 db.Review = require('./Review')(sequelize, Sequelize.DataTypes);
-db.Warning = require('./Admin')(sequelize, Sequelize.DataTypes);
+db.Warning = require('./Warning')(sequelize, Sequelize.DataTypes);
 db.ReviewLike = require('./ReviewLike')(sequelize, Sequelize.DataTypes);
+db.UserRecord = require('./UserRecord')(sequelize, Sequelize.DataTypes);
+db.FavouriteListing = require('./FavouriteListing')(sequelize, Sequelize.DataTypes);
 
 // Auto-detect and import other models (intellisense will not work for these models)
 // fs
@@ -98,6 +100,10 @@ db.ReviewLike = require('./ReviewLike')(sequelize, Sequelize.DataTypes);
 Object.keys(db).forEach(modelName => {
     if (db[modelName].associate) {
         db[modelName].associate(db);
+    }
+
+    if (db[modelName].hook) {
+        db[modelName].hook(db);
     }
 });
 

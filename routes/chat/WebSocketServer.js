@@ -119,10 +119,18 @@ function startWebSocketServer(app) {
                 return msg;
             })
 
+            // Active users is a userID to connectionID map
+            var activeUsers = {};
+            for (const connectionID of Object.keys(clientStore)) {
+                activeUsers[clientStore[connectionID].userID] = connectionID
+            }
+            const partnerIsActive = Object.keys(activeUsers).includes(clientStore[connectionID].conversations[chatID].recipientID)
+
             const message = {
                 action: "chat_history",
                 previousMessages: processedMessages,
                 chatID: chatHistory.chatID,
+                currentStatus: partnerIsActive
             };
 
             broadcastMessage(message, chatID);
@@ -329,6 +337,8 @@ function startWebSocketServer(app) {
                         }
                     }
                 }
+
+                broadcastActivity(connectionID, true);
             } else if (parsedMessage.action === "edit") {
                 handleEditMessage(parsedMessage, connectionID, parsedMessage.chatID);
             } else if (parsedMessage.action === "delete") {
@@ -343,6 +353,8 @@ function startWebSocketServer(app) {
         })
 
         ws.on("close", () => {
+            console.log(`${connectionID} closed!`)
+            broadcastActivity(connectionID, false);
             delete clientStore[connectionID];
         })
 
@@ -484,18 +496,31 @@ function startWebSocketServer(app) {
         }
     }
 
-    async function checkChatPartnerOnline(clientStore, chatID, userID) {
-        const chatPartner = Object.entries(clientStore).find(([key, value]) => value.chatIDs.includes(chatID) && key !== userID);
-        if (!chatPartner) {
-            return false;
+    function broadcastActivity(connectionID, activityStatus) {
+        // Active users is a userID to connectionID map
+        var activeUsers = {};
+        for (const connectionID of Object.keys(clientStore)) {
+            activeUsers[clientStore[connectionID].userID] = connectionID
         }
 
-        const [partnerID, partnerData] = chatPartner;
-        if (partnerData.ws && partnerData.ws.readyState === WebSocket.OPEN) {
-            return true;
-        }
+        for (const chatID of Object.keys(clientStore[connectionID].conversations)) { // Loop through connection's chats to get the respective recipient's websockets
+            const recipientID = clientStore[connectionID].conversations[chatID].recipientID; // recipient of chat
+            if (Object.keys(activeUsers).includes(recipientID)) { // Check if chat recipient is currently active
+                // Obtain the recipient's websocket from clientStore
+                const recipientWS = clientStore[activeUsers[recipientID]].ws
 
-        return false;
+                const message = {
+                    action : activityStatus ? "chat_partner_online": "chat_partner_offline",
+                    chatID: chatID
+                }
+
+                try {
+                    recipientWS.send(JSON.stringify(message))
+                } catch (error) {
+                    Logger.log(`CHAT WEBSOCKETSERVER BROADCASTACTIVITY ERROR: Failed to update recipient ${recipientID} of connection ${connectionID} with new status information; error: ${error}`)
+                }
+            }
+        }
     }
 
     function broadcastMessage(message, chatID) {

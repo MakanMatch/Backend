@@ -194,21 +194,24 @@ router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
                 { gID: userID },
                 { aID: userID }
             ]
-        }
-    });
+        },
+        include: [
+            {
+                model: FoodListing,
+                as: "favourites"
+            }
+        ]
+    })
     if (!userRecord) {
         res.status(404).send("ERROR: User not found");
         return;
     }
     
-    const favListingForUser = await FavouriteListing.findOne({
-        where: {
-            listingID: listingID,
-            userRecordID: userRecord.recordID
-        }
-    });
-    if (favListingForUser) {
-        const deleteFavourite = await favListingForUser.destroy();
+    var favListing = userRecord.favourites.filter(favListing => favListing.listingID == listingID) // returns a list with, if the listing has been favourited, the first index as the favourited listing
+
+    if (favListing[0]) {
+        const favListingRecord = favListing[0].FavouriteListing // get the FavouriteListing model record of the FoodListing that the user wants to unfavourite
+        const deleteFavourite = await favListingRecord.destroy() // delete FavouriteListing 
         if (deleteFavourite) {
             res.status(200).json({
                 message: "SUCCESS: Listing removed from favourites successfully",

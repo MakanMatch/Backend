@@ -52,6 +52,7 @@ router.get("/listings", async (req, res) => { // GET all food listings
                 listingJson,
                 [],
                 [
+                    "password",
                     "address",
                     "createdAt",
                     "updatedAt",

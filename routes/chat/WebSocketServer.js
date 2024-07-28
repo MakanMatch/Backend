@@ -104,10 +104,16 @@ function startWebSocketServer(app) {
             // Process and add the replyTo parameter for messages with replies
             const processedMessages = previousMessages.map(msg => {
                 if (msg.replyToID) {
-                    const targetMessage = previousMessages.filter(filterMsg => filterMsg.messageID == msg.messageID)
+                    const targetMessage = previousMessages.filter(filterMsg => filterMsg.messageID == msg.replyToID)
                     if (targetMessage[0]) {
                         msg.replyTo = targetMessage[0].message
                     }
+                }
+
+                if (msg.senderID == clientStore[connectionID].userID) {
+                    msg.sender = clientStore[connectionID].user.username
+                } else {
+                    msg.sender = clientStore[connectionID].conversations[chatID].recipientUsername
                 }
 
                 return msg;
@@ -118,8 +124,6 @@ function startWebSocketServer(app) {
                 previousMessages: processedMessages,
                 chatID: chatHistory.chatID,
             };
-
-            console.log(processedMessages)
 
             broadcastMessage(message, chatID);
             return;
@@ -156,7 +160,6 @@ function startWebSocketServer(app) {
     }
 
     wss.on("connection", (ws) => {
-        console.log("New connection! Generating unique ID.")
         const connectionID = Universal.generateUniqueID();
         clientStore[connectionID] = {
             ws: ws,
@@ -167,9 +170,20 @@ function startWebSocketServer(app) {
         }
 
         ws.on("message", async (message) => {
+            // if (clientStore[connectionID].user) {
+            //     try {
+            //         await clientStore[connectionID].user.reload()
+            //     } catch (err) {
+            //         Logger.log(`CHAT WEBSOCKETSERVER WEBSOCKET ONMESSAGE ERROR: Failed to reload user record; error: ${err}`)
+            //         ws.send(ChatEvent.error("Failed to process request. Please try again."))
+            //         ws.close(); // A failure to retrieve the user record means that the connection can no longer be sustained
+            //         return;
+            //     }
+            // }
+
             const parsedMessage = JSON.parse(message);
-            console.log(`Action ${parsedMessage.action || "NULL"}; client store:`)
-            console.log(util.inspect(clientStore, true))
+            // console.log(`Action ${parsedMessage.action || "NULL"}; client store:`)
+            // console.log(util.inspect(clientStore, true))
 
             if (parsedMessage.action != "connect" && clientStore[connectionID].userID == null) {
                 ws.send(ChatEvent.error("Connect and authenticate this connection before proceeding with other actions."))
@@ -250,6 +264,7 @@ function startWebSocketServer(app) {
                         // Add conversation to clientStore
                         clientStore[connectionID]["conversations"][chatID] = {
                             recipientID: hostID,
+                            recipientUsername: hostUsername,
                             reservationReferenceNum: reservation.referenceNum
                         }
 
@@ -299,6 +314,7 @@ function startWebSocketServer(app) {
                             // Add guest information to client store, including reservation reference
                             clientStore[connectionID]["conversations"][chatID] = {
                                 recipientID: guestID,
+                                recipientUsername: guestUsername,
                                 reservationReferenceNum: reservationReferenceNum
                             }
 
@@ -360,6 +376,11 @@ function startWebSocketServer(app) {
             return;
         }
 
+        if (targetMessage.senderID != clientStore[connectionID].userID) {
+            ws.send(ChatEvent.error("You are not authorised to edit this message."))
+            return;
+        }
+
         try {
             targetMessage.message = editedMessage.message;
             targetMessage.edited = true;
@@ -389,32 +410,30 @@ function startWebSocketServer(app) {
         }
 
         const messageId = deletedMessage.id;
-        const userID = deletedMessage.userID;
         if (!messageId) {
-            broadcastMessage({ action: "error", message: "ID not provided" }, [userID]);
+            ws.send(ChatEvent.error("ID of message to be deleted not provided."));
             return;
         }
 
-        const chatHistory = await ChatMessage.findByPk(messageId);
-        if (!chatHistory) {
-            broadcastMessage({ action: "error", message: "Chat ID for message not found" }, [userID]);
+        const targetMessage = await ChatMessage.findByPk(messageId);
+        if (!targetMessage) {
+            ws.send(ChatEvent.error("Failed to retrieve target message."))
+            return;
+        }
+
+        if (targetMessage.senderID != clientStore[connectionID].userID) {
+            ws.send(ChatEvent.error("You are not authorised to delete this message."))
             return;
         }
 
         try {
+            await targetMessage.destroy();
 
-            await chatHistory.destroy();
-
-            const responseMessage = { action: "delete", messageID: chatHistory.messageID };
-            const chathistoryID = await ChatHistory.findByPk(chatHistory.chatID);
-            if (chathistoryID) {
-                const user1ID = chathistoryID.user1ID;
-                const user2ID = chathistoryID.user2ID;
-                broadcastMessage(JSON.stringify(responseMessage), [user1ID, user2ID]);
-            }
+            const responseMessage = { action: "delete", messageID: targetMessage.messageID };
+            broadcastMessage(responseMessage, chatID)
         } catch (error) {
-            console.error("Error deleting message:", error);
-            broadcastMessage({ action: "error", message: "Error deleting message" }, [userID]);
+            Logger.log(`CHAT WEBSOCKETSERVER HANDLEDELETEMESSAGE ERROR: Failed to delete message with ID ${messageId} by user ${clientStore[connectionID].userID} in chat ${chatID}; error: ${error}`)
+            ws.send(ChatEvent.error("Failed to delete message. Please try again."))
         }
     }
 
@@ -431,11 +450,12 @@ function startWebSocketServer(app) {
             var message = {
                 messageID: Universal.generateUniqueID(),
                 chatID,
-                sender: receivedMessage.sender,
+                senderID: clientStore[connectionID].userID,
                 message: receivedMessage.message,
                 datetime: new Date().toISOString(),
             };
             var broadcastJSON = message;
+            broadcastJSON.sender = clientStore[connectionID].user.username
 
             if (receivedMessage.replyToID && typeof receivedMessage.replyToID == "string") {
                 const replyTargetMessage = await ChatMessage.findByPk(receivedMessage.replyToID, { attributes: ["messageID", "message"] })
@@ -456,11 +476,6 @@ function startWebSocketServer(app) {
                 action: "send",
                 message: broadcastJSON,
             };
-
-            console.log("SQL Message:")
-            console.log(message)
-            console.log("Broadcast message:")
-            console.log(broadcastJSON)
             
             broadcastMessage(responseMessage, chatID)
         } catch (error) {

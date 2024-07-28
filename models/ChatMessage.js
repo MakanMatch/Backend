@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: false
         },
-        sender: {
+        senderID: {
             type: DataTypes.STRING,
             allowNull: false
         },

@@ -186,7 +186,7 @@ router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
         return;
     }
 
-    const userFavourite = await UserRecord.findOne({
+    const userRecord = await UserRecord.findOne({
         attributes: ["recordID"],
         where: {
             [Op.or]: [
@@ -196,7 +196,7 @@ router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
             ]
         }
     });
-    if (!userFavourite) {
+    if (!userRecord) {
         res.status(404).send("ERROR: User not found");
         return;
     }
@@ -204,7 +204,7 @@ router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
     const favListingForUser = await FavouriteListing.findOne({
         where: {
             listingID: listingID,
-            userRecordID: userFavourite.recordID
+            userRecordID: userRecord.recordID
         }
     });
     if (favListingForUser) {
@@ -222,7 +222,7 @@ router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
     } else {
         const addFavourite = await FavouriteListing.create({
             listingID: listingID,
-            userRecordID: userFavourite.recordID
+            userRecordID: userRecord.recordID
         });
         if (addFavourite) {
             res.status(200).json({

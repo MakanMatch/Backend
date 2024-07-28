@@ -3,7 +3,7 @@ const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
 const Logger = require("../../services/Logger");
-const { FoodListing,Review } = require("../../models");
+const { FoodListing, Review, Guest, Host, Admin } = require("../../models");
 
 router.get("/getImageForListing", async (req, res) => {
     const { listingID, imageName } = req.query;
@@ -65,21 +65,37 @@ router.get("/getImageForReview", async (req, res) => {
     return;
 });
 
-// router.get("/getProfilePicture", async (req, res) => {
-//     const { userID } = req.query;
-//     if (!userID) {
-//         res.status(400).send("ERROR: Invalid request parameters.");
-//         return;
-//     }
+router.get("/getProfilePicture", async (req, res) => {
+    const { userID } = req.query;
+    if (!userID) {
+        res.status(400).send("ERROR: Invalid request parameters.");
+        return;
+    }
 
-//     const findImageName = await FileManager.prepFile(imageName);
-//     if (!findImageName.startsWith("SUCCESS")) {
-//         res.status(404).send("ERROR: Image not found.");
-//         return;
-//     }
+    // Check if image name is indeed a a pfp reference in user's record
+    let user = await Guest.findOne({ where: { userID } }) ||
+            await Host.findOne({ where: { userID } }) ||
+            await Admin.findOne({ where: { userID } });
+    if(!user) {
+        res.status(404).send("ERROR: User not found.");
+        return;
+    }
+    
+    const profilePicture = user.profilePicture;
+    if (!profilePicture) {
+        res.status(404).send("ERROR: User profile picture not found.");
+        return;
+    }
 
-//     res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length))
-//     return;
-// });
+    // Find image using FileManager
+    const findImageName = await FileManager.prepFile(profilePicture);
+    if (!findImageName.startsWith("SUCCESS")) {
+        res.status(404).send("ERROR: Image not found.");
+        return;
+    }
+
+    res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length))
+    return;
+});
 
 module.exports = { router, at: '/cdn' };

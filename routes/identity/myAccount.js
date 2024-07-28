@@ -5,6 +5,8 @@ const axios = require('axios');
 const { Logger, Encryption } = require('../../services');
 const { Guest, Host, Admin, FoodListing } = require('../../models');
 const { validateToken } = require('../../middleware/auth');
+const FileManager = require('../../services/FileManager');
+const { storeFile } = require('../../middleware/storeFile');
 
 async function isUniqueUsername(username, currentUser) {
     const usernameExists = await Guest.findOne({ where: { username } }) ||
@@ -307,6 +309,120 @@ router.put('/changeAddress', validateToken, async (req, res) => {
         Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to update address for user ${userID}; error: ${err}`);
         res.status(500).send("ERROR: Internal server error.");
     }
+});
+
+router.post('/uploadProfilePicture', validateToken, async (req, res) => {
+    storeFile(req, res, async (err) => {
+        const userID = req.user.userID;
+        const userType = req.user.userType;
+        let user;
+
+        // Find the user based on userType
+        if (userType === 'Guest') {
+            user = await Guest.findOne({ where: { userID } });
+        } else if (userType === 'Host') {
+            user = await Host.findOne({ where: { userID } });
+        } else if (userType === 'Admin') {
+            user = await Admin.findOne({ where: { userID } });
+        }
+        if (!user) {
+            console.log("User not found.");
+            res.status(404).send("ERROR: User not found.");
+            return;
+        }
+
+        // Check for an existing profile picture and delete it
+        if (user.profilePicture) {
+            try {
+                const fileDelete = await FileManager.deleteFile(user.profilePicture);
+                if (fileDelete !== true) {
+                    if (fileDelete !== "ERROR: File does not exist.") {
+                        Logger.log("IDENTITY MYACCOUNT UPLOADPROFILEPICTURE ERROR: Failed to delete previous profile picture from storage; error: " + fileDelete);
+                        res.status(500).send("ERROR: Failed to delete previous profile picture.");
+                        return;
+                    } else {
+                        Logger.log("IDENTITY MYACCOUNT UPLOADPROFILEPICTURE WARNING: Unexpected FM response in deleting previous profile picture from storage; response: " + fileDelete);
+                    }
+                }
+            } catch (err) {
+                Logger.log("IDENTITY MYACCOUNT UPLOADPROFILEPICTURE ERROR: Failed to delete previous profile picture from storage; error: " + err);
+                res.status(500).send("ERROR: Failed to delete previous profile picture.");
+                return;
+            }
+        }
+
+        if (err) {
+            res.status(400).send("ERROR: Failed to upload file. Error: " + err);
+            return;
+        } else if (req.file === undefined) {
+            res.status(400).send("ERROR: No file selected.");
+            return;
+        } else {
+            var fileSave = await FileManager.saveFile(req.file.filename);
+            if (!fileSave) {
+                res.status(400).send("ERROR: Failed to save file.");
+                return;
+            }
+
+            user.profilePicture = req.file.filename;
+            await user.save();
+            res.send("SUCCESS: Profile picture uploaded successfully.");
+
+            Logger.log(`IDENTITY MYACCOUNT UPLOADPROFILEPICTURE: Uploaded profile picture '${req.file.filename}' for user '${userID}'.`);
+            return;
+        }
+    });
+});
+
+router.post('/removeProfilePicture', validateToken, async (req, res) => {
+    const userID = req.user.userID;
+    const userType = req.user.userType;
+    let user;
+
+    // Find the user based on userType
+    if (userType === 'Guest') {
+        user = await Guest.findOne({ where: { userID } });
+    } else if (userType === 'Host') {
+        user = await Host.findOne({ where: { userID } });
+    } else if (userType === 'Admin') {
+        user = await Admin.findOne({ where: { userID } });
+    }
+    if (!user) {
+        console.log("User not found.");
+        res.status(404).send("ERROR: User not found.");
+        return;
+    }
+
+    // Check for an existing profile picture and delete it
+    if (user.profilePicture) {
+        try {
+            const fileDelete = await FileManager.deleteFile(user.profilePicture);
+            if (fileDelete !== true) {
+                if (fileDelete !== "ERROR: File does not exist.") {
+                    Logger.log("IDENTITY MYACCOUNT REMOVEPROFILEPICTURE ERROR: Failed to delete profile picture from storage; error: " + fileDelete);
+                    res.status(500).send("ERROR: Failed to delete profile picture.");
+                    return;
+                } else {
+                    Logger.log("IDENTITY MYACCOUNT REMOVEPROFILEPICTURE WARNING: Unexpected FM response in deleting profile picture from storage; response: " + fileDelete);
+                }
+            }
+        } catch (err) {
+            Logger.log("IDENTITY MYACCOUNT REMOVEPROFILEPICTURE ERROR: Failed to delete profile picture from storage; error: " + err);
+            res.status(500).send("ERROR: Failed to delete profile picture.");
+            return;
+        }
+
+        // Update user record to remove the profile picture reference
+        user.profilePicture = null;
+        await user.save();
+    } else {
+        res.status(404).send("ERROR: No profile picture to remove.");
+        return;
+    }
+
+    Logger.log(`IDENTITY MYACCOUNT REMOVEPROFILEPICTURE: Removed profile picture for user '${userID}'.`);
+    res.send("SUCCESS: Profile picture removed successfully.");
+    return;
 });
 
 

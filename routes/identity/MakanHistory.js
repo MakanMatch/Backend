@@ -50,7 +50,7 @@ router.get("/getGuestPastReservations", validateToken, async(req, res) => {
                     return res.status(400).send("ERROR: An error occured while retrieving food listings for the past reservations");
                 }
             } else {
-                return res.status(200).json([]);
+                return res.status(200).json({ pastReservations: [], foodListings: [] });
             }
         }
     } catch (err) {

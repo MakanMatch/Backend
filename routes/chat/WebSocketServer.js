@@ -295,17 +295,11 @@ function startWebSocketServer(app) {
         }
 
         try {
-            const findMessage = await ChatMessage.findByPk(messageId);
-            if (!findMessage) {
-                broadcastMessage({ action: "error", message: "Message not found" }, [userID]);
-                return;
-            }
+            chatHistory.message = editedMessage.message;
+            chatHistory.edited = true;
+            await chatHistory.save();
 
-            findMessage.message = editedMessage.message;
-            findMessage.edited = true;
-            await findMessage.save();
-
-            const responseMessage = { action: "edit", message: findMessage.message, messageID: messageId };
+            const responseMessage = { action: "edit", message: chatHistory.message, messageID: messageId };
             const chathistoryID = await ChatHistory.findByPk(chatHistory.chatID);
             if (chathistoryID) {
                 const user1ID = chathistoryID.user1ID;
@@ -333,15 +327,10 @@ function startWebSocketServer(app) {
         }
 
         try {
-            const findMessage = await ChatMessage.findByPk(messageId);
-            if (!findMessage) {
-                broadcastMessage({ action: "error", message: "Message not found" }, [userID]);
-                return;
-            }
 
-            await findMessage.destroy();
+            await chatHistory.destroy();
 
-            const responseMessage = { action: "delete", messageID: findMessage.messageID };
+            const responseMessage = { action: "delete", messageID: chatHistory.messageID };
             const chathistoryID = await ChatHistory.findByPk(chatHistory.chatID);
             if (chathistoryID) {
                 const user1ID = chathistoryID.user1ID;

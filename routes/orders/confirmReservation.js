@@ -148,13 +148,14 @@ router.get("/getReservations", validateToken, async (req, res) => {
             includeClause.push({
                 model: Host,
                 as: "Host",
-                attributes: ["userID", "username", "foodRating"]
+                attributes: ["userID", "username", "foodRating", "fname", "lname"]
             })
         }
         if (includeListingReservations) {
             includeClause.push({
                 model: Guest,
                 as: "guests",
+                attributes: ["userID", "username", "fname", "lname"],
                 through: {
                     model: Reservation,
                     as: "Reservation",

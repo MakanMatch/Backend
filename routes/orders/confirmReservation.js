@@ -1,6 +1,6 @@
 const express = require('express');
 const { validateToken } = require('../../middleware/auth');
-const { FoodListing, Guest, Reservation } = require('../../models');
+const { FoodListing, Guest, Reservation, Host } = require('../../models');
 const Logger = require('../../services/Logger');
 const Universal = require('../../services/Universal');
 const yup = require('yup');
@@ -124,6 +124,8 @@ router.post("/getReservation", validateToken, async (req, res) => {
 router.get("/getReservations", validateToken, async (req, res) => {
     const guestID = req.user.userID;
     const includeListing = req.query.includeListing == 'true' ? true : false;
+    const includeListingHost = req.query.includeListingHost == 'true' ? true: false;
+    const includeListingReservations = req.query.includeListingReservations == 'true' ? true : false;
 
     var reservationsJSON;
     try {
@@ -141,6 +143,26 @@ router.get("/getReservations", validateToken, async (req, res) => {
     }
 
     if (includeListing) {
+        var includeClause = [];
+        if (includeListingHost) {
+            includeClause.push({
+                model: Host,
+                as: "Host",
+                attributes: ["userID", "username", "foodRating"]
+            })
+        }
+        if (includeListingReservations) {
+            includeClause.push({
+                model: Guest,
+                as: "guests",
+                through: {
+                    model: Reservation,
+                    as: "Reservation",
+                    attributes: ["portions", "totalPrice", "datetime"]
+                }
+            })
+        }
+
         try {
             const listingIDs = reservationsJSON.map(r => r.listingID)
             const listings = await FoodListing.findAll({
@@ -148,13 +170,17 @@ router.get("/getReservations", validateToken, async (req, res) => {
                     listingID: {
                         [Op.in]: listingIDs
                     }
-                }
+                },
+                include: includeClause
             })
 
             reservationsJSON = reservationsJSON.map(r => {
                 const listing = listings.find(l => l.listingID == r.listingID)
+                const listingJSON = listing.toJSON();
+                listing.images = listing.images ? listing.images.split("|") : []
+
                 if (listing) {
-                    r['listing'] = listing.toJSON()
+                    r['listing'] = listing;
                 }
                 return r
             })

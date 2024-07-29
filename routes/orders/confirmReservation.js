@@ -87,36 +87,27 @@ router.post("/createReservation", validateToken, async (req, res) => {
     })
 })
 
-router.post("/getReservation", validateToken, async (req, res) => {
-    const guestID = req.user.userID;
-    const { referenceNum, listingID } = req.body;
-    var identifierMode = null;
-    if (!referenceNum) {
-        if (!listingID) {
-            return res.status(400).send("ERROR: Sufficient payloads not provided to identify reservation.")
-        } else { identifierMode = 'FKIdentifiers' }
-    } else { identifierMode = 'Reference' }
-
-    let whereClause = {};
-    if (identifierMode == 'Reference') { whereClause['referenceNum'] = referenceNum }
-    else { whereClause['guestID'] = guestID, whereClause['listingID'] = listingID }
-
-    var reservation;
-    try {
-        reservation = await Reservation.findOne({ where: whereClause })
-        if (!reservation) {
-            return res.status(404).send("ERROR: Reservation not found.")
-        }
-    } catch (err) {
-        Logger.log(`ORDERS CONFIRMRESERVATION GETRESERVATION ERROR: Failed to find reservation. Error: ${err}`)
-        return res.send(400).send("ERROR: Failed to find reservation.")
+router.get("/getGuests", validateToken, async (req, res) => {
+    const hostID = req.user.userID;
+    const listingID = req.query.listingID;
+    if (!listingID) {
+        return res.status(400).send("ERROR: Listing ID not provided.")
     }
 
-    var processedData = reservation.toJSON();
-    if (processedData['markedPaid'] !== undefined) { delete processedData['markedPaid'] }
-    if (processedData['paidAndPresent'] !== undefined) { delete processedData['paidAndPresent'] }
+    const listing = await FoodListing.findByPk(listingID, {
+        include: [{
+            model: Guest,
+            as: "guests"
+        }]
+    })
+    if (!listing || listing == null) {
+        return res.status(400).send("ERROR: Listing does not exist.")
+    }
+    if (listing.hostID != hostID) {
+        return res.status(400).send("ERROR: Listing does not belong to host.")
+    }
 
-    return res.status(200).json(processedData)
+    return res.status(200).json(listing.guests)
 })
 
 router.put("/updateReservation", validateToken, async (req, res) => {

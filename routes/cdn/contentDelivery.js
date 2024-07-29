@@ -3,7 +3,7 @@ const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
 const Logger = require("../../services/Logger");
-const { FoodListing,Review } = require("../../models");
+const { FoodListing,Review, Guest, Host } = require("../../models");
 
 router.get("/getImageForListing", async (req, res) => {
     const { listingID, imageName } = req.query;
@@ -57,6 +57,31 @@ router.get("/getImageForReview", async (req, res) => {
 
     res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length))
     return;
+});
+
+router.get("/getImageForChat", async (req, res) => {
+    const { userID, messageID, imageName } = req.query;
+    if (!userID || !messageID) {
+        return res.status(400).send("ERROR: Invalid request parameters.");
+    }
+
+    // Find the user
+    const findUser = await Guest.findByPk(userID) || await Host.findByPk(userID);
+    if (!findUser) {
+        return res.status(404).send("ERROR: User not found.");
+    }
+    const findMessage = await ChatMessage.findByPk(messageID);
+    if (!findMessage) {
+        return res.status(404).send("ERROR: Message not found.");
+    }
+
+    findMessage.image = imageName;
+    const savingImage =await findMessage.save();
+    if (!savingImage) {
+        return res.status(500).send("ERROR: Failed to save image.");
+    }
+    
+    return res.status(200).sendFile(imageName.substring("SUCCESS: File path: ".length));
 });
 
 // router.get("/getProfilePicture", async (req, res) => {

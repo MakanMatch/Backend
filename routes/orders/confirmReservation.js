@@ -275,4 +275,57 @@ router.put("/updateReservation", validateToken, async (req, res) => {
     })
 })
 
+router.post("/cancelReservation", validateToken, async (req, res) => {
+    const userID = req.user.userID;
+    const { referenceNum, listingID } = req.body;
+    var identifierMode = null;
+    if (!referenceNum) {
+        if (!listingID) {
+            return res.status(400).send("ERROR: Sufficient payloads not provided to identify reservation.")
+        } else { identifierMode = 'FKIdentifiers' }
+    } else { identifierMode = 'Reference' }
+
+    let whereClause = {};
+    if (identifierMode == 'Reference') { whereClause['referenceNum'] = referenceNum }
+    else { whereClause['guestID'] = userID, whereClause['listingID'] = listingID }
+
+    var reservation;
+    try {
+        reservation = await Reservation.findOne({ where: whereClause })
+        if (!reservation) {
+            return res.status(404).send("ERROR: No reservation found.")
+        }
+    } catch (err) {
+        Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION ERROR: Failed to find reservation. Error: ${err}`)
+        return res.send(400).send("ERROR: Failed to find reservation.")
+    }
+
+    var listing;
+    try {
+        listing = await FoodListing.findByPk(reservation.listingID, {
+            include: [{
+                model: Guest,
+                as: "guests"
+            }]
+        })
+    } catch (err) {
+        Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION ERROR: Failed to find listing attached to reservation. Error: ${err}`)
+        return res.status(500).send("ERROR: Unable to fulfill request, try again.")
+    }
+
+    if (Date(listing.datetime) < Date.now()) {
+        return res.status(400).send("ERROR: Reservation has already passed.")
+    }
+
+    try {
+        await reservation.destroy();
+        Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION: Reservation ${reservation.referenceNum} for listing ${listing.listingID} cancelled by guest ${userID}.`)
+    } catch (err) {
+        Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION ERROR: Failed to cancel reservation with reference number ${reservation.referenceNum}; error: ${err}`)
+        return res.status(500).send("ERROR: Unable to fulfill request, try again.")
+    }
+
+    res.status(200).send("SUCCESS: Reservation cancelled successfully.")
+})
+
 module.exports = { router }

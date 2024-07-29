@@ -5,6 +5,7 @@ const Logger = require('../../services/Logger');
 const Universal = require('../../services/Universal');
 const yup = require('yup');
 const { Op } = require('sequelize');
+const { Extensions } = require('../../services');
 const router = express.Router();
 
 router.post("/createReservation", validateToken, async (req, res) => {
@@ -315,6 +316,8 @@ router.post("/cancelReservation", validateToken, async (req, res) => {
 
     if (Date(listing.datetime) < Date.now()) {
         return res.status(400).send("ERROR: Reservation has already passed.")
+    } else if (Extensions.timeDiffInSeconds(new Date(), new Date(listing.datetime)) < 21600 && req.body.cancellationFeeAcknowledged !== true) {
+        return res.status(400).send("UERROR: Cancellation fees apply for cancellations within 6 hours of the reservation time. Pay and acknowledge cancellation fee to proceed.")
     }
 
     try {

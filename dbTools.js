@@ -117,6 +117,48 @@ async function createGuest() {
     console.log(createdGuestIDs.length + " guests created successfully.")
 }
 
+async function createAdmin() {
+    var creating = true;
+    var createdAdminIDs = []
+    while (creating) {
+        console.log("")
+        console.log("Creating a new admin...")
+
+        const userID = uuidv4()
+        try {
+            const admin = await Admin.create({
+                userID: userID,
+                fname: prompt("Enter admin first name: "),
+                lname: prompt("Enter admin last name: "),
+                username: prompt("Enter admin username: "),
+                email: prompt("Email (must be unique): "),
+                password: await Encryption.hash(prompt("Password: ")),
+                contactNum: prompt("Phone number (must be unique) (optional): ") || null,
+                address: prompt("Address (optional): ") || null,
+                emailVerified: prompt("Email verified? (y/n): ").toLowerCase() !== 'n',
+                role: prompt("Role: ") || "MakanMatchAdmin"
+            })
+        } catch (err) {
+            console.log("Failed to create admin; error: " + err)
+            creating = prompt("Try again? (y/n) ") == "y"
+            console.log("")
+            continue
+        }
+
+        console.log("Admin created!")
+        console.log(`Admin ID: ${userID}`)
+        console.log("")
+        createdAdminIDs.push(userID)
+
+        if (prompt("Create another admin? (y/n): ").toLowerCase() !== 'y') {
+            creating = false;
+            console.log("")
+        }
+    }
+
+    console.log(createdAdminIDs.length + " admins created successfully.")
+}
+
 async function signJWT() {
     console.log("")
     if (!process.env.JWT_KEY) { console.log("JWT_KEY not found in .env; aborting..."); return; }
@@ -191,6 +233,10 @@ sequelize.sync({ alter: true })
 
         if (tools.includes("createguest")) {
             await createGuest()
+        }
+
+        if (tools.includes("createadmin")) {
+            await createAdmin()
         }
 
         if (tools.includes("signjwt")) {

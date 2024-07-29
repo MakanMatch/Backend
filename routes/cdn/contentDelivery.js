@@ -83,7 +83,7 @@ router.get("/getProfilePicture", async (req, res) => {
     
     const profilePicture = user.profilePicture;
     if (!profilePicture) {
-        res.status(404).send("ERROR: User profile picture not found.");
+        res.status(204).send("ERROR: User profile picture not found.");
         return;
     }
 
@@ -93,7 +93,7 @@ router.get("/getProfilePicture", async (req, res) => {
         res.status(404).send("ERROR: Image not found.");
         return;
     }
-
+    
     res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length))
     return;
 });

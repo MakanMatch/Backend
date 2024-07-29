@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const path = require("path");
 const FileManager = require("../../services/FileManager");
-const Logger = require("../../services/Logger");
-const { FoodListing,Review } = require("../../models");
+const path = require('path')
+const { FoodListing, Review, Host } = require("../../models");
+const { storeFile } = require("../../middleware/storeFile");
+const { cwd } = require("process");
 
 router.get("/getImageForListing", async (req, res) => {
     const { listingID, imageName } = req.query;
@@ -75,5 +76,33 @@ router.get("/getImageForReview", async (req, res) => {
 //     res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length))
 //     return;
 // });
+
+router.get("/getHostPaymentQR", async (req, res) => {
+    const { hostID } = req.query;
+    if (!hostID) {
+        res.status(400).send("ERROR: Invalid request parameters.");
+        return;
+    }
+
+    const hostPaymentQR = await Host.findOne({
+        attributes: ["paymentImage"],
+        where: {
+            userID: hostID
+        },
+    });
+    if (!hostPaymentQR) {
+        res.status(200).send("SUCCESS: Host payment QR code not found.");
+        return;
+    }
+
+    const findPaymentQR = await FileManager.prepFile(hostPaymentQR.paymentImage);
+    if (!findPaymentQR.startsWith("SUCCESS")) {
+        res.status(404).send("ERROR: Host payment QR code not found .");
+        return;
+    }
+
+    res.status(200).sendFile(findPaymentQR.substring("SUCCESS: File path: ".length))
+    return;
+})
 
 module.exports = { router, at: '/cdn' };

@@ -24,9 +24,7 @@ router.route("/")
             if (!hostID) {
                 return res.status(400).send("ERROR: Missing required fields");
             }
-
-            console.log(req.body)
-            console.log(req.file)
+            
             try {
                 var host = await Host.findByPk(hostID);
                 if (!host) {

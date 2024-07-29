@@ -97,7 +97,7 @@ router.get("/getHostPaymentQR", async (req, res) => {
 
     const findPaymentQR = await FileManager.prepFile(hostPaymentQR.paymentImage);
     if (!findPaymentQR.startsWith("SUCCESS")) {
-        res.status(404).send("ERROR: Host payment QR code not found .");
+        res.status(200).send("SUCCESS: Host payment QR code not found .");
         return;
     }
 

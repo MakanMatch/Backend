@@ -539,7 +539,13 @@ function startWebSocketServer(app) {
                 ws.send(ChatEvent.error("Failed to create message. Please try again."))
                 return;
             }
-            broadcastMessage(broadcastJSON, chatID)
+
+            const responseMessage ={
+                action: "send",
+                message : broadcastJSON
+            }
+
+            broadcastMessage(responseMessage, chatID)
         } catch (error) {
             Logger.log(`CHAT WEBSOCKETSERVER HANDLEMESSAGESEND ERROR: Failed to create message sent by user ${clientStore[connectionID].userID} for chat ${chatID}; error: ${error}`)
             ws.send(ChatEvent.error("Failed to create message. Please try again."))
@@ -548,14 +554,12 @@ function startWebSocketServer(app) {
 
     async function finaliseMessageSend(message, connectionID) {
         const ws = clientStore[connectionID].ws;
-        console.log(message.imageUrl)
-
         // Quick vibe check
         if (!Object.keys(clientStore[connectionID].conversations).includes(message.message.chatID)) {
             ws.send(ChatEvent.error("Chat history not found."))
             return;
         }
-        var message = {
+        var newMessage = {
             messageID: Universal.generateUniqueID(),
             chatID: message.message.chatID,
             senderID: clientStore[connectionID].userID,
@@ -564,16 +568,21 @@ function startWebSocketServer(app) {
             image: message.imageName,
         }
 
-        const newMessage = await ChatMessage.create(message);
-        if (!newMessage) {
+        const creatingMessage = await ChatMessage.create(newMessage);
+        if (!creatingMessage) {
             ws.send(ChatEvent.error("Failed to create message. Please try again."))
             return;
         }
 
-        var broadcastJSON = message.message;
+        var broadcastJSON = newMessage;
         broadcastJSON.sender = clientStore[connectionID].user.username
-        broadcastJSON.image = message.imageUrl;
-        broadcastMessage(broadcastJSON, message.message.chatID)
+
+
+        const responseMessage = {
+            action: "send",
+            message: broadcastJSON
+        }
+        broadcastMessage(responseMessage, newMessage.chatID)
     }
 
     function broadcastActivity(connectionID, activityStatus) {

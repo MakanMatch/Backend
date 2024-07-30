@@ -70,12 +70,11 @@ router.get("/getImageForChat", async (req, res) => {
     if (!findUser) {
         return res.status(404).send("ERROR: User not found.");
     }
-
     const findImageName = await FileManager.prepFile(imageName);
     if (!findImageName.startsWith("SUCCESS")) {
         return res.status(404).send("ERROR: Image not found.");
     }
-    
+
     return res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length));
 });
 

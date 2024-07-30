@@ -274,7 +274,9 @@ router.put('/changeAddress', validateToken, async (req, res) => {
         }
 
         // Update address in the database
-        const user = await Host.findOne({ where: { userID } }) || await Guest.findOne({ where: { userID } });
+        const user = await Host.findOne({ where: { userID } }) || 
+                     await Guest.findOne({ where: { userID } }) ||
+                     await Admin.findOne({ where: { userID } });
         if (!user) {
             return res.status(404).send("ERROR: User not found.");
         }

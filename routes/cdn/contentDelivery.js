@@ -5,7 +5,7 @@ const FileManager = require("../../services/FileManager");
 const Logger = require("../../services/Logger");
 const { FoodListing,Review, Guest, Host, Admin } = require("../../models");
 const { checkUser } = require("../../middleware/auth");
-const { TokenManager } = require("../../services");
+const { TokenManager, Extensions } = require("../../services");
 
 router.get("/getImageForListing", async (req, res) => {
     const { listingID, imageName } = req.query;
@@ -168,7 +168,7 @@ router.get("/getHostPaymentQR", checkUser, async (req, res) => {
 
     const findPaymentQR = await FileManager.prepFile(imageName);
     if (!findPaymentQR.startsWith("SUCCESS")) {
-        Logger.log(`CDN GETHOSTPAYMENTQR ERROR: Failed to find payment QR image; error: ${findPaymentQR}.`);
+        Logger.log(`CDN GETHOSTPAYMENTQR ERROR: Failed to find payment QR image; error: ${findPaymentQR}`);
         res.status(400).send("ERROR: Failed to find payment QR image.");
         return;
     }

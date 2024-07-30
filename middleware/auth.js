@@ -32,7 +32,7 @@ const validateToken = async (req, res, next) => {
         // Handle token verification/refreshing errors
         if (err.name == "TokenExpiredError") {
             if (process.env.DEBUG_MODE == "True") {
-                Logger.log(`AUTH VALIDATETOKEN: Token expired for user with ID ${payload.userID || "NOTFOUND"}.`);
+                Logger.log(`AUTH VALIDATETOKEN: Token expired.`);
             }
             return res.status(403).send("ERROR: Token expired. Please request new token.");
         } else {
@@ -94,7 +94,7 @@ const checkUser = async (req, res, next) => {
         // Handle token verification/refreshing errors
         if (err.name == "TokenExpiredError") {
             if (process.env.DEBUG_MODE == "True") {
-                Logger.log(`AUTH VALIDATETOKEN: Token expired for user with ID ${payload.userID || "NOTFOUND"}.`);
+                Logger.log(`AUTH VALIDATETOKEN: Token expired.`);
             }
             return res.status(403).send("ERROR: Token expired. Please request new token.");
         } else {

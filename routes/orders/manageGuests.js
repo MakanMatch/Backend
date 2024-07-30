@@ -49,6 +49,19 @@ router.route("/uploadPaymentQR")
                 }
             }
 
+            //Delete host previous payment image
+            if (host.paymentImage) {
+                try {
+                    const deletePreviousPaymentImage = await FileManager.deleteFile(host.paymentImage);
+                    if (!deletePreviousPaymentImage){
+                        return res.status(500).send("ERROR: Failed to delete previous payment image.");
+                    }
+                } catch (err) {
+                    Logger.log(`ORDERS MANAGEGUESTS UPLOADPAYMENT QR POST ERROR: Failed to delete previous payment image; error: ${err}.`);
+                    return res.status(500).send("ERROR: Failed to delete previous payment image.");
+                }
+            }
+
             // Update Host Payment Image
             try {
                 host.set({

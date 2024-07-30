@@ -125,7 +125,7 @@ router.post("/getReservation", validateToken, async (req, res) => {
 router.get("/getReservations", validateToken, async (req, res) => {
     const guestID = req.user.userID;
     const includeListing = req.query.includeListing == 'true' ? true : false;
-    const includeListingHost = req.query.includeListingHost == 'true' ? true: false;
+    const includeListingHost = req.query.includeListingHost == 'true' ? true : false;
     const includeListingReservations = req.query.includeListingReservations == 'true' ? true : false;
 
     var reservationsJSON;
@@ -149,7 +149,7 @@ router.get("/getReservations", validateToken, async (req, res) => {
             includeClause.push({
                 model: Host,
                 as: "Host",
-                attributes: ["userID", "username", "foodRating", "fname", "lname"]
+                attributes: ["userID", "username", "foodRating", "fname", "lname", "paymentImage"]
             })
         }
         if (includeListingReservations) {
@@ -241,24 +241,39 @@ router.put("/updateReservation", validateToken, async (req, res) => {
         return res.status(400).send("UERROR: The listing is not currently accepting reservations.")
     }
 
-    const { portions } = req.body;
-    if (!portions || typeof portions !== 'number' || portions <= 0) {
-        return res.status(400).send("ERROR: Invalid payload.")
-    }
-
-    var portionsTaken = 0;
-    for (const guest of listing.guests) {
-        if (guest.userID != userID) {
-            portionsTaken += guest.Reservation.portions
+    const { portions, markedPaid } = req.body;
+    if (portions) {
+        if (typeof portions !== 'number' || portions <= 0) {
+            return res.status(400).send("ERROR: Invalid payload.")
         }
-    }
-    if (portions > (listing.totalSlots - portionsTaken)) {
-        return res.status(400).send("UERROR: Not enough portions available.")
+
+        var portionsTaken = 0;
+        for (const guest of listing.guests) {
+            if (guest.userID != userID) {
+                portionsTaken += guest.Reservation.portions
+            }
+        }
+        if (portions > (listing.totalSlots - portionsTaken)) {
+            return res.status(400).send("UERROR: Not enough portions available.")
+        }
+
+        const totalPrice = portions * listing.portionPrice
+        reservation.portions = portions
+        reservation.totalPrice = totalPrice
     }
 
-    const totalPrice = portions * listing.portionPrice
-    reservation.portions = portions
-    reservation.totalPrice = totalPrice
+    if (markedPaid !== undefined) {
+        if (typeof markedPaid !== 'boolean') {
+            return res.status(400).send("ERROR: Invalid payload.")
+        }
+
+        reservation.markedPaid = markedPaid
+    }
+
+    if (!reservation.changed()) {
+        return res.status(200).send("SUCCESS: Nothing to update.")
+    }
+
     try {
         await reservation.save()
     } catch (err) {
@@ -271,8 +286,9 @@ router.put("/updateReservation", validateToken, async (req, res) => {
         message: "SUCCESS: Reservation updated successfully.",
         listingID: listingID,
         referenceNum: reservation.referenceNum,
-        totalPrice: totalPrice,
-        portions: portions
+        totalPrice: reservation.totalPrice,
+        portions: reservation.portions,
+        markedPaid: reservation.markedPaid
     })
 })
 

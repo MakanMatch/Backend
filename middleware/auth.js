@@ -1,9 +1,11 @@
 const jwt = require('jsonwebtoken');
 const Logger = require('../services/Logger');
 const TokenManager = require('../services/TokenManager');
+const { UserRecord } = require('../models');
+const { Op } = require('sequelize');
 require('dotenv').config();
 
-const validateToken = (req, res, next) => {
+const validateToken = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
         return res.status(401).send("ERROR: No authorization header found.");
@@ -29,11 +31,26 @@ const validateToken = (req, res, next) => {
     } catch (err) {
         // Handle token verification/refreshing errors
         if (err.name == "TokenExpiredError") {
+            if (process.env.DEBUG_MODE == "True") {
+                Logger.log(`AUTH VALIDATETOKEN: Token expired for user with ID ${payload.userID || "NOTFOUND"}.`);
+            }
             return res.status(403).send("ERROR: Token expired. Please request new token.");
         } else {
             Logger.log(`AUTH VALIDATETOKEN: Failed to verify token; error: ${err}`);
             return res.status(403).send("ERROR: Failed to verify token.");
         }
+    }
+
+    // Verify user existence
+    const record = await UserRecord.findOne({ where: {
+        [Op.or]: [
+            { gID: payload.userID },
+            { hID: payload.userID },
+            { aID: payload.userID },
+        ]
+    }});
+    if (!record) {
+        return res.status(404).send("ERROR: User does not exist.");
     }
 
     // Populate request with user information
@@ -48,7 +65,7 @@ const validateToken = (req, res, next) => {
     next();
 };
 
-const checkUser = (req, res, next) => {
+const checkUser = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
         next();
@@ -76,11 +93,26 @@ const checkUser = (req, res, next) => {
     } catch (err) {
         // Handle token verification/refreshing errors
         if (err.name == "TokenExpiredError") {
+            if (process.env.DEBUG_MODE == "True") {
+                Logger.log(`AUTH VALIDATETOKEN: Token expired for user with ID ${payload.userID || "NOTFOUND"}.`);
+            }
             return res.status(403).send("ERROR: Token expired. Please request new token.");
         } else {
             Logger.log(`AUTH VALIDATETOKEN: Failed to verify token; error: ${err}`);
             return res.status(403).send("ERROR: Failed to verify token.");
         }
+    }
+
+    // Verify user existence
+    const record = await UserRecord.findOne({ where: {
+        [Op.or]: [
+            { gID: payload.userID },
+            { hID: payload.userID },
+            { aID: payload.userID },
+        ]
+    }});
+    if (!record) {
+        return res.status(404).send("ERROR: User does not exist.");
     }
 
     // Populate request with user information

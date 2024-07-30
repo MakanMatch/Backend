@@ -314,7 +314,7 @@ router.post("/cancelReservation", validateToken, async (req, res) => {
         return res.status(500).send("ERROR: Unable to fulfill request, try again.")
     }
 
-    if (Date(listing.datetime) < Date.now()) {
+    if (new Date(listing.datetime) < new Date()) {
         return res.status(400).send("ERROR: Reservation has already passed.")
     } else if (Extensions.timeDiffInSeconds(new Date(), new Date(listing.datetime)) < 21600 && req.body.cancellationFeeAcknowledged !== true) {
         return res.status(400).send("UERROR: Cancellation fees apply for cancellations within 6 hours of the reservation time. Pay and acknowledge cancellation fee to proceed.")

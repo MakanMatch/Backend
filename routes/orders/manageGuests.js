@@ -122,7 +122,7 @@ router.route("/togglePaidAndPresent")
                 return res.status(500).send("ERROR: Failed to update Paid and Present status");
             }
 
-            return res.status(200).send("SUCCESS: Paid and Present status updated successfully");
+            return res.status(200).json({ paidAndPresent: reservation.paidAndPresent });
         } catch (err) {
             Logger.log(`ORDERS MANAGEGUESTS TOGGLEPAIDANDPRESENT PUT ERROR: Failed to update Paid and Present status; error: ${err}.`);
             return res.status(500).send("ERROR: Failed to update Paid and Present status");

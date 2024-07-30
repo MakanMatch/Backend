@@ -8,7 +8,7 @@ const { validateToken } = require("../../middleware/auth");
 const Logger = require("../../services/Logger");
 const multer = require("multer");
 
-router.route("/")
+router.route("/uploadPaymentQR")
     .post(validateToken, async (req, res) => {
         storeFile(req, res, async (err) => {
             if (err instanceof multer.MulterError) {
@@ -68,4 +68,15 @@ router.route("/")
         })
     })
 
-module.exports = { router, at: '/orders/uploadPaymentQR' };
+router.route("/togglePaidAndPresent")
+    .put(validateToken, async (req, res) => {
+        const { reservationID, guestID } = req.body;
+        
+        if (!reservationID || !guestID) {
+            return res.status(400).send("ERROR: Missing required fields");
+        }
+
+
+    })
+
+module.exports = { router, at: '/orders/manageGuests' };

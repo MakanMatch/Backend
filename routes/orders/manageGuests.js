@@ -19,11 +19,7 @@ router.route("/uploadPaymentQR")
             }
 
             const hostID = req.user.userID;
-
-            if (!hostID) {
-                return res.status(400).send("ERROR: Missing required fields");
-            }
-
+            
             var host;
             try {
                 host = await Host.findByPk(hostID);

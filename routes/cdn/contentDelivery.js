@@ -60,6 +60,23 @@ router.get("/getImageForReview", async (req, res) => {
     return;
 });
 
+// router.get("/getProfilePicture", async (req, res) => {
+//     const { userID } = req.query;
+//     if (!userID) {
+//         res.status(400).send("ERROR: Invalid request parameters.");
+//         return;
+//     }
+
+//     const findImageName = await FileManager.prepFile(imageName);
+//     if (!findImageName.startsWith("SUCCESS")) {
+//         res.status(404).send("ERROR: Image not found.");
+//         return;
+//     }
+
+//     res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length))
+//     return;
+// });
+
 router.get("/getHostPaymentQR", checkUser, async (req, res) => {
     const { listingID, hostID, token } = req.query;
     var userID;

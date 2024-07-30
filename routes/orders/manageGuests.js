@@ -19,7 +19,7 @@ router.route("/uploadPaymentQR")
             }
 
             const hostID = req.user.userID;
-            
+
             var host;
             try {
                 host = await Host.findByPk(hostID);
@@ -114,13 +114,13 @@ router.route("/togglePaidAndPresent")
             const updatePaidAndPresent = await reservation.save();
 
             if (!updatePaidAndPresent) {
-                return res.status(500).send("ERROR: Failed to update Paid and Present status");
+                return res.status(500).send("ERROR: Failed to update paid and present status");
             }
 
             return res.status(200).json({ paidAndPresent: reservation.paidAndPresent });
         } catch (err) {
-            Logger.log(`ORDERS MANAGEGUESTS TOGGLEPAIDANDPRESENT PUT ERROR: Failed to update Paid and Present status; error: ${err}.`);
-            return res.status(500).send("ERROR: Failed to update Paid and Present status");
+            Logger.log(`ORDERS MANAGEGUESTS TOGGLEPAIDANDPRESENT PUT ERROR: Failed to update paid and present status; error: ${err}.`);
+            return res.status(500).send("ERROR: Failed to update paid and present status");
         }
 
     })

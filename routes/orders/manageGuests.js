@@ -1,8 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const FileManager = require("../../services/FileManager");
-const path = require('path')
-const { FoodListing, Review, Host, Reservation } = require("../../models");
+const { Host, Reservation } = require("../../models");
 const { storeFile } = require("../../middleware/storeFile");
 const { validateToken } = require("../../middleware/auth");
 const Logger = require("../../services/Logger");

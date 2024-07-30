@@ -539,41 +539,41 @@ function startWebSocketServer(app) {
                 ws.send(ChatEvent.error("Failed to create message. Please try again."))
                 return;
             }
-
-            if(receivedMessage.imagesToBeSubmitted === false) {
-                let responseMessage = {
-                    action: "send",
-                    message: broadcastJSON,
-            } 
-            broadcastMessage(responseMessage, chatID)
-        } else if (receivedMessage.imagesToBeSubmitted === true) {
-            let responseMessage = {
-                action: "upload_image",
-                message: broadcastJSON,
-            }
-            ws.send(JSON.stringify(responseMessage))
-        }
+            broadcastMessage(broadcastJSON, chatID)
         } catch (error) {
             Logger.log(`CHAT WEBSOCKETSERVER HANDLEMESSAGESEND ERROR: Failed to create message sent by user ${clientStore[connectionID].userID} for chat ${chatID}; error: ${error}`)
             ws.send(ChatEvent.error("Failed to create message. Please try again."))
         }
     }
 
-    function finaliseMessageSend(message, connectionID, chatID) {
+    async function finaliseMessageSend(message, connectionID) {
         const ws = clientStore[connectionID].ws;
+        console.log(message.imageUrl)
 
         // Quick vibe check
-        if (!Object.keys(clientStore[connectionID].conversations).includes(chatID)) {
+        if (!Object.keys(clientStore[connectionID].conversations).includes(message.message.chatID)) {
             ws.send(ChatEvent.error("Chat history not found."))
             return;
         }
-
-        const broadcastJson = {
-            action: "send",
-            message: message,
-            imageUrl: message.imageUrl
+        var message = {
+            messageID: Universal.generateUniqueID(),
+            chatID: message.message.chatID,
+            senderID: clientStore[connectionID].userID,
+            message: message.message.message,
+            datetime: new Date().toISOString(),
+            image: message.imageName,
         }
-        broadcastMessage(broadcastJson, chatID)
+
+        const newMessage = await ChatMessage.create(message);
+        if (!newMessage) {
+            ws.send(ChatEvent.error("Failed to create message. Please try again."))
+            return;
+        }
+
+        var broadcastJSON = message.message;
+        broadcastJSON.sender = clientStore[connectionID].user.username
+        broadcastJSON.image = message.imageUrl;
+        broadcastMessage(broadcastJSON, message.message.chatID)
     }
 
     function broadcastActivity(connectionID, activityStatus) {

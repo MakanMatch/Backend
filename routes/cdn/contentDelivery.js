@@ -60,8 +60,8 @@ router.get("/getImageForReview", async (req, res) => {
 });
 
 router.get("/getImageForChat", async (req, res) => {
-    const { userID, messageID, imageName } = req.query;
-    if (!userID || !messageID) {
+    const { userID, imageName } = req.query;
+    if (!userID || !imageName) {
         return res.status(400).send("ERROR: Invalid request parameters.");
     }
 
@@ -70,18 +70,13 @@ router.get("/getImageForChat", async (req, res) => {
     if (!findUser) {
         return res.status(404).send("ERROR: User not found.");
     }
-    const findMessage = await ChatMessage.findByPk(messageID);
-    if (!findMessage) {
-        return res.status(404).send("ERROR: Message not found.");
-    }
 
-    findMessage.image = imageName;
-    const savingImage =await findMessage.save();
-    if (!savingImage) {
-        return res.status(500).send("ERROR: Failed to save image.");
+    const findImageName = await FileManager.prepFile(imageName);
+    if (!findImageName.startsWith("SUCCESS")) {
+        return res.status(404).send("ERROR: Image not found.");
     }
     
-    return res.status(200).sendFile(imageName.substring("SUCCESS: File path: ".length));
+    return res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length));
 });
 
 // router.get("/getProfilePicture", async (req, res) => {

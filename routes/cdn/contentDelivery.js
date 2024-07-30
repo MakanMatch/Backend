@@ -135,7 +135,7 @@ router.get("/getHostPaymentQR", checkUser, async (req, res) => {
 
             imageName = user.paymentImage;
         } catch (err) {
-            Logger.log(`CDN GETHOSTPAYMENTQR ERROR: Failed to find host; error: ${err}.`);
+            Logger.log(`CDN CONTENTDELIVERY GETHOSTPAYMENTQR GET ERROR: Failed to find host; error: ${err}.`);
             return res.status(500).send("ERROR: Failed to process request.");
         }
     } else if (userType == "Guest") {
@@ -171,14 +171,14 @@ router.get("/getHostPaymentQR", checkUser, async (req, res) => {
             
             imageName = listing.Host.paymentImage;
         } catch (err) {
-            Logger.log(`CDN GETHOSTPAYMENTQR ERROR: Failed to find listing; error: ${err}.`);
+            Logger.log(`CDN CONTENTDELIVERY GETHOSTPAYMENTQR GET ERROR: Failed to find listing; error: ${err}.`);
             return res.status(500).send("ERROR: Failed to process request.");
         }
     }
 
     const findPaymentQR = await FileManager.prepFile(imageName);
     if (!findPaymentQR.startsWith("SUCCESS")) {
-        Logger.log(`CDN GETHOSTPAYMENTQR ERROR: Failed to find payment QR image; error: ${findPaymentQR}.`);
+        Logger.log(`CDN CONTENTDELIVERY GETHOSTPAYMENTQR GET ERROR: Failed to find payment QR image; error: ${findPaymentQR}.`);
         res.status(400).send("ERROR: Failed to find payment QR image.");
         return;
     }

@@ -87,29 +87,6 @@ router.post("/createReservation", validateToken, async (req, res) => {
     })
 })
 
-router.get("/getGuests", validateToken, async (req, res) => {
-    const hostID = req.user.userID;
-    const listingID = req.query.listingID;
-    if (!listingID) {
-        return res.status(400).send("ERROR: Listing ID not provided.")
-    }
-
-    const listing = await FoodListing.findByPk(listingID, {
-        include: [{
-            model: Guest,
-            as: "guests"
-        }]
-    })
-    if (!listing || listing == null) {
-        return res.status(400).send("ERROR: Listing does not exist.")
-    }
-    if (listing.hostID != hostID) {
-        return res.status(400).send("ERROR: Listing does not belong to host.")
-    }
-
-    return res.status(200).json(listing.guests)
-})
-
 router.put("/updateReservation", validateToken, async (req, res) => {
     const userID = req.user.userID;
     const { referenceNum, listingID } = req.body;

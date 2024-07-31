@@ -11,11 +11,11 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             primaryKey: true
         },
-        user1ID: {
+        user1ID: { // Host ID
             type: DataTypes.STRING,
             allowNull: false
         },
-        user2ID: {
+        user2ID: { // Guest ID
             type: DataTypes.STRING,
             allowNull: false
         },
@@ -29,6 +29,7 @@ module.exports = (sequelize, DataTypes) => {
     ChatHistory.associate = (models) => {
         ChatHistory.hasMany(models.ChatMessage, {
             foreignKey: 'chatID',
+            as: "messages",
             onDelete: 'cascade'
         })
     }

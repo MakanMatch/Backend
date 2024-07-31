@@ -7,6 +7,7 @@ const { Guest, Host, Admin, FoodListing } = require('../../models');
 const { validateToken } = require('../../middleware/auth');
 const FileManager = require('../../services/FileManager');
 const { storeFile } = require('../../middleware/storeFile');
+const multer = require('multer');
 
 async function isUniqueUsername(username, currentUser) {
     const usernameExists = await Guest.findOne({ where: { username } }) ||
@@ -25,21 +26,30 @@ async function isUniqueEmail(email, currentUser) {
 }
 
 async function isUniqueContactNum(contactNum, currentUser) {
-    const contactNumExists = await Guest.findOne({ where: { contactNum } }) ||
-        await Host.findOne({ where: { contactNum } }) ||
-        await Admin.findOne({ where: { contactNum } });
-
-    return !contactNumExists || contactNumExists.userID === currentUser.userID;
+    if (contactNum && contactNum.trim() !== '') {
+        const contactNumExists = await Guest.findOne({ where: { contactNum } }) ||
+            await Host.findOne({ where: { contactNum } }) ||
+            await Admin.findOne({ where: { contactNum } });
+    
+        return (!contactNumExists) || contactNumExists.userID === currentUser.userID;
+    } else {
+        return true;
+    }
 }
 
 router.put('/updateAccountDetails', validateToken, async (req, res) => {
+    const userType = req.user.userType;
+
     const schema = yup.object().shape({
         username: yup.string().required().trim().min(1).max(50),
         email: yup.string().required().email(),
-        contactNum: yup.string().matches(/^\d{8}$/, {
-            excludeEmptyString: true
-        }),
+        contactNum: yup.string().optional().trim().max(8)
     });
+
+    if (userType === "Host" && req.body.contactNum === '') {
+        res.send("UERROR: Contact number cannot be empty.");
+        return
+    }
 
     const userID = req.user.userID;
 
@@ -330,7 +340,6 @@ router.post('/uploadProfilePicture', validateToken, async (req, res) => {
             user = await Admin.findOne({ where: { userID } });
         }
         if (!user) {
-            console.log("User not found.");
             res.status(404).send("ERROR: User not found.");
             return;
         }
@@ -355,21 +364,30 @@ router.post('/uploadProfilePicture', validateToken, async (req, res) => {
             }
         }
 
-        if (err) {
-            res.status(400).send("ERROR: Failed to upload file. Error: " + err);
-            return;
+        if (err instanceof multer.MulterError) {
+            Logger.log(`IDENTITY MYACCOUNT UPLOADPROFILEPICTURE ERROR: Image upload error; error: ${err}.`);
+            return res.status(400).send("ERROR: Image upload error");
+        } else if (err) {
+            Logger.log(`IDENTITY MYACCOUNT UPLOADPROFILEPICTURE ERROR: Internal server error; error: ${err}.`);
+            return res.status(400).send("ERROR: Internal server error");
         } else if (req.file === undefined) {
-            res.status(400).send("ERROR: No file selected.");
+            res.status(400).send("UERROR: No file selected.");
             return;
         } else {
             var fileSave = await FileManager.saveFile(req.file.filename);
-            if (!fileSave) {
+            if (fileSave !== true) {
                 res.status(400).send("ERROR: Failed to save file.");
                 return;
             }
 
             user.profilePicture = req.file.filename;
-            await user.save();
+            const saveUserProfilePicture = await user.save();
+            if (!saveUserProfilePicture) {
+                Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS ERROR: Failed to save user profile picture for userID ${userID}`);
+                res.status(500).send("ERROR: Failed to save user profile picture");
+                return
+            }
+
             res.send("SUCCESS: Profile picture uploaded successfully.");
 
             Logger.log(`IDENTITY MYACCOUNT UPLOADPROFILEPICTURE: Uploaded profile picture '${req.file.filename}' for user '${userID}'.`);
@@ -392,7 +410,6 @@ router.post('/removeProfilePicture', validateToken, async (req, res) => {
         user = await Admin.findOne({ where: { userID } });
     }
     if (!user) {
-        console.log("User not found.");
         res.status(404).send("ERROR: User not found.");
         return;
     }
@@ -420,7 +437,7 @@ router.post('/removeProfilePicture', validateToken, async (req, res) => {
         user.profilePicture = null;
         await user.save();
     } else {
-        res.status(404).send("ERROR: No profile picture to remove.");
+        res.status(200).send("SUCCESS: No profile picture to remove.");
         return;
     }
 

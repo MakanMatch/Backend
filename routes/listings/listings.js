@@ -2,7 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const router = express.Router();
 const { FoodListing } = require("../../models");
-const { Host, Guest } = require("../../models");
+const { Host, Guest, UserRecord, FavouriteListing } = require("../../models");
 const Universal = require("../../services/Universal");
 const FileManager = require("../../services/FileManager");
 const Logger = require("../../services/Logger")
@@ -10,6 +10,7 @@ const { storeImages } = require("../../middleware/storeImages");
 const axios = require("axios");
 const yup = require("yup");
 const { validateToken } = require("../../middleware/auth");
+const { Op } = require("sequelize");
 
 router.post("/addListing", validateToken, async (req, res) => {
     storeImages(req, res, async (err) => {
@@ -126,18 +127,50 @@ router.post("/addListing", validateToken, async (req, res) => {
     });
 });
 
+router.get("/getFavouritedListingsID", validateToken, async (req, res) => {
+    const userID = req.user.userID;
+    
+    const userRecord = await UserRecord.findOne({
+        where: {
+            [Op.or]: [
+                { hID: userID },
+                { gID: userID },
+                { aID: userID }
+            ]
+        },
+        include: [{
+            attributes: ["listingID"],
+            model: FoodListing,
+            as: "favourites",
+        }]
+    });
+    if (!userRecord) {
+        res.status(404).send("ERROR: User not found");
+        return;
+    }
+
+    if (userRecord.favourites.length === 0) {
+        res.status(200).json([]);
+        return;
+    }
+
+    var listings = [];
+    for (let i = 0; i < userRecord.favourites.length; i++) {
+        listings.push(userRecord.favourites[i].listingID);
+    }
+
+    res.status(200).json(listings);
+    return;
+});
+
 router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
-    const { userID } = req.user;
+    const userID = req.user.userID;
     const { listingID } = req.body;
-    if (!userID || !listingID) {
-        return res.status(400).send("ERROR: One or more required payloads were not provided");
+    if (!listingID) {
+        res.status(400).send("ERROR: Listing ID not provided");
+        return;
     }
-
-    const findUser = await Guest.findByPk(userID) || await Host.findByPk(userID);
-    if (!findUser) {
-        return res.status(404).send("ERROR: Your account details were not found");
-    }
-
+ 
     const findListing = await FoodListing.findByPk(listingID);
     if (!findListing) {
         return res.status(404).send("ERROR: Listing doesn't exist");
@@ -145,24 +178,57 @@ router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
         return res.status(400).send("UERROR: Hosts cannot add their own listings to favourites");
     }
 
-    let favCuisine = findUser.favCuisine || '';
-
-    if (favCuisine.split("|").includes(listingID)) {
-        favCuisine = favCuisine.replace(listingID + "|", "");
-    } else {
-        favCuisine += listingID + "|";
+    const userRecord = await UserRecord.findOne({
+        attributes: ["recordID"],
+        where: {
+            [Op.or]: [
+                { hID: userID },
+                { gID: userID },
+                { aID: userID }
+            ]
+        },
+        include: [
+            {
+                model: FoodListing,
+                as: "favourites"
+            }
+        ]
+    })
+    if (!userRecord) {
+        res.status(404).send("ERROR: User not found");
+        return;
     }
-
-    try {
-        findUser.favCuisine = favCuisine;
-        await findUser.save();
-        const favourite = favCuisine.split("|").includes(listingID);
-        return res.status(200).json({
-            message: `SUCCESS: Listing ${favourite ? 'added to' : 'removed from'} favourites successfully`,
-            favourite: favourite
+    
+    var favListing = userRecord.favourites.filter(favListing => favListing.listingID == listingID) // returns a list with, if the listing has been favourited, the first index as the favourited listing
+    
+    if (favListing[0]) {
+        const favListingRecord = favListing[0].FavouriteListing // get the FavouriteListing model record of the FoodListing that the user wants to unfavourite
+        const deleteFavourite = await favListingRecord.destroy() // delete FavouriteListing 
+        if (deleteFavourite) {
+            res.status(200).json({
+                message: "SUCCESS: Listing removed from favourites successfully",
+                favourite: false
+            });
+            return;
+        } else {
+            res.status(400).send("ERROR: Failed to remove listing from favourites");
+            return;
+        }
+    } else {
+        const addFavourite = await FavouriteListing.create({
+            listingID: listingID,
+            userRecordID: userRecord.recordID
         });
-    } catch (error) {
-        return res.status(400).send("ERROR: Failed to add/remove listing from favourites");
+        if (addFavourite) {
+            res.status(200).json({
+                message: "SUCCESS: Listing added to favourites successfully",
+                favourite: true
+            });
+            return;
+        } else {
+            res.status(400).send("ERROR: Failed to add listing to favourites");
+            return;
+        }
     }
 });
 

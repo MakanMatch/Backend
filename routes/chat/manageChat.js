@@ -15,14 +15,20 @@ router.post("/createImageMessage", async(req, res) => {
             return res.status(400).send("No images and message was uploaded.")
         } else {
             if (err instanceof multer.MulterError) {
-                Logger.log(`CHAT UPLOADIMAGE ERROR: ${err.message}`)
-                return res.status(400).send("UERROR: " + err.message)
+                Logger.log(`CHAT MANAGECHAT CREATEIMAGEMESSAGE INTERNAL SERVER ERROR: ${err.message}`)
+                return res.status(500).send("ERROR: Error creating message with image")
             } else if (err) {
-                Logger.log(`CHAT UPLOADIMAGE INTERNAL SERVER ERROR: ${err.message}`)
-                return res.status(500).send("ERROR: " + err.message)
+                Logger.log(`CHAT MANAGECHAT CREATEIMAGEMESSAGE INTERNAL SERVER ERROR: ${err.message}`)
+                return res.status(500).send("ERROR: Error creating message with image")
             }
         }
         const uploadImageResponse = await FileManager.saveFile(imageFile.filename);
+
+        //Validate the message that the user is trying to create
+
+        if (!message.chatID || !message.senderID || !message.message || !message.datetime) {
+            return res.status(400).send("ERROR: Invalid message.")
+        }
         var newMessage = {
             messageID: Universal.generateUniqueID(),
             chatID: message.chatID,
@@ -30,6 +36,7 @@ router.post("/createImageMessage", async(req, res) => {
             message: message.message,
             datetime: message.datetime,
             image: imageFile.filename,
+            replyToID: message.replyToID || null
         }
 
         const creatingMessage = await ChatMessage.create(newMessage);

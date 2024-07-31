@@ -61,37 +61,34 @@ router.get("/getImageForReview", async (req, res) => {
 });
 
 router.get("/getImageForChat", async (req, res) => {
-    const { userID, imageName, messageID } = req.query;
-    if (!userID || !imageName || !messageID) {
+    const { userID,  messageID } = req.query;
+    if (!userID || !messageID) {
         return res.status(400).send("ERROR: Invalid request parameters.");
     }
 
     // Find the user
-    const findUser = await Guest.findByPk(userID) || await Host.findByPk(userID);
-    if (!findUser) {
+    const user = await Guest.findByPk(userID) || await Host.findByPk(userID);
+    if (!user) {
         return res.status(404).send("ERROR: User not found")
     }
 
-    const findMessage = await ChatMessage.findByPk(messageID);
-    if (!findMessage) {
+    const message = await ChatMessage.findByPk(messageID);
+    if (!message) {
         return res.status(404).send("ERROR: Message not found.");
     }
 
-    const findChatHistory = await ChatHistory.findByPk(findMessage.chatID);
+    var imageName = message.image;
 
-    if(!findChatHistory){   
+    const chatHistory = await ChatHistory.findByPk(message.chatID);
+
+    if(!chatHistory){   
         return res.status(404).send("ERROR: Chat history not found.");
     }
 
-    if (findChatHistory.user1ID === userID){
-        user2ID = findChatHistory.user2ID;
-    } else{
-        user2ID = findChatHistory.user1ID;
+    if (chatHistory.user1ID != userID && chatHistory.user2ID != userID) {
+        return res.status(404).send("ERROR: User is not authorised to view this image.");
     }
 
-    if (!findChatHistory || findChatHistory.chatID !== findMessage.chatID) {
-        return res.status(404).send("ERROR: Chat history not found.");
-    }
     const findImageName = await FileManager.prepFile(imageName);
     if (!findImageName.startsWith("SUCCESS")) {
         return res.status(404).send("ERROR: Image not found.");

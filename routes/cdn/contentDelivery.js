@@ -3,7 +3,8 @@ const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
 const Logger = require("../../services/Logger");
-const { FoodListing,Review, Guest, Host } = require("../../models");
+const { FoodListing,Review, Guest, Host, ChatMessage, ChatHistory } = require("../../models");
+const { Op } = require("sequelize");
 
 router.get("/getImageForListing", async (req, res) => {
     const { listingID, imageName } = req.query;
@@ -60,21 +61,41 @@ router.get("/getImageForReview", async (req, res) => {
 });
 
 router.get("/getImageForChat", async (req, res) => {
-    const { userID, imageName } = req.query;
-    if (!userID || !imageName) {
+    const { userID, imageName, messageID } = req.query;
+    if (!userID || !imageName || !messageID) {
         return res.status(400).send("ERROR: Invalid request parameters.");
     }
 
     // Find the user
     const findUser = await Guest.findByPk(userID) || await Host.findByPk(userID);
     if (!findUser) {
-        return res.status(404).send("ERROR: User not found.");
+        return res.status(404).send("ERROR: User not found")
+    }
+
+    const findMessage = await ChatMessage.findByPk(messageID);
+    if (!findMessage) {
+        return res.status(404).send("ERROR: Message not found.");
+    }
+
+    const findChatHistory = await ChatHistory.findByPk(findMessage.chatID);
+
+    if(!findChatHistory){   
+        return res.status(404).send("ERROR: Chat history not found.");
+    }
+
+    if (findChatHistory.user1ID === userID){
+        user2ID = findChatHistory.user2ID;
+    } else{
+        user2ID = findChatHistory.user1ID;
+    }
+
+    if (!findChatHistory || findChatHistory.chatID !== findMessage.chatID) {
+        return res.status(404).send("ERROR: Chat history not found.");
     }
     const findImageName = await FileManager.prepFile(imageName);
     if (!findImageName.startsWith("SUCCESS")) {
         return res.status(404).send("ERROR: Image not found.");
     }
-
     return res.status(200).sendFile(findImageName.substring("SUCCESS: File path: ".length));
 });
 

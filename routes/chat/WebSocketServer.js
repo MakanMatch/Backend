@@ -6,8 +6,6 @@ const Universal = require("../../services/Universal");
 const Logger = require("../../services/Logger");
 const { Op } = require('sequelize');
 const TokenManager = require("../../services/TokenManager").default();
-const manageChat = require("./manageChat");
-const FileManager  = require("../../services/FileManager");
 
 class ChatEvent {
     static errorEvent = "error";
@@ -399,8 +397,6 @@ function startWebSocketServer(app) {
                 handleDeleteMessage(parsedMessage, connectionID, parsedMessage.chatID);
             } else if (parsedMessage.action === "send") {
                 handleMessageSend(parsedMessage, connectionID, parsedMessage.chatID);
-            } else if(parsedMessage.action === "finalise_send"){ 
-                finaliseMessageSend(parsedMessage, connectionID, parsedMessage.chatID);
             }else if (parsedMessage.action === "chat_history") {
                 getChatAndMessages(connectionID, parsedMessage);
             } else {
@@ -550,39 +546,6 @@ function startWebSocketServer(app) {
             Logger.log(`CHAT WEBSOCKETSERVER HANDLEMESSAGESEND ERROR: Failed to create message sent by user ${clientStore[connectionID].userID} for chat ${chatID}; error: ${error}`)
             ws.send(ChatEvent.error("Failed to create message. Please try again."))
         }
-    }
-
-    async function finaliseMessageSend(message, connectionID) {
-        const ws = clientStore[connectionID].ws;
-        // Quick vibe check
-        if (!Object.keys(clientStore[connectionID].conversations).includes(message.message.chatID)) {
-            ws.send(ChatEvent.error("Chat history not found."))
-            return;
-        }
-        var newMessage = {
-            messageID: Universal.generateUniqueID(),
-            chatID: message.message.chatID,
-            senderID: clientStore[connectionID].userID,
-            message: message.message.message,
-            datetime: new Date().toISOString(),
-            image: message.imageName,
-        }
-
-        const creatingMessage = await ChatMessage.create(newMessage);
-        if (!creatingMessage) {
-            ws.send(ChatEvent.error("Failed to create message. Please try again."))
-            return;
-        }
-
-        var broadcastJSON = newMessage;
-        broadcastJSON.sender = clientStore[connectionID].user.username
-
-
-        const responseMessage = {
-            action: "send",
-            message: broadcastJSON
-        }
-        broadcastMessage(responseMessage, newMessage.chatID)
     }
 
     function broadcastActivity(connectionID, activityStatus) {

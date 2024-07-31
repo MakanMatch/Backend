@@ -303,7 +303,7 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
     }
 
     const hosts = await Host.findAll();
-    const hostsWithUserType = await (hosts.map(host => {
+    const hostsWithUserType = (hosts.map(host => {
         const hostObj = host.toJSON(); // Convert Sequelize instance to plain object
         hostObj.userType = "Host";
         return hostObj;
@@ -313,7 +313,7 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
 
     if (fetchHostsOnly === "false") {
         const guests = await Guest.findAll();
-        const guestsWithUserType = await (guests.map(guest => {
+        const guestsWithUserType = (guests.map(guest => {
             const guestObj = guest.toJSON(); // Convert Sequelize instance to plain object
             guestObj.userType = "Guest";
             return guestObj;

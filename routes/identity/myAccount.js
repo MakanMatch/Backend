@@ -32,8 +32,6 @@ async function isUniqueContactNum(contactNum, currentUser) {
             await Admin.findOne({ where: { contactNum } });
     
         return (!contactNumExists) || contactNumExists.userID === currentUser.userID;
-    } else {
-        return true;
     }
 }
 
@@ -46,8 +44,8 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         contactNum: yup.string().optional().trim().max(8)
     });
 
-    if (userType === "Host" && req.body.contactNum === '') {
-        res.send("UERROR: Contact number cannot be empty.");
+    if (userType === "Host" && (req.body.contactNum === '' || req.body.contactNum === undefined)) {
+        res.status(400).send("UERROR: Contact number cannot be empty.");
         return
     }
 
@@ -59,9 +57,9 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         const { username, email, contactNum } = data
 
         // Find user using userID
-        let user = await Guest.findOne({ where: { userID } }) ||
-            await Host.findOne({ where: { userID } }) ||
-            await Admin.findOne({ where: { userID } });
+        let user = await Guest.findByPk(userID) ||
+            await Host.findByPk(userID) ||
+            await Admin.findByPk(userID);
 
         if (!user) {
             res.status(400).send("UERROR: User doesn't exist.");
@@ -69,21 +67,27 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         }
 
         if (!await isUniqueUsername(username, user)) {
-            return res.send("UERROR: Username already exists.");
+            return res.status(400).send("UERROR: Username already exists.");
         }
 
         if (!await isUniqueEmail(email.replaceAll(" ", ""), user)) {
-            return res.send("UERROR: Email already exists.");
+            return res.status(400).send("UERROR: Email already exists.");
         }
 
-        if (!await isUniqueContactNum(contactNum.replaceAll(" ", ""), user)) {
-            return res.send("UERROR: Contact number already exists.");
+        if (!contactNum == '' && !await isUniqueContactNum(contactNum, user)) {
+            return res.status(400).send("UERROR: Contact number already exists.");
         }
 
         // Update user information
         user.username = username;
+        console.log("saving username")
         user.email = email;
-        user.contactNum = contactNum;
+        console.log("saving email")
+        if (contactNum === '') {
+            user.contactNum = null;
+        } else {
+            user.contactNum = contactNum;
+        }
 
         // Save changes to the database
         saveUser = await user.save();
@@ -327,18 +331,30 @@ router.put('/changeAddress', validateToken, async (req, res) => {
 
 router.post('/uploadProfilePicture', validateToken, async (req, res) => {
     storeFile(req, res, async (err) => {
+        if (err instanceof multer.MulterError) {
+            Logger.log(`IDENTITY MYACCOUNT UPLOADPROFILEPICTURE ERROR: Image upload error; error: ${err}.`);
+            return res.status(400).send("ERROR: Image upload error");
+        } else if (err) {
+            Logger.log(`IDENTITY MYACCOUNT UPLOADPROFILEPICTURE ERROR: Internal server error; error: ${err}.`);
+            return res.status(400).send("ERROR: Internal server error");
+        } else if (req.file === undefined) {
+            res.status(400).send("UERROR: No file selected.");
+            return;
+        }
+
         const userID = req.user.userID;
         const userType = req.user.userType;
         let user;
 
         // Find the user based on userType
         if (userType === 'Guest') {
-            user = await Guest.findOne({ where: { userID } });
+            user = await Guest.findByPk(userID);
         } else if (userType === 'Host') {
-            user = await Host.findOne({ where: { userID } });
+            user = await Host.findByPk(userID);
         } else if (userType === 'Admin') {
-            user = await Admin.findOne({ where: { userID } });
+            user = await Admin.findByPk(userID);
         }
+        
         if (!user) {
             res.status(404).send("ERROR: User not found.");
             return;
@@ -364,35 +380,24 @@ router.post('/uploadProfilePicture', validateToken, async (req, res) => {
             }
         }
 
-        if (err instanceof multer.MulterError) {
-            Logger.log(`IDENTITY MYACCOUNT UPLOADPROFILEPICTURE ERROR: Image upload error; error: ${err}.`);
-            return res.status(400).send("ERROR: Image upload error");
-        } else if (err) {
-            Logger.log(`IDENTITY MYACCOUNT UPLOADPROFILEPICTURE ERROR: Internal server error; error: ${err}.`);
-            return res.status(400).send("ERROR: Internal server error");
-        } else if (req.file === undefined) {
-            res.status(400).send("UERROR: No file selected.");
-            return;
-        } else {
-            var fileSave = await FileManager.saveFile(req.file.filename);
-            if (fileSave !== true) {
-                res.status(400).send("ERROR: Failed to save file.");
-                return;
-            }
-
-            user.profilePicture = req.file.filename;
-            const saveUserProfilePicture = await user.save();
-            if (!saveUserProfilePicture) {
-                Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS ERROR: Failed to save user profile picture for userID ${userID}`);
-                res.status(500).send("ERROR: Failed to save user profile picture");
-                return
-            }
-
-            res.send("SUCCESS: Profile picture uploaded successfully.");
-
-            Logger.log(`IDENTITY MYACCOUNT UPLOADPROFILEPICTURE: Uploaded profile picture '${req.file.filename}' for user '${userID}'.`);
+        var fileSave = await FileManager.saveFile(req.file.filename);
+        if (fileSave !== true) {
+            res.status(400).send("ERROR: Failed to save file.");
             return;
         }
+
+        user.profilePicture = req.file.filename;
+        const saveUserProfilePicture = await user.save();
+        if (!saveUserProfilePicture) {
+            Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS ERROR: Failed to save user profile picture for userID ${userID}`);
+            res.status(500).send("ERROR: Failed to save user profile picture");
+            return
+        }
+
+        res.send("SUCCESS: Profile picture uploaded successfully.");
+
+        Logger.log(`IDENTITY MYACCOUNT UPLOADPROFILEPICTURE: Uploaded profile picture '${req.file.filename}' for user '${userID}'.`);
+        return;
     });
 });
 
@@ -403,11 +408,11 @@ router.post('/removeProfilePicture', validateToken, async (req, res) => {
 
     // Find the user based on userType
     if (userType === 'Guest') {
-        user = await Guest.findOne({ where: { userID } });
+        user = await Guest.fifindByPk(userID);
     } else if (userType === 'Host') {
-        user = await Host.findOne({ where: { userID } });
+        user = await Host.findByPk(userID);
     } else if (userType === 'Admin') {
-        user = await Admin.findOne({ where: { userID } });
+        user = await Admin.findByPk(userID);
     }
     if (!user) {
         res.status(404).send("ERROR: User not found.");

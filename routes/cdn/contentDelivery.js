@@ -73,9 +73,9 @@ router.get("/getProfilePicture", async (req, res) => {
     }
 
     // Check if image name is indeed a a pfp reference in user's record
-    let user = await Guest.findByPk(userID) ||
-            await Host.findByPk(userID) ||
-            await Admin.findByPk(userID);
+    let user = await Guest.findByPk(userID, { attributes: ["userID", "profilePicture"] }) ||
+            await Host.findByPk(userID, { attributes: ["userID", "profilePicture"] }) ||
+            await Admin.findByPk(userID, { attributes: ["userID", "profilePicture"] });
     if(!user) {
         res.status(404).send("ERROR: User not found.");
         return;

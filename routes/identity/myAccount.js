@@ -406,7 +406,7 @@ router.post('/removeProfilePicture', validateToken, async (req, res) => {
 
     // Find the user based on userType
     if (userType === 'Guest') {
-        user = await Guest.fifindByPk(userID);
+        user = await Guest.findByPk(userID);
     } else if (userType === 'Host') {
         user = await Host.findByPk(userID);
     } else if (userType === 'Admin') {

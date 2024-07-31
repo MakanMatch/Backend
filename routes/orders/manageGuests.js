@@ -80,7 +80,7 @@ router.route("/uploadPaymentQR")
 router.route("/togglePaidAndPresent")
     .put(validateToken, async (req, res) => {
         const userID = req.user.userID;
-        const { referenceNum, listingID } = req.body;
+        const { referenceNum, listingID, guestID } = req.body;
         var identifierMode = null;
         if (!referenceNum) {
             if (!listingID) {
@@ -90,7 +90,7 @@ router.route("/togglePaidAndPresent")
 
         let whereClause = {};
         if (identifierMode == 'Reference') { whereClause['referenceNum'] = referenceNum }
-        else { whereClause['guestID'] = userID, whereClause['listingID'] = listingID }
+        else { whereClause['guestID'] = guestID, whereClause['listingID'] = listingID }
 
         var reservation;
         try {

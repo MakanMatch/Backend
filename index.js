@@ -26,6 +26,15 @@ Cache.load();
 const FileManager = require('./services/FileManager');
 FileManager.setup().catch(err => { Logger.logAndThrow(err) })
 
+const OpenAIChat = require('./services/OpenAIChat');
+if (OpenAIChat.checkPermission()) {
+    console.log("MAIN: OpenAI Chat service is enabled.")
+    const initialisation = OpenAIChat.initialise();
+    if (initialisation !== true) {
+        console.log(`MAIN: OpenAI Chat service failed to initialise. Error: ${initialisation}`)
+    }
+}
+
 // Import middleware
 const checkHeaders = require('./middleware/headersCheck');
 const logRoutes = require('./middleware/logRoutes');

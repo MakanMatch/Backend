@@ -42,6 +42,7 @@ class OpenAIChat {
     /**
      * @type {OpenAI}
      */
+    static initialised = false;
     static client;
     static model = "gpt-3.5-turbo";
     static maxTokens = 512;
@@ -99,6 +100,7 @@ class OpenAIChat {
             this.temperature = configOptions.temperature;
         }
 
+        this.initialised = true;
         return true;
     }
 

@@ -2,12 +2,13 @@ const express = require("express");
 const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
+const Extensions = require("../../services/Extensions");
 const { FoodListing, Host, Guest, Admin, Review, Reservation, ReviewLike } = require("../../models");
 const Logger = require("../../services/Logger");
 const { Sequelize } = require('sequelize');
 const Universal = require("../../services/Universal");
 const { validateToken, checkUser } = require("../../middleware/auth");
-const Extensions = require("../../services/Extensions");
+const { Op } = require("sequelize");
 
 router.get('/myAccount', validateToken, (req, res) => {
     const userInfo = req.user;
@@ -43,11 +44,29 @@ router.get("/listings", async (req, res) => { // GET all food listings
             where: whereClause,
             include: includeClause
         });
-        foodListings.map(listing => (listing.images == null || listing.images == "") ? listing.images = [] : listing.images = listing.images.split("|"));
-        res.status(200).json(foodListings);
+
+        const listingsWithImagesArray = foodListings.map(listing => {
+            var listingJson = listing.toJSON();
+            listingJson.images = listingJson.images ? listingJson.images.split("|") : [];
+            listingJson = Extensions.sanitiseData(
+                listingJson,
+                [],
+                [
+                    "password",
+                    "address",
+                    "createdAt",
+                    "updatedAt",
+                    "HostUserID"
+                ],
+                []
+            )
+            return listingJson;
+        });
+
+        return res.status(200).json(listingsWithImagesArray);
     } catch (error) {
-        Logger.log("CDN COREDATA LISTINGS ERROR: Failed to retrieve all published listings; error: " + error)
-        res.status(500).send("ERROR: Internal server error");
+        Logger.log("CDN COREDATA LISTINGS ERROR: Failed to retrieve all published listings; error: " + error);
+        return res.status(500).send("ERROR: Internal server error");
     }
 });
 
@@ -57,16 +76,16 @@ router.get("/checkFavouriteListing", async (req, res) => { // GET favourite list
         const userID = req.query.userID;
         const guest = await Guest.findByPk(userID);
         if (!guest) {
-            return res.status(404).send("Guest not found.");
+            return res.status(404).send("UERROR: Your account details were not found");
         }
         const favouriteCuisines = guest.favCuisine.split("|");
         if (favouriteCuisines.includes(listingID)) {
-            res.status(200).json({ message: "SUCCESS: Listing is a favourite", listingIsFavourite: true });
+            return res.status(200).json({ message: "SUCCESS: Listing is a favourite", listingIsFavourite: true });
         } else {
-            res.status(200).json({ message: "SUCCESS: Listing is not a favourite", listingIsFavourite: false });
+            return res.status(200).json({ message: "SUCCESS: Listing is not a favourite", listingIsFavourite: false });
         }
     } catch (error) {
-        res.status(500).send("ERROR: Internal server error");
+        return res.status(500).send("ERROR: Internal server error");
     }
 });
 
@@ -125,6 +144,10 @@ router.get("/getListing", checkUser, async (req, res) => {
             "hostID",
             "userID",
             "username",
+            "fname",
+            "lname",
+            "markedPaid",
+            "paidAndPresent",
             "mealsMatched",
             "foodRating",
             "hygieneGrade",
@@ -293,5 +316,56 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
         return res.status(500).send("ERROR: An error occured while fetching reviews.");
     }
 })
+
+router.get("/consolidateReviewsStatistics", async (req, res) => { // GET full reservations list
+    const { hostID } = req.query;
+    if (!hostID) {
+        return res.status(400).send("UERROR: One or more required payloads were not provided");
+    }
+    try {
+        const findHost = await Host.findByPk(hostID);
+        if (!findHost) {
+            return res.status(404).send("ERROR: Host doesn't exist");
+        } else {
+            const hostFoodRatings = await Review.findAll({
+                where: { hostID },
+                attributes: ['foodRating']
+            });
+            if (hostFoodRatings.length > 0) {
+                const oneStarRatings = hostFoodRatings.filter(rating => rating.foodRating === 1).length;
+                const twoStarRatings = hostFoodRatings.filter(rating => rating.foodRating === 2).length;
+                const threeStarRatings = hostFoodRatings.filter(rating => rating.foodRating === 3).length;
+                const fourStarRatings = hostFoodRatings.filter(rating => rating.foodRating === 4).length;
+                const fiveStarRatings = hostFoodRatings.filter(rating => rating.foodRating === 5).length;
+                const totalRatings = hostFoodRatings.length;
+
+                const consolidatedData = {
+                    oneStar: (oneStarRatings / totalRatings) * 100,
+                    twoStar: (twoStarRatings / totalRatings) * 100,
+                    threeStar: (threeStarRatings / totalRatings) * 100,
+                    fourStar: (fourStarRatings / totalRatings) * 100,
+                    fiveStar: (fiveStarRatings / totalRatings) * 100
+                }
+                return res.status(200).json(consolidatedData);
+            } else {
+                return res.status(200).json(
+                    { 
+                        message: "No reviews found.",
+                        consolidatedData: {
+                            oneStar: 0,
+                            twoStar: 0,
+                            threeStar: 0,
+                            fourStar: 0,
+                            fiveStar: 0
+                        }
+                    }
+                );
+            }
+        }
+    } catch (err) {
+        Logger.log(`CDN COREDATA CONSOLIDATEREVIEWSSTATISTICS ERROR: Failed to consolidate review statistics: ${err}.`);
+        return res.status(500).send("ERROR: An error occured while retrieving review statistics");
+    }
+});
 
 module.exports = { router, at: '/cdn' };

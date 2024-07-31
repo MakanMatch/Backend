@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: false
         },
-        sender: {
+        senderID: {
             type: DataTypes.STRING,
             allowNull: false
         },
@@ -36,7 +36,9 @@ module.exports = (sequelize, DataTypes) => {
 
     // Associations
     ChatMessage.associate = (models) => {
-        ChatMessage.belongsTo(models.ChatHistory)
+        ChatMessage.belongsTo(models.ChatHistory, {
+            foreignKey: "chatID"
+        })
     }
 
     return ChatMessage;

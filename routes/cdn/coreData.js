@@ -144,6 +144,10 @@ router.get("/getListing", checkUser, async (req, res) => {
             "hostID",
             "userID",
             "username",
+            "fname",
+            "lname",
+            "markedPaid",
+            "paidAndPresent",
             "mealsMatched",
             "foodRating",
             "hygieneGrade",
@@ -312,6 +316,52 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
         return res.status(500).send("ERROR: An error occured while fetching reviews.");
     }
 })
+
+router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all users
+    const fetchHostsOnly = req.query.fetchHostsOnly || "false";
+
+    const currentUserType = req.user.userType;
+    if (currentUserType !== "Admin") {
+        return res.status(403).send("ERROR: Unauthorized access.");
+    }
+
+    const hosts = await Host.findAll();
+    const hostsWithUserType = (hosts.map(host => {
+        const hostObj = host.toJSON(); // Convert Sequelize instance to plain object
+        hostObj.userType = "Host";
+        return hostObj;
+    }));
+
+    let responseArray = [];
+
+    if (fetchHostsOnly === "false") {
+        const guests = await Guest.findAll();
+        const guestsWithUserType = (guests.map(guest => {
+            const guestObj = guest.toJSON(); // Convert Sequelize instance to plain object
+            guestObj.userType = "Guest";
+            return guestObj;
+        }));
+        const allUsers = hostsWithUserType.concat(guestsWithUserType);
+        if (!allUsers || !Array.isArray(allUsers) || allUsers.length === 0) {
+            return res.status(200).send([]);
+        } else {
+            allUsers.forEach(user => {
+                responseArray.push(Extensions.sanitiseData(user, ["userID", "username", "email", "userType", "hygieneGrade"], ["password"], []));
+            });
+            return res.status(200).json(responseArray);
+        }
+    } else {
+        if (!hostsWithUserType || !Array.isArray(hostsWithUserType) || hostsWithUserType.length === 0) {
+            return res.status(200).send([]);
+        } else {
+            warningHosts = hostsWithUserType.filter(host => host.hygieneGrade <= 2.5);
+            warningHosts.forEach(host => {
+                responseArray.push(Extensions.sanitiseData(host, ["userID", "username", "email", "userType", "hygieneGrade"], ["password"], []));
+            });
+            return res.status(200).json(responseArray);
+        }
+    }
+});
 
 router.get("/consolidateReviewsStatistics", async (req, res) => { // GET full reservations list
     const { hostID } = req.query;

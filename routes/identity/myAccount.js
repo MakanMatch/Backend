@@ -80,9 +80,7 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
 
         // Update user information
         user.username = username;
-        console.log("saving username")
         user.email = email;
-        console.log("saving email")
         if (contactNum === '') {
             user.contactNum = null;
         } else {

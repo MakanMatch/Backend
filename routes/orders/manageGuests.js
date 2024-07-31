@@ -52,7 +52,7 @@ router.route("/uploadPaymentQR")
                         return res.status(500).send("ERROR: Failed to delete previous payment image.");
                     }
                 } catch (err) {
-                    Logger.log(`ORDERS MANAGEGUESTS UPLOADPAYMENT QR POST ERROR: Failed to delete previous payment image; error: ${err}.`);
+                    Logger.log(`ORDERS MANAGEGUESTS UPLOADPAYMENTQR POST ERROR: Failed to delete previous payment image; error: ${err}.`);
                     return res.status(500).send("ERROR: Failed to delete previous payment image.");
                 }
             }
@@ -71,7 +71,7 @@ router.route("/uploadPaymentQR")
 
                 return res.status(200).send("SUCCESS: Payment QR uploaded successfully");
             } catch (err) {
-                Logger.log(`ORDERS UPLOADPAYMENT QR POST ERROR: Failed to upload Payment QR; error: ${err}.`);
+                Logger.log(`ORDERS MANAGEGUESTS UPLOADPAYMENTQR POST ERROR: Failed to upload Payment QR; error: ${err}.`);
                 return res.status(500).send("ERROR: Failed to upload Payment QR.")
             }
         })

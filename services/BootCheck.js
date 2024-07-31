@@ -49,8 +49,10 @@ class BootCheck {
                 optionalVariables = optionalVariables.filter(v => v !== variable)
             }
 
-            if (variable == "OPENAI_API_KEY" && process.env.OPENAI_CHAT_ENABLED == undefined || process.env.OPENAI_CHAT_ENABLED == null) {
-                throw new Error("OPENAI_API_KEY environment variable is set but OPENAI_CHAT_ENABLED is not.")
+            if (variable == "OPENAI_API_KEY" && process.env[variable] !== undefined) {
+                if (process.env.OPENAI_CHAT_ENABLED == undefined || process.env.OPENAI_CHAT_ENABLED == null) {
+                    throw new Error("OPENAI_API_KEY environment variable is set but OPENAI_CHAT_ENABLED is not.")
+                }
             }
         }
         if (optionalVariables.length > 0) {

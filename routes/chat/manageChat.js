@@ -15,14 +15,17 @@ router.post("/createImageMessage", async(req, res) => {
             return res.status(400).send("No images and message was uploaded.")
         } else {
             if (err instanceof multer.MulterError) {
-                Logger.log(`CHAT MANAGECHAT CREATEIMAGEMESSAGE INTERNAL SERVER ERROR: ${err.message}`)
+                Logger.log(`CHAT MANAGECHAT CREATEIMAGEMESSAGE ERROR: ${err.message}`)
                 return res.status(500).send("ERROR: Error creating message with image")
             } else if (err) {
-                Logger.log(`CHAT MANAGECHAT CREATEIMAGEMESSAGE INTERNAL SERVER ERROR: ${err.message}`)
+                Logger.log(`CHAT MANAGECHAT CREATEIMAGEMESSAGE ERROR: ${err.message}`)
                 return res.status(500).send("ERROR: Error creating message with image")
             }
         }
         const uploadImageResponse = await FileManager.saveFile(imageFile.filename);
+        if (uploadImageResponse !== true) {
+            return res.status(500).send("ERROR: Failed to upload image to storage.");
+        }
 
         //Validate the message that the user is trying to create
 
@@ -43,11 +46,8 @@ router.post("/createImageMessage", async(req, res) => {
         if (!creatingMessage) {
             return res.status(500).send("ERROR: Failed to create message.")
         }
-        if (uploadImageResponse) {
-            res.status(200).json({ message: "SUCCESS: Image uploaded successfully.", imageName: imageFile.filename })
-        } else {
-            res.status(500).send("ERROR: Failed to upload image to storage.")
-        }
+        
+        res.status(200).json({ message: "SUCCESS: Image uploaded successfully.", imageName: imageFile.filename })
     })
 });
 

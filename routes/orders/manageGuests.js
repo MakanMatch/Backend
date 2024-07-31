@@ -24,7 +24,7 @@ router.route("/uploadPaymentQR")
             try {
                 host = await Host.findByPk(hostID);
                 if (!host) {
-                    return res.status(404).send("ERROR: Listing or host not found.");
+                    return res.status(404).send("ERROR: Host not found.");
                 }
             } catch (err) {
                 Logger.log(`ORDERS MANAGEGUESTS UPLOADPAYMENTQR POST ERROR: Failed to upload file; error: ${err}.`);

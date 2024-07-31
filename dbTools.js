@@ -3,6 +3,7 @@ const prompt = require("prompt-sync")({ sigint: true });
 const jwt = require('jsonwebtoken');
 const { Admin, ChatHistory, ChatMessage, FoodListing, Guest, Host, Reservation, Review, Warning, sequelize } = require('./models');
 const Encryption = require('./services/Encryption');
+const Universal = require('./services/Universal');
 require('dotenv').config()
 
 async function resetDB() {

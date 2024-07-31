@@ -43,10 +43,14 @@ class BootCheck {
             }
         }
 
-        let optionalVariables = ["LOGGING_ENABLED", "DEBUG_MODE"]
+        let optionalVariables = ["LOGGING_ENABLED", "DEBUG_MODE", "OPENAI_API_KEY"]
         for (let variable of optionalVariables) {
             if (process.env[variable] !== undefined) {
                 optionalVariables = optionalVariables.filter(v => v !== variable)
+            }
+
+            if (variable == "OPENAI_API_KEY" && process.env.OPENAI_CHAT_ENABLED == undefined || process.env.OPENAI_CHAT_ENABLED == null) {
+                throw new Error("OPENAI_API_KEY environment variable is set but OPENAI_CHAT_ENABLED is not.")
             }
         }
         if (optionalVariables.length > 0) {

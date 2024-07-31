@@ -26,7 +26,14 @@ Cache.load();
 const FileManager = require('./services/FileManager');
 FileManager.setup().catch(err => { Logger.logAndThrow(err) })
 
-
+const OpenAIChat = require('./services/OpenAIChat');
+if (OpenAIChat.checkPermission()) {
+    console.log("MAIN: OpenAI Chat service is enabled.")
+    const initialisation = OpenAIChat.initialise();
+    if (initialisation !== true) {
+        console.log(`MAIN: OpenAI Chat service failed to initialise. Error: ${initialisation}`)
+    }
+}
 
 // Import middleware
 const checkHeaders = require('./middleware/headersCheck');
@@ -126,7 +133,7 @@ async function onDBSynchronise() {
             "mealsMatched": "0",
             // "foodRating": "4",
             // "hygieneGrade": "5",
-            "paymentImage": "https://savh.org.sg/wp-content/uploads/2020/05/QRCodeS61SS0119JDBS.png"
+            // "paymentImage": "https://savh.org.sg/wp-content/uploads/2020/05/QRCodeS61SS0119JDBS.png"
         })
 
         if (!newHost) {

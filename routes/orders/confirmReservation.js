@@ -1,9 +1,11 @@
 const express = require('express');
 const { validateToken } = require('../../middleware/auth');
-const { FoodListing, Guest, Reservation } = require('../../models');
+const { FoodListing, Guest, Reservation, Host } = require('../../models');
 const Logger = require('../../services/Logger');
 const Universal = require('../../services/Universal');
 const yup = require('yup');
+const { Op } = require('sequelize');
+const { Extensions } = require('../../services');
 const router = express.Router();
 
 router.post("/createReservation", validateToken, async (req, res) => {
@@ -87,36 +89,77 @@ router.post("/createReservation", validateToken, async (req, res) => {
     })
 })
 
-router.post("/getReservation", validateToken, async (req, res) => {
+router.get("/getReservations", validateToken, async (req, res) => {
     const guestID = req.user.userID;
-    const { referenceNum, listingID } = req.body;
-    var identifierMode = null;
-    if (!referenceNum) {
-        if (!listingID) {
-            return res.status(400).send("ERROR: Sufficient payloads not provided to identify reservation.")
-        } else { identifierMode = 'FKIdentifiers' }
-    } else { identifierMode = 'Reference' }
+    const includeListing = req.query.includeListing == 'true' ? true : false;
+    const includeListingHost = req.query.includeListingHost == 'true' ? true : false;
+    const includeListingReservations = req.query.includeListingReservations == 'true' ? true : false;
 
-    let whereClause = {};
-    if (identifierMode == 'Reference') { whereClause['referenceNum'] = referenceNum }
-    else { whereClause['guestID'] = guestID, whereClause['listingID'] = listingID }
-
-    var reservation;
+    var reservationsJSON;
     try {
-        reservation = await Reservation.findOne({ where: whereClause })
-        if (!reservation) {
-            return res.status(404).send("ERROR: Reservation not found.")
+        const reservations = await Reservation.findAll({
+            where: { guestID: guestID }
+        })
+        if (!reservations || reservations.length == 0) {
+            return res.send([])
         }
+
+        reservationsJSON = reservations.map(r => r.toJSON())
     } catch (err) {
-        Logger.log(`ORDERS CONFIRMRESERVATION GETRESERVATION ERROR: Failed to find reservation. Error: ${err}`)
-        return res.send(400).send("ERROR: Failed to find reservation.")
+        Logger.log(`ORDERS CONFIRMRESERVATION GETRESERVATIONS ERROR: Failed to find reservations for user ${guestID}. Error: ${err}`)
+        return res.status(500).send("ERROR: Failed to process request.")
     }
 
-    var processedData = reservation.toJSON();
-    if (processedData['markedPaid'] !== undefined) { delete processedData['markedPaid'] }
-    if (processedData['paidAndPresent'] !== undefined) { delete processedData['paidAndPresent'] }
+    if (includeListing) {
+        var includeClause = [];
+        if (includeListingHost) {
+            includeClause.push({
+                model: Host,
+                as: "Host",
+                attributes: ["userID", "username", "foodRating", "fname", "lname", "paymentImage"]
+            })
+        }
+        if (includeListingReservations) {
+            includeClause.push({
+                model: Guest,
+                as: "guests",
+                attributes: ["userID", "username", "fname", "lname"],
+                through: {
+                    model: Reservation,
+                    as: "Reservation",
+                    attributes: ["portions", "totalPrice", "datetime"]
+                }
+            })
+        }
 
-    return res.status(200).json(processedData)
+        try {
+            const listingIDs = reservationsJSON.map(r => r.listingID)
+            const listings = await FoodListing.findAll({
+                where: {
+                    listingID: {
+                        [Op.in]: listingIDs
+                    }
+                },
+                include: includeClause
+            })
+
+            reservationsJSON = reservationsJSON.map(r => {
+                const listing = listings.find(l => l.listingID == r.listingID)
+                const listingJSON = listing.toJSON();
+                listing.images = listing.images ? listing.images.split("|") : []
+
+                if (listing) {
+                    r['listing'] = listing;
+                }
+                return r
+            })
+        } catch (err) {
+            Logger.log(`ORDERS CONFIRMRESERVATION GETRESERVATIONS ERROR: Failed to find listings for reservations for user ${guestID}. Error: ${err}`)
+            return res.status(500).send("ERROR: Failed to process request.")
+        }
+    }
+
+    return res.status(200).json(reservationsJSON)
 })
 
 router.put("/updateReservation", validateToken, async (req, res) => {
@@ -165,24 +208,39 @@ router.put("/updateReservation", validateToken, async (req, res) => {
         return res.status(400).send("UERROR: The listing is not currently accepting reservations.")
     }
 
-    const { portions } = req.body;
-    if (!portions || typeof portions !== 'number' || portions <= 0) {
-        return res.status(400).send("ERROR: Invalid payload.")
-    }
-
-    var portionsTaken = 0;
-    for (const guest of listing.guests) {
-        if (guest.userID != userID) {
-            portionsTaken += guest.Reservation.portions
+    const { portions, markedPaid } = req.body;
+    if (portions) {
+        if (typeof portions !== 'number' || portions <= 0) {
+            return res.status(400).send("ERROR: Invalid payload.")
         }
-    }
-    if (portions > (listing.totalSlots - portionsTaken)) {
-        return res.status(400).send("UERROR: Not enough portions available.")
+
+        var portionsTaken = 0;
+        for (const guest of listing.guests) {
+            if (guest.userID != userID) {
+                portionsTaken += guest.Reservation.portions
+            }
+        }
+        if (portions > (listing.totalSlots - portionsTaken)) {
+            return res.status(400).send("UERROR: Not enough portions available.")
+        }
+
+        const totalPrice = portions * listing.portionPrice
+        reservation.portions = portions
+        reservation.totalPrice = totalPrice
     }
 
-    const totalPrice = portions * listing.portionPrice
-    reservation.portions = portions
-    reservation.totalPrice = totalPrice
+    if (markedPaid !== undefined) {
+        if (typeof markedPaid !== 'boolean') {
+            return res.status(400).send("ERROR: Invalid payload.")
+        }
+
+        reservation.markedPaid = markedPaid
+    }
+
+    if (!reservation.changed()) {
+        return res.status(200).send("SUCCESS: Nothing to update.")
+    }
+
     try {
         await reservation.save()
     } catch (err) {
@@ -195,9 +253,65 @@ router.put("/updateReservation", validateToken, async (req, res) => {
         message: "SUCCESS: Reservation updated successfully.",
         listingID: listingID,
         referenceNum: reservation.referenceNum,
-        totalPrice: totalPrice,
-        portions: portions
+        totalPrice: reservation.totalPrice,
+        portions: reservation.portions,
+        markedPaid: reservation.markedPaid
     })
+})
+
+router.post("/cancelReservation", validateToken, async (req, res) => {
+    const userID = req.user.userID;
+    const { referenceNum, listingID } = req.body;
+    var identifierMode = null;
+    if (!referenceNum) {
+        if (!listingID) {
+            return res.status(400).send("ERROR: Sufficient payloads not provided to identify reservation.")
+        } else { identifierMode = 'FKIdentifiers' }
+    } else { identifierMode = 'Reference' }
+
+    let whereClause = {};
+    if (identifierMode == 'Reference') { whereClause['referenceNum'] = referenceNum }
+    else { whereClause['guestID'] = userID, whereClause['listingID'] = listingID }
+
+    var reservation;
+    try {
+        reservation = await Reservation.findOne({ where: whereClause })
+        if (!reservation) {
+            return res.status(404).send("ERROR: No reservation found.")
+        }
+    } catch (err) {
+        Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION ERROR: Failed to find reservation. Error: ${err}`)
+        return res.send(400).send("ERROR: Failed to find reservation.")
+    }
+
+    var listing;
+    try {
+        listing = await FoodListing.findByPk(reservation.listingID, {
+            include: [{
+                model: Guest,
+                as: "guests"
+            }]
+        })
+    } catch (err) {
+        Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION ERROR: Failed to find listing attached to reservation. Error: ${err}`)
+        return res.status(500).send("ERROR: Unable to fulfill request, try again.")
+    }
+
+    if (new Date(listing.datetime) < new Date()) {
+        return res.status(400).send("ERROR: Reservation has already passed.")
+    } else if (Extensions.timeDiffInSeconds(new Date(), new Date(listing.datetime)) < 21600 && req.body.cancellationFeeAcknowledged !== true) {
+        return res.status(400).send("UERROR: Cancellation fees apply for cancellations within 6 hours of the reservation time. Pay and acknowledge cancellation fee to proceed.")
+    }
+
+    try {
+        await reservation.destroy();
+        Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION: Reservation ${reservation.referenceNum} for listing ${listing.listingID} cancelled by guest ${userID}.`)
+    } catch (err) {
+        Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION ERROR: Failed to cancel reservation with reference number ${reservation.referenceNum}; error: ${err}`)
+        return res.status(500).send("ERROR: Unable to fulfill request, try again.")
+    }
+
+    res.status(200).send("SUCCESS: Reservation cancelled successfully.")
 })
 
 module.exports = { router }

@@ -14,27 +14,16 @@ const { Op } = require("sequelize");
 const OpenAIChat = require("../../services/OpenAIChat");
 
 router.post("/queryMakanBotWithUserPrompt", validateToken, async (req, res) => {
-    const { messagePrompt } = req.body;
+    const { messagePrompt, conversationHistory } = req.body;
 
-    const initialisationResult = OpenAIChat.initialise();
-    if (initialisationResult !== true) {
-       process.exit();
-    }
+    console.log("Message Prompt: ", messagePrompt);
+    console.log("Conversation History: ", conversationHistory);
 
     (async () => {
         const message = await OpenAIChat.prompt(
             messagePrompt,
             true,
-            [
-                {
-                   role: "user",
-                   content: "my name is sally!"
-                },
-                {
-                   role: "assistant",
-                   content: "Hi Sally! How may I help you?"
-                }
-            ]
+            conversationHistory
         )
         res.status(200).json({ message: message.content });
     })();

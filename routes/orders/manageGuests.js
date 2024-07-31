@@ -34,7 +34,7 @@ router.route("/uploadPaymentQR")
             if (req.file) {
                 try {
                     const saveFile = await FileManager.saveFile(req.file.filename);
-                    if (!saveFile) {
+                    if (saveFile !== true) {
                         Logger.log(`ORDERS MANAGEGUESTS UPLOADPAYMENTQR POST ERROR: Failed to save file.`);
                         return res.status(500).send("ERROR: Failed to save file");
                     }
@@ -48,7 +48,7 @@ router.route("/uploadPaymentQR")
             if (host.paymentImage) {
                 try {
                     const deletePreviousPaymentImage = await FileManager.deleteFile(host.paymentImage);
-                    if (!deletePreviousPaymentImage){
+                    if (deletePreviousPaymentImage !== true) {
                         return res.status(500).send("ERROR: Failed to delete previous payment image.");
                     }
                 } catch (err) {

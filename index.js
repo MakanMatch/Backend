@@ -74,6 +74,7 @@ if (config["routerRegistration"] != "automated") {
     app.use(require('./routes/identity/AccountRecovery').at || '/', require('./routes/identity/AccountRecovery').router);
     app.use(require('./routes/identity/emailVerification').at || '/', require('./routes/identity/emailVerification').router);
     app.use(require("./routes/identity/myAccount").at || '/', require("./routes/identity/myAccount").router);
+    app.use(require("./routes/identity/Admin/UserManagement").at || '/', require("./routes/identity/Admin/UserManagement").router);
     app.use(require("./routes/listings/listings").at || '/', require("./routes/listings/listings").router);
     app.use(require("./routes/orders/listingDetails").at || '/', require("./routes/orders/listingDetails").router);
     app.use(require("./routes/chat/manageChat").at || '/', require("./routes/chat/manageChat").router);

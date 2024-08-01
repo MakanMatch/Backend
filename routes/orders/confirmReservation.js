@@ -261,30 +261,87 @@ router.put("/updateReservation", validateToken, async (req, res) => {
 
 router.post("/cancelReservation", validateToken, async (req, res) => {
     const userID = req.user.userID;
-    const { referenceNum, listingID } = req.body;
+    const isHost = req.user.userType == "Host";
+    const { referenceNum, listingID, guestID } = req.body;
+
     var identifierMode = null;
     if (!referenceNum) {
         if (!listingID) {
             return res.status(400).send("ERROR: Sufficient payloads not provided to identify reservation.")
-        } else { identifierMode = 'FKIdentifiers' }
+        } else {
+            if (isHost && (!guestID || typeof guestID !== "string")) {
+                return res.status(400).send("ERROR: Sufficient payloads not provided to identify reservation.")
+            } else {
+                identifierMode = 'FKIdentifiers'
+            }
+        }
     } else { identifierMode = 'Reference' }
 
     let whereClause = {};
     if (identifierMode == 'Reference') { whereClause['referenceNum'] = referenceNum }
-    else { whereClause['guestID'] = userID, whereClause['listingID'] = listingID }
+    else { whereClause['guestID'] = isHost ? guestID : userID, whereClause['listingID'] = listingID }
 
     var reservation;
+    var listing;
     try {
-        reservation = await Reservation.findOne({ where: whereClause })
+        if (isHost) {
+            if (identifierMode == 'FKIdentifiers') {
+                listing = await FoodListing.findByPk(listingID, {
+                    where: {
+                        userID: userID
+                    },
+                    include: [{
+                        model: Guest,
+                        as: "guests"
+                    }]
+                })
+
+                if (!listing) {
+                    return res.status(404).send("ERROR: No such listing found.")
+                }
+
+                const targetGuest = listing.guests.find(g => g.userID == guestID)
+                if (!targetGuest) {
+                    return res.status(404).send("ERROR: No such guest found.")
+                }
+
+                reservation = targetGuest.Reservation;
+            } else {
+                reservation = await Reservation.findOne({ where: whereClause })
+            }
+        } else {
+            reservation = await Reservation.findOne({ where: whereClause })
+        }
+
         if (!reservation) {
             return res.status(404).send("ERROR: No reservation found.")
         }
     } catch (err) {
         Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION ERROR: Failed to find reservation. Error: ${err}`)
-        return res.send(400).send("ERROR: Failed to find reservation.")
+        return res.status(400).send("ERROR: Failed to find reservation.")
     }
 
-    var listing;
+    if (isHost) {
+        if (reservation.markedPaid == true) {
+            return res.status(400).send("UERROR: Guest has already paid for this reservation. Contact guest to cancel.")
+        }
+
+        try {
+            const reservationCopy = structuredClone(reservation.toJSON());
+            await reservation.destroy();
+
+            if (reservationCopy.chargeableCancelActive == true) {
+                // Notify guest of cancellation
+            }
+
+            Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION: Reservation ${reservation.referenceNum} for listing ${listingID} cancelled by host ${userID}.`)
+            return res.status(200).send("SUCCESS: Reservation cancelled successfully.")
+        } catch (err) {
+            Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION ERROR: Failed to cancel reservation with reference number ${reservation.referenceNum}; error: ${err}`)
+            return res.status(500).send("ERROR: Unable to fulfill request, try again.")
+        }
+    }
+
     try {
         listing = await FoodListing.findByPk(reservation.listingID, {
             include: [{
@@ -299,8 +356,33 @@ router.post("/cancelReservation", validateToken, async (req, res) => {
 
     if (new Date(listing.datetime) < new Date()) {
         return res.status(400).send("ERROR: Reservation has already passed.")
-    } else if (Extensions.timeDiffInSeconds(new Date(), new Date(listing.datetime)) < 21600 && req.body.cancellationFeeAcknowledged !== true) {
-        return res.status(400).send("UERROR: Cancellation fees apply for cancellations within 6 hours of the reservation time. Pay and acknowledge cancellation fee to proceed.")
+    }
+
+    if (reservation.chargeableCancelActive == true) {
+        return res.status(400).send("UERROR: Cancellation fee has already been acknowledged for this reservation. Await host confirmation.")
+    }
+
+    if (Extensions.timeDiffInSeconds(new Date(), new Date(listing.datetime)) < 21600) {
+        // Attempting within six hour cancellation window
+
+        if (req.body.cancellationFeeAcknowledged !== true) {
+            return res.status(400).send("UERROR: Cancellation fees apply for cancellations within 6 hours of the reservation time. Pay and acknowledge cancellation fee to proceed.")
+        } else {
+            // Set chargeableCancelActive to true. The host needs to acknowledge the cancellation fee before the reservation can be cancelled.
+            reservation.chargeableCancelActive = true;
+            try {
+                const saveResult = await reservation.save();
+                if (!saveResult) {
+                    return res.status(500).send("ERROR: Unable to fulfill request, try again.")
+                }
+
+                Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION: Cancellation fee acknowledged for reservation ${reservation.referenceNum} by guest ${userID}.`)
+                return res.status(200).send("SUCCESS: Cancellation fee acknowledged. Await cancellation fee confirmation from host.")
+            } catch (err) {
+                Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION ERROR: Failed to set chargeableCancelActive to true for reservation with reference number ${reservation.referenceNum}; error: ${err}`)
+                return res.status(500).send("ERROR: Unable to fulfill request, try again.")
+            }
+        }
     }
 
     try {

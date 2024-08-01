@@ -44,7 +44,7 @@ class OpenAIChat {
      */
     static initialised = false;
     static client;
-    static model = "gpt-3.5-turbo";
+    static model = "gpt-4o-mini";
     static maxTokens = 512;
     static temperature = 0.5;
 
@@ -74,10 +74,10 @@ class OpenAIChat {
     }
 
     static checkPermission() {
-        return process.env.OPENAI_API_KEY && process.env.OPENAI_CHAT_ENABLED === 'True';
+        return process.env.OPENAI_API_KEY !== undefined && process.env.OPENAI_CHAT_ENABLED === 'True';
     }
 
-    static initialise(configOptions={ model: "gpt-3.5-turbo", maxTokens: 512, temperature: 0.5 }) {
+    static initialise(configOptions={ model: "gpt-4o-mini", maxTokens: 512, temperature: 0.5 }) {
         if (!this.checkPermission()) {
             return "ERROR: OpenAIChat operation permission denied.";
         }

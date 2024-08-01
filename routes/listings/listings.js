@@ -89,9 +89,17 @@ router.post("/addListing", validateToken, async (req, res) => {
                         state = component.long_name;
                     }
                 });
-                let approximateAddress = `${street}, ${city}`;
+                
+                let approximateAddress = '';
+                if (street) {
+                    approximateAddress += street;
+                }
+                if (city) {
+                    if (approximateAddress) approximateAddress += ', ';
+                    approximateAddress += city;
+                }
                 if (state) {
-                    approximateAddress += `, ${state}`;
+                    if (approximateAddress) approximateAddress += `, ${state}`;
                 }
 
                 const listingDetails = {

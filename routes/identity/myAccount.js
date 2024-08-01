@@ -346,7 +346,7 @@ router.put('/changeAddress', validateToken, async (req, res) => {
             const coordinates = { lat: geoLocation.lat, lng: geoLocation.lng };
             const updatedListings = await FoodListing.update(
                 {
-                    coordinates: `${coordinates.lat},${coordinates.lng}`,
+                    approxCoordinates: `${coordinates.lat},${coordinates.lng}`,
                     address: address,
                     approxAddress: `${street} ${postalCode}`
                 },

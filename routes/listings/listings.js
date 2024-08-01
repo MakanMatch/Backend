@@ -78,7 +78,7 @@ router.post("/addListing", validateToken, async (req, res) => {
                     approxAddress: hostInfo.approxAddress,
                     address: hostInfo.address,
                     hostID: hostInfo.userID,
-                    coordinates: hostInfo.approxCoordinates,
+                    approxCoordinates: hostInfo.approxCoordinates,
                     published: validatedData.publishInstantly,
                 };
                 const addListingResponse = await FoodListing.create(listingDetails);

@@ -40,7 +40,7 @@ router.get("/getGuestPastReservations", validateToken, async(req, res) => {
                         attributes: ["username", "foodRating"]
                     }]
                 });
-                resultantResponse = []
+                var resultantResponse = []
                 pastReservations.map(reservation => {
                     const listing = foodListings.find(listing => listing.listingID == reservation.listingID);
                     if (listing && listing.datetime < new Date().toISOString()) {

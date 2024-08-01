@@ -122,11 +122,14 @@ router.post("/", async (req, res) => {
                 const approxUrl = `https://maps.googleapis.com/maps/api/geocode/json?address="${encodedApproximateAddress}"&key=${apiKey}`;
                 const approxResponse = await axios.get(approxUrl);
                 const approxLocation = approxResponse.data.results[0].geometry.location;
-                const approxCoordinates = `${approxLocation.lat},${approxLocation.lng}`;
-
-                accountData.coordinates = fullCoordinates;
-                accountData.approxCoordinates = approxCoordinates
-                accountData.approxAddress = approximateAddress;
+                if (!approxLocation) {
+                    return res.status(400).send("UERROR: Invalid address.");
+                } else {
+                    const approxCoordinates = `${approxLocation.lat},${approxLocation.lng}`;
+                    accountData.coordinates = fullCoordinates;
+                    accountData.approxCoordinates = approxCoordinates
+                    accountData.approxAddress = approximateAddress;
+                }
             }
 
             accountData.contactNum = contactNum;
@@ -164,7 +167,6 @@ router.post("/", async (req, res) => {
         Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created. Verification email auto-dispatched.`);
         res.send("SUCCESS: Account created. Please verify your email.");
     } catch (err) {
-        console.log(err);
         Logger.log(`IDENTITY CREATEACCOUNT ERROR: Failed to create ${isHostAccount ? 'Host' : 'Guest'} account for user email ${email}.`);
         res.status(500).send("ERROR: Internal server error.");
     }

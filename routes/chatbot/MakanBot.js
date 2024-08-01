@@ -13,7 +13,7 @@ const { validateToken } = require("../../middleware/auth");
 const { Op } = require("sequelize");
 const OpenAIChat = require("../../services/OpenAIChat");
 
-router.post("/queryMakanBotWithUserPrompt", validateToken, async (req, res) => {
+router.post("/queryMakanBotWithUserPrompt", async (req, res) => {
     const { messagePrompt, conversationHistory } = req.body;
 
     console.log("Message Prompt: ", messagePrompt);

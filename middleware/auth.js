@@ -52,6 +52,10 @@ const validateToken = async (req, res, next) => {
     if (!record) {
         return res.status(404).send("ERROR: User does not exist.");
     }
+    // Check if user is banned
+    if (record.banned === true) {
+        return res.status(403).send("ERROR: User is banned.");
+    }
 
     // Populate request with user information
     req.user = payload;
@@ -113,6 +117,10 @@ const checkUser = async (req, res, next) => {
     }});
     if (!record) {
         return res.status(404).send("ERROR: User does not exist.");
+    }
+    // Check if user is banned
+    if (record.banned === true) {
+        return res.status(403).send("ERROR: User is banned.");
     }
 
     // Populate request with user information

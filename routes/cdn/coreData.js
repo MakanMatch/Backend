@@ -166,16 +166,16 @@ router.get("/accountInfo", async (req, res) => { // GET account information
         if (!targetUserID) { res.status(400).send("ERROR: One or more required payloads not provided."); }
         let user, userType;
 
-        user = await Guest.findOne({ where: { userID: targetUserID } });
+        user = await Guest.findByPk(targetUserID);
         if (user) {
             userType = 'Guest';
         } else {
-            user = await Host.findOne({ where: { userID: targetUserID } });
+            user = await Host.findByPk(targetUserID);
             if (user) {
                 userType = 'Host';
 
             } else {
-                user = await Admin.findOne({ where: { userID: targetUserID } });
+                user = await Admin.findByPk(targetUserID);
                 if (user) {
                     userType = 'Admin';
                 }
@@ -209,16 +209,16 @@ router.get("/accountInfo", async (req, res) => { // GET account information
             accountInfo.foodRating = user.foodRating;
             accountInfo.hygieneGrade = user.hygieneGrade;
             accountInfo.paymentImage = user.paymentImage;
+            accountInfo.reviewsCount = user.reviewsCount;
         } else if (userType === 'Guest') {
             accountInfo.favCuisine = user.favCuisine;
             accountInfo.mealsMatched = user.mealsMatched;
         }
 
-        res.status(200).json(accountInfo);
-
+        return res.status(200).json(accountInfo);
     } catch (err) {
-        res.status(500).send("ERROR: An error occured while fetching the account information.")
-        console.log(err)
+        Logger.log(`CDN COREDATA ACCOUNTINFO ERROR: Failed to retrieve account information; error: ${err}.`);
+        return res.status(500).send("ERROR: Failed to process request, please try again.")
     }
 })
 

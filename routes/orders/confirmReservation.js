@@ -127,7 +127,7 @@ router.get("/getReservations", validateToken, async (req, res) => {
                 through: {
                     model: Reservation,
                     as: "Reservation",
-                    attributes: ["portions", "totalPrice", "datetime"]
+                    attributes: ["referenceNum", "portions", "totalPrice", "datetime", "chargeableCancelActive", "markedPaid"]
                 }
             })
         }

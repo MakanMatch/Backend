@@ -38,7 +38,19 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: false
         },
+        approxAddress: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
         address: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        approxCoordinates: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        coordinates: {
             type: DataTypes.STRING,
             allowNull: false
         },

@@ -62,7 +62,7 @@ router.route("/")
                     reviewID: reviewID,
                     foodRating: foodRating,
                     hygieneRating: hygieneRating,
-                    comments: comments,
+                    comments: (comments && typeof comments == "string") ? comments.trim() : "",
                     images: fileUrlsString,
                     dateCreated: dateCreated,
                     guestID: guestID,

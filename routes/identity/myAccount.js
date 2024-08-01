@@ -104,7 +104,26 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
 });
 
 router.delete('/deleteAccount', validateToken, async (req, res) => {
-    const { userID, userType } = req.user;
+    let userID;
+    let userType;
+
+    // const adminPrivilege = req.query.adminPrivilege || "false";
+    // console.log(adminPrivilege)
+    // if (adminPrivilege.startsWith("true")) {
+    //     userID = req.query.targetUserID;
+    //     userType = req.query.userType;
+    // } else {
+    //     userID = req.user.userID;
+    //     userType = req.user.userType;
+    // }
+
+    if (req.user.userType === "Admin") {
+        userID = req.query.targetUserID;
+        userType = req.query.userType;
+    } else {
+        userID = req.user.userID;
+        userType = req.user.userType;
+    }
 
     try {
         let user;

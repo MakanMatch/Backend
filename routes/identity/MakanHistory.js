@@ -40,17 +40,30 @@ router.get("/getGuestPastReservations", validateToken, async(req, res) => {
                         attributes: ["username", "foodRating"]
                     }]
                 });
-                if (foodListings) {
-                    if (foodListings.length > 0) {
-                        return res.status(200).json({ pastReservations: pastReservations, foodListings: foodListings });
-                    } else {
-                        return res.status(400).send("ERROR: Could not find any food listings that were tied to this reservation");
+                resultantResponse = []
+                pastReservations.map(reservation => {
+                    const listing = foodListings.find(listing => listing.listingID == reservation.listingID);
+                    if (listing && listing.datetime < new Date().toISOString()) {
+                        resultantResponse.push({
+                            datetime: reservation.datetime,
+                            guestID: reservation.guestID,
+                            listingID: reservation.listingID,
+                            markedPaid: reservation.markedPaid,
+                            paidAndPresent: reservation.paidAndPresent,
+                            portions: reservation.portions,
+                            referenceNum: reservation.referenceNum,
+                            totalPrice: reservation.totalPrice,
+                            listing: listing
+                        });
                     }
+                });
+                if (resultantResponse.length !== 0) {
+                    return res.status(200).json(resultantResponse);
                 } else {
-                    return res.status(400).send("ERROR: An error occured while retrieving food listings for the past reservations");
+                    return res.status(400).send("ERROR: Failed to retrieve user's past reservations");
                 }
             } else {
-                return res.status(200).json({ pastReservations: [], foodListings: [] });
+                return res.status(200).json([]);
             }
         }
     } catch (err) {

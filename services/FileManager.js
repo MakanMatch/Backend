@@ -220,7 +220,6 @@ class FileManager {
     static async prepFile(file) {
         if (!this.checkPermission()) { return "ERROR: FileManager operation permission denied." }
         if (!this.#initialized) { return 'ERROR: FileManager must be setup first.' }
-
         const fileExists = await FireStorage.fileExistsAt(file)
         if (typeof fileExists === 'string') {
             return `ERROR: ${fileExists}`

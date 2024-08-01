@@ -300,7 +300,7 @@ router.post("/cancelReservation", validateToken, async (req, res) => {
                     return res.status(404).send("ERROR: No such listing found.")
                 }
 
-                const targetGuest = listing.guests.find(g => g.userID == userID)
+                const targetGuest = listing.guests.find(g => g.userID == guestID)
                 if (!targetGuest) {
                     return res.status(404).send("ERROR: No such guest found.")
                 }

@@ -354,7 +354,6 @@ router.post("/cancelReservation", validateToken, async (req, res) => {
         return res.status(500).send("ERROR: Unable to fulfill request, try again.")
     }
 
-    console.log(listing.datetime, new Date().toISOString());
     if (new Date(listing.datetime) < new Date()) {
         return res.status(400).send("ERROR: Reservation has already passed.")
     }

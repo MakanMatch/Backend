@@ -4,8 +4,9 @@ const { FoodListing, Guest, Reservation, Host } = require('../../models');
 const Logger = require('../../services/Logger');
 const Universal = require('../../services/Universal');
 const yup = require('yup');
+const path = require('path');
 const { Op } = require('sequelize');
-const { Extensions } = require('../../services');
+const { Extensions, Emailer, HTMLRenderer } = require('../../services');
 const router = express.Router();
 
 router.post("/createReservation", validateToken, async (req, res) => {
@@ -20,10 +21,17 @@ router.post("/createReservation", validateToken, async (req, res) => {
     }
 
     const listing = await FoodListing.findByPk(listingID, {
-        include: [{
-            model: Guest,
-            as: "guests"
-        }]
+        include: [
+            {
+                model: Guest,
+                as: "guests"
+            },
+            {
+                model: Host,
+                as: "Host",
+                attributes: ["userID", "username", "fname", "lname"]
+            }
+        ]
     })
     if (!listing || listing == null) {
         return res.status(400).send("ERROR: Listing does not exist.")
@@ -78,6 +86,51 @@ router.post("/createReservation", validateToken, async (req, res) => {
         Logger.log(`ORDERS CONFIRMRESERVATION CREATERESERVATION ERROR: Failed to make reservation for guest ${guestID} for listing ${listingID}. Sequelize create response: ${reservation}`)
         return res.status(500).send("ERROR: Failed to create reservation.")
     }
+
+    const emailText = `
+Dear ${guest.username},
+Thank you for reserving with ${listing.Host.username}! Here are your upcoming reservation's details:
+
+Food Listing: ${listing.title}
+Host: ${listing.Host.username} (${listing.Host.fname} ${listing.Host.lname})
+Address: ${listing.Host.address}
+Date and Time: ${new Date(listing.datetime).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+
+Reserved Portions: ${portions}
+Total Price: ${totalPrice}
+Reference Number: ${reservation.referenceNum}
+
+In the six hour window prior to the meal, the host's PayNow QR code will be shown. Please pay promptly within this window for your meal.
+Cancellations are free until the six hour window prior to the meal. Cancellations thereafter are chargeable.
+
+For any inquiries, please see our Customer Support page (present in the Sidebar). For more complex queries, chat with our very own MakanBot!
+
+We hope you have a pleasant experience! Thank you for being a valued guest on MakanMatch!
+
+Best regards,
+MakanMatch Team
+`
+
+    Emailer.sendEmail(
+        guest.email,
+        "Reservation Confirmed | MakanMatch",
+        emailText,
+        HTMLRenderer.render(
+            path.join("emails", "ReservationConfirmation.html"),
+            {
+                hostName: listing.Host.username,
+                title: listing.title,
+                address: listing.Host.address,
+                datetime: new Date(listing.datetime).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' }),
+                portions: portions,
+                totalPrice: totalPrice,
+                referenceNum: reservation.referenceNum
+            }
+        )
+    )
+    .catch(err => {
+        Logger.log(`ORDERS CONFIRMRESERVATION CREATERESERVATION ERROR: Failed to send confirmation email to guest ${guestID}. Error: ${err}`)
+    })
 
     Logger.log(`ORDERS CONFIRMRESERVATION CREATERESERVATION: Guest ${guestID} made reservation for listing ${listingID}.`)
     return res.status(200).json({

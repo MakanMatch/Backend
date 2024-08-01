@@ -59,6 +59,6 @@ class BootCheck {
             console.log(`BOOTCHECK WARNING: Optional environment variable(s) ${optionalVariables.join(", ")} are not set.`)
         }
     }
-}t
+}
 
 module.exports = BootCheck;

@@ -16,6 +16,15 @@ class ChatEvent {
         })
     }
 
+    static tokenRefreshedEvent = "refreshToken"
+    static tokenRefreshed(token) {
+        return JSON.stringify({
+            event: "refreshToken",
+            message: "Token refreshed.",
+            token: token
+        })
+    }
+
     static responseEvent = "response";
     static response(message) {
         return {
@@ -26,17 +35,23 @@ class ChatEvent {
 }
 
 async function authenticateConnection(authToken) {
-    const { payload, token, refreshed } = TokenManager.verify(authToken, false)
-    if (!payload || !payload.userID) {
-        return "ERROR: Invalid JWT."
+    var verifyPayload;
+    try {
+        verifyPayload = TokenManager.verify(authToken, false)
+        if (!verifyPayload.payload || !verifyPayload.payload.userID) {
+            return "ERROR: Invalid JWT."
+        }
+    } catch (error) {
+         // Handle token verification/refreshing errors
+         if (error.name == "TokenExpiredError") {
+            return "ERROR: " + error.name;
+        } else {
+            Logger.log(`AUTH VALIDATETOKEN: Failed to verify token; error: ${error}`);
+            return "ERROR: Failed to verify token.";
+        }
     }
 
-    const user = await Host.findByPk(payload.userID) || await Guest.findByPk(guestID)
-    if (!user) {
-        return "ERROR: User not found."
-    }
-
-    return user;
+    return verifyPayload;
 }
 
 function startWebSocketServer(app) {
@@ -150,32 +165,106 @@ function startWebSocketServer(app) {
             userID: null,
             user: null,
             userType: null,
+            authToken: null,
+            lastUpdate: new Date().toISOString(),
             conversations: {}
         }
 
         ws.on("message", async (message) => {
-            const parsedMessage = JSON.parse(message);
+            if (!clientStore[connectionID]) { ws.close(); return; }
 
-            if (parsedMessage.action != "connect" && clientStore[connectionID].userID == null) {
-                ws.send(ChatEvent.error("Connect and authenticate this connection before proceeding with other actions."))
+            // Close connection due to inactivity. Update lastUpdate otherwise.
+            const TEN_MINUTES = 10 * 60 * 1000;
+            const ONE_HOUR = 60 * 60 * 1000;
+            if (clientStore[connectionID].authToken == null && (Date.now() - new Date(clientStore[connectionID].lastUpdate).getTime()) > TEN_MINUTES) {
+                Logger.log(`WEBSOCKETSERVER: Closing connection ${connectionID} due to unauthenticated state for 10 minutes.`);
+                ws.close(1008)
+                delete clientStore[connectionID]
+                return;
+            } else if (Date.now() - new Date(clientStore[connectionID].lastUpdate).getTime() > ONE_HOUR) {
+                Logger.log(`WEBSOCKETSERVER: Closing connection ${connectionID} due to inactivity for 1 hour.`);
+                ws.close(1008)
+                delete clientStore[connectionID]
+                return;
+            } else {
+                clientStore[connectionID].lastUpdate = new Date().toISOString();
+            }
+
+            // Parse the received message
+            var parsedMessage;
+            try {
+                parsedMessage = JSON.parse(message);
+            } catch (err) {
+                Logger.log(`CHAT WEBSOCKETSERVER ONMESSAGE ERROR: Failed to parse message from client; error: ${err}`)
+                ws.send(ChatEvent.error("Invalid message event."))
                 return;
             }
 
-            if (parsedMessage.action === "connect") {
-                // Retrieve the user record
-                /// (needs to be changed to use authenticateConnection later on)
-                const userID = parsedMessage.userID
-                if (!userID) {
-                    ws.send(ChatEvent.error("User ID not provided."))
+            // Check connection authorisation
+            if (parsedMessage.action != "connect" && clientStore[connectionID].authToken == null) {
+                ws.send(ChatEvent.error("Connect and authenticate this connection before proceeding with other actions."))
+                return;
+            } else if (parsedMessage.action != "connect" && clientStore[connectionID].authToken != null) {
+                const refreshResult = await authenticateConnection(clientStore[connectionID].authToken);
+                if (typeof refreshResult == "string" && refreshResult.startsWith("ERROR")) {
+                    // Failed to verify authorised connection's credential. De-authorise connection.
+                    clientStore[connectionID]["authToken"] = null;
+                    clientStore[connectionID]["userID"] = null;
+                    clientStore[connectionID]["user"] = null;
+                    clientStore[connectionID]["userType"] = null;
+                    clientStore[connectionID]["conversations"] = {};
+                    ws.send(JSON.stringify({
+                        event: "error",
+                        message: refreshResult
+                    }))
                     return;
                 }
+                const { payload, token, refreshed } = refreshResult;
+                if (refreshed) {
+                    Logger.log(`CHAT WEBSOCKETSERVER CONNECTION: Token refreshed for user ${payload.userID} (Connection ID: ${connectionID}).`)
+                    ws.send(ChatEvent.tokenRefreshed(token))
+                    clientStore[connectionID]["authToken"] = token;
+                    return;
+                }
+            }
+
+            if (parsedMessage.action === "connect") {
+                // Use authentication connection to verify authorisation
+                const authToken = parsedMessage.authToken;
+                if (!authToken) {
+                    ws.send(ChatEvent.error("Provide an auth token to authorise this connection."))
+                    return;
+                }
+                const verificationResult = await authenticateConnection(authToken);
+                if (typeof verificationResult == "string" && verificationResult.startsWith("ERROR")) {
+                    ws.send(JSON.stringify({
+                        event: "error",
+                        message: verificationResult
+                    }))
+                    return;
+                }
+                const { payload, token, refreshed } = verificationResult;
+                if (refreshed) {
+                    Logger.log(`CHAT WEBSOCKETSERVER ONMESSAGE CONNECT: Token refreshed for user ${payload.userID} (Connection ID: ${connectionID}).`)
+                    ws.send(ChatEvent.tokenRefreshed(token))
+                    clientStore[connectionID]["authToken"] = token
+                }
+                clientStore[connectionID].authToken = token;
+
+                const userID = payload.userID;
 
                 var user = await Host.findByPk(userID)
                 var userType = "Host"
                 if (!user) {
                     user = await Guest.findByPk(userID);
                     if (!user) {
-                        ws.send(ChatEvent.error("User not found."));
+                        // User could not be found based on authToken provided userID. De-authorise connection.
+                        clientStore[connectionID]["authToken"] = null;
+                        clientStore[connectionID]["userID"] = null;
+                        clientStore[connectionID]["user"] = null;
+                        clientStore[connectionID]["userType"] = null;
+                        clientStore[connectionID]["conversations"] = {};
+                        ws.send(ChatEvent.error("User not found. Re-connect with the auth token of an existing user."));
                         return;
                     }
 
@@ -308,7 +397,7 @@ function startWebSocketServer(app) {
                 handleDeleteMessage(parsedMessage, connectionID, parsedMessage.chatID);
             } else if (parsedMessage.action === "send") {
                 handleMessageSend(parsedMessage, connectionID, parsedMessage.chatID);
-            } else if (parsedMessage.action === "chat_history") {
+            }else if (parsedMessage.action === "chat_history") {
                 getChatAndMessages(connectionID, parsedMessage);
             } else {
                 ws.send(JSON.stringify({ action: "error", message: "Invalid action" }));
@@ -427,6 +516,7 @@ function startWebSocketServer(app) {
                 senderID: clientStore[connectionID].userID,
                 message: receivedMessage.message,
                 datetime: new Date().toISOString(),
+                image: null,
             };
             var broadcastJSON = message;
             broadcastJSON.sender = clientStore[connectionID].user.username
@@ -446,11 +536,11 @@ function startWebSocketServer(app) {
                 return;
             }
 
-            const responseMessage = {
+            const responseMessage ={
                 action: "send",
-                message: broadcastJSON,
-            };
-            
+                message : broadcastJSON
+            }
+
             broadcastMessage(responseMessage, chatID)
         } catch (error) {
             Logger.log(`CHAT WEBSOCKETSERVER HANDLEMESSAGESEND ERROR: Failed to create message sent by user ${clientStore[connectionID].userID} for chat ${chatID}; error: ${error}`)

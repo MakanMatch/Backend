@@ -82,6 +82,10 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: true
         },
+        profilePicture: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
         resetKey: {
             type: DataTypes.STRING,
             allowNull: true

@@ -40,7 +40,7 @@ router.post("/", async (req, res) => {
     } else {
         address = `${street} ${postalCode}`;
     }
-    const nameRegex = /^[a-zA-Z]+$/;
+    const nameRegex = /^[a-zA-Z\s]+$/;
 
     try {
         if (!nameRegex.test(fname) || !nameRegex.test(lname)) {

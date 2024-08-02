@@ -150,6 +150,8 @@ function startWebSocketServer(app) {
                     user2ID: guestID,
                     datetime: new Date().toISOString(),
                 });
+
+                
             }
 
             return chatHistory.chatID;
@@ -534,58 +536,61 @@ function startWebSocketServer(app) {
             const newMessage = await ChatMessage.create(message);
 
             if (!newMessage) {
-                ws.send(ChatEvent.error("Failed to create message. Please try again."))
+                ws.send(ChatEvent.error("Failed to create message. Please try again."));
                 return;
             }
-
-            // const latestMessageByRecipient = await ChatMessage.findOne({
-            //     where: {
-            //         chatID: chatID,
-            //         senderID: clientStore[connectionID].conversations[chatID].recipientID
-            //     },
-            //     order: [["datetime", "DESC"]]
-            // });
-
-            // if (latestMessageByRecipient){
-
             
+            const latestMessageByRecipient = await ChatMessage.findOne({
+                where: {
+                    chatID: chatID,
+                    senderID: clientStore[connectionID].conversations[chatID].recipientID
+                },
+                order: [["datetime", "DESC"]]
+            });
+            
+            if (latestMessageByRecipient) {
+                // Get the datetime of the recipient's last message
+                const recipientLastMessageDatetime = new Date(latestMessageByRecipient.datetime);
+            
+                // Retrieve messages sent by the user since the recipient's last message
+                const userMessages = await ChatMessage.findAll({
+                    where: {
+                        chatID: chatID,
+                        senderID: clientStore[connectionID].userID,
+                        datetime: {
+                            [Op.gt]: recipientLastMessageDatetime // Messages sent after the recipient's last message
+                        }
+                    },
+                    order: [["datetime", "DESC"]]
+                });
+            
+                // Process the list of user messages
+                let missedMessages = userMessages.map(message => ({
+                    message: message.message, // Assuming 'message' contains the message content
+                    datetime: message.datetime
+                }));
+            
+                // Create missed messages list for email
+                let senderID = clientStore[connectionID].userID;
+                let sender = await Host.findByPk(senderID) || await Guest.findByPk(senderID);
+                let recipientID = clientStore[connectionID].conversations[chatID].recipientID;
+                let recipient = await Host.findByPk(recipientID) || await Guest.findByPk(recipientID);
 
-            // const dateDiff = Extensions.timeDiffInSeconds(new Date(latestMessageByRecipient.datetime), new Date())
-            // console.log(dateDiff)
-            // if (dateDiff > 10) {
-            //     console.log('wahoooooo')
-            //     // Retrieve messages sent in the last 2 hours
-            //     const messages = await ChatMessage.findAll({
-            //         where: {
-            //             chatID: chatID,
-            //             datetime: {
-            //                 [Op.gt]: new Date(new Date().getTime() - 100000) // Last 2 hours
-            //             },
-            //             senderID: clientStore[connectionID].userID
-            //         }
-            //     });
-            //     //Create a list of missed messages
-            //     var missedMessages = {};
-            //     var senderID = clientStore[connectionID].userID;
-            //     var sender = await Host.findByPk(senderID) || await Guest.findByPk(senderID);
-            //     missedMessages[sender.username] = [];
-
-            //     // for (message in messages){
-            //     //     var messageContent = message.message
-            //     //     missedMessages[sender.usernane].push(messageContent)
-            //     // }
-            //     const emailTemplatePath = path.join(__dirname, '../../views/emails/MissedMessage.html');
-            //     const emailContent = HTMLRenderer.render(emailTemplatePath, { senderUsername: senderUsername, missedMessages: missedMessages[sender.username] });
-            //     const text = `You have missed messages from ${senderUsername} in the last 2 hours. Please login to view them.`
-            //     Emailer.sendEmail(sender.email, "Missed Messages", text, emailContent)
-            // }
-        // }
-            const responseMessage ={
-                action: "send",
-                message : broadcastJSON
+                console.log(missedMessages)
+                const emailTemplatePath = path.join("emails", "MissedMessage.html");
+                const emailContent = HTMLRenderer.render(emailTemplatePath, 
+                    { senderUsername: sender.username, missedMessages: missedMessages });
+                const text = `You have missed messages from ${sender.username} since their last response. Please login to view them.`;
+                Emailer.sendEmail(recipient.email, "Missed Messages", text, emailContent);
             }
-
-            broadcastMessage(responseMessage, chatID)
+            
+            // Broadcast the response message
+            const responseMessage = {
+                action: "send",
+                message: broadcastJSON
+            };
+            
+            broadcastMessage(responseMessage, chatID);
         } catch (error) {
             Logger.log(`CHAT WEBSOCKETSERVER HANDLEMESSAGESEND ERROR: Failed to create message sent by user ${clientStore[connectionID].userID} for chat ${chatID}; error: ${error}`)
             ws.send(ChatEvent.error("Failed to create message. Please try again."))

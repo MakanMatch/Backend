@@ -23,27 +23,28 @@ router.post('/issueWarning', validateToken, async (req, res) => {
         return res.status(404).send("ERROR: Host not found");
     }
 
-    const checkForExistingWarning = await Warning.findOne({
-        where: {
-            hostID: hostID
-        }
-    });
-    console.log(checkForExistingWarning);
+    console.log("Host: ", host);
 
-    if (checkForExistingWarning) {
-        return res.status(400).send("UERROR: Host has already been issued a warning");
-    }
+    // const checkForExistingWarning = await Warning.findOne({
+    //     where: {
+    //         hostID: hostID
+    //     }
+    // });
 
-    const hostToBan = await Warning.create({
-        reason: reason,
-        hostID: hostID,
-        issuingAdminID: issuingAdminID,
-        datetime: new Date().toISOString()
-    });
+    // if (checkForExistingWarning) {
+    //     return res.status(400).send("UERROR: Host has already been issued a warning");
+    // }
 
-    if (!hostToBan) {
-        return res.status(500).send("ERROR: Failed to issue warning");
-    }
+    // const hostToBan = await Warning.create({
+    //     reason: reason,
+    //     hostID: hostID,
+    //     issuingAdminID: issuingAdminID,
+    //     datetime: new Date().toISOString()
+    // });
+
+    // if (!hostToBan) {
+    //     return res.status(500).send("ERROR: Failed to issue warning");
+    // }
 
     const updateHostFlagged = await Host.update({
         flaggedForHygiene: true
@@ -97,6 +98,35 @@ router.post('/issueWarning', validateToken, async (req, res) => {
     });
 
     return res.status(200).send("Warning issued successfully");
+});
+
+router.post("/unflagHost", validateToken, async (req, res) => {
+    const { hostID } = req.body;
+
+    if (req.user.userType !== 'Admin') {
+        return res.status(403).send("UERROR: Unauthorised Access");
+    }
+
+    if (!hostID) {
+        return res.status(400).send("UERROR: One or more required payloads missing");
+    }
+
+    const host = await Host.findByPk(hostID);
+    if (!host) {
+        return res.status(404).send("ERROR: Host not found");
+    }
+
+    const updateHostFlagged = await Host.update({
+        flaggedForHygiene: false
+    }, {
+        where: { userID: hostID }
+    });
+
+    if (!updateHostFlagged) {
+        return res.status(500).send("ERROR: Failed to update host's flagged status");
+    }
+
+    return res.status(200).send("Host unflagged successfully");
 });
 
 module.exports = { router, at: '/admin/hygieneReports' };

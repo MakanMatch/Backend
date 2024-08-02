@@ -273,7 +273,7 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
                     }]
                 })
 
-                const reviewsJSON = reviews.map(review => review.toJSON());
+                var reviewsJSON = reviews.map(review => review.toJSON());
                 
                 if (!checkGuest) {
                     const likedReviews = await ReviewLike.findAll({
@@ -295,6 +295,10 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
                 }
 
                 if (order === "images") {
+                    // Filter out reviews with images
+                    reviewsJSON = reviewsJSON.filter(review => review.images);
+
+                    // Sort reviews in descending order of image count
                     reviewsJSON.sort((a, b) => {
                         const imageCountA = a.images ? a.images.split("|").length : 0;
                         const imageCountB = b.images ? b.images.split("|").length : 0;

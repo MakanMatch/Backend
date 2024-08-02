@@ -66,34 +66,6 @@ router.post("/addListing", validateToken, async (req, res) => {
                 return res.status(404).send("UERROR: Your account details were not found");
             }
             try {
-                const encodedAddress = encodeURIComponent(String(hostInfo.address));
-                const apiKey = process.env.GMAPS_API_KEY;
-                const url = `https://maps.googleapis.com/maps/api/geocode/json?address="${encodedAddress}"&key=${apiKey}`;
-                const response = await axios.get(url);
-                const location = response.data.results[0].geometry.location;
-                const coordinates = { lat: location.lat, lng: location.lng };
-
-                const components = response.data.results[0].address_components;
-                let street = '';
-                let city = '';
-                let state = '';
-
-                components.forEach(component => {
-                    if (component.types.includes('route')) {
-                        street = component.long_name;
-                    }
-                    if (component.types.includes('locality')) {
-                        city = component.long_name;
-                    }
-                    if (component.types.includes('administrative_area_level_1')) {
-                        state = component.long_name;
-                    }
-                });
-                let approximateAddress = `${street}, ${city}`;
-                if (state) {
-                    approximateAddress += `, ${state}`;
-                }
-
                 const listingDetails = {
                     listingID: Universal.generateUniqueID(),
                     title: validatedData.title,
@@ -103,10 +75,10 @@ router.post("/addListing", validateToken, async (req, res) => {
                     portionPrice: validatedData.portionPrice,
                     totalSlots: validatedData.totalSlots,
                     datetime: validatedData.datetime,
-                    approxAddress: approximateAddress,
+                    approxAddress: hostInfo.approxAddress,
                     address: hostInfo.address,
                     hostID: hostInfo.userID,
-                    coordinates: coordinates.lat + "," + coordinates.lng,
+                    approxCoordinates: hostInfo.approxCoordinates,
                     published: validatedData.publishInstantly,
                 };
                 const addListingResponse = await FoodListing.create(listingDetails);

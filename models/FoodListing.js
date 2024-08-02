@@ -52,7 +52,7 @@ module.exports = (sequelize, DataTypes) => {
             alowNull: false,
             defaultValue: false
         },
-        coordinates: {
+        approxCoordinates: {
             type: DataTypes.STRING,
             allowNull: false
         }

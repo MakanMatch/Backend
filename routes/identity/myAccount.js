@@ -285,42 +285,85 @@ router.put('/changeAddress', validateToken, async (req, res) => {
             return res.status(400).send("UERROR: Invalid address.");
         }
 
-        // Update address in the database
-        const user = await Host.findOne({ where: { userID } }) || 
-                     await Guest.findOne({ where: { userID } }) ||
-                     await Admin.findOne({ where: { userID } });
-        if (!user) {
-            return res.status(404).send("ERROR: User not found.");
-        }
+        const fullCoordinates = `${location.geometry.location.lat},${location.geometry.location.lng}`;
+        components = location.address_components;
+        let street = '';
+        let city = '';
+        let state = '';
 
-        user.address = address;
-        saveUser = await user.save();
-        if (!saveUser) {
-            Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to save address for user ${userID}`);
-            return res.status(500).send("ERROR: Failed to save address.");
-        }
-
-        // Update all of the host's listings
-        if (req.user.userType == "Host") {
-            const geoLocation = location.geometry.location;
-            const coordinates = { lat: geoLocation.lat, lng: geoLocation.lng };
-            const updatedListings = await FoodListing.update(
-                {
-                    coordinates: `${coordinates.lat},${coordinates.lng}`
-                },
-                {
-                    where: { hostID: user.userID }
-                }
-            )
-
-            if (!updatedListings) {
-                Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to update listings for user ${userID}`);
-                return res.status(500).send("ERROR: Failed to update listings.");
+        components.forEach(component => {
+            if (component.types.includes('route')) {
+                street = component.long_name;
             }
+            if (component.types.includes('locality')) {
+                city = component.long_name;
+            }
+            if (component.types.includes('administrative_area_level_1')) {
+                state = component.long_name;
+            }
+        });
+        
+        let approximateAddress = '';
+        if (street) {
+            approximateAddress += street;
+        }
+        if (city) {
+            if (approximateAddress) approximateAddress += ', ';
+            approximateAddress += city;
+        }
+        if (state) {
+            if (approximateAddress) approximateAddress += `, ${state}`;
         }
 
-        Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS: Address updated successfully for user ${userID}.`);
-        res.send("SUCCESS: Address updated successfully.");
+        try {
+            const encodedApproximateAddress = encodeURIComponent(String(approximateAddress));
+            const approxUrl = `https://maps.googleapis.com/maps/api/geocode/json?address="${encodedApproximateAddress}"&key=${apiKey}`;
+            const approxResponse = await axios.get(approxUrl);
+            const approxLocation = approxResponse.data.results[0].geometry.location;
+            const approxCoordinates = `${approxLocation.lat},${approxLocation.lng}`;
+
+            // Update address in the database
+            const user = await Host.findByPk(userID) || await Guest.findByPk(userID) || await Admin.findByPk(userID);
+            if (!user) {
+                return res.status(404).send("ERROR: User not found.");
+            }
+
+            user.address = address;
+            user.coordinates = fullCoordinates;
+            user.approxCoordinates = approxCoordinates
+            user.approxAddress = approximateAddress;
+            
+            saveUser = await user.save();
+            if (!saveUser) {
+                Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to save address for user ${userID}`);
+                return res.status(500).send("ERROR: Failed to save address.");
+            }
+
+            // Update all of the host's listings
+            if (req.user.userType == "Host") {
+                const updatedListings = await FoodListing.update(
+                    {
+                        approxCoordinates: approxCoordinates,
+                        address: address,
+                        approxAddress: approximateAddress
+                    },
+                    {
+                        where: { hostID: user.userID }
+                    }
+                )
+
+                if (!updatedListings) {
+                    Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to update listings for user ${userID}`);
+                    return res.status(500).send("ERROR: Failed to update listings.");
+                }
+            }
+
+            Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS: Address updated successfully for user ${userID}.`);
+            res.send("SUCCESS: Address updated successfully.");
+        } catch (err) {
+            Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to update address for user ${userID}; error: ${err}`);
+            res.status(500).send("ERROR: Failed to update address.");
+        }
     } catch (err) {
         Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to update address for user ${userID}; error: ${err}`);
         res.status(500).send("ERROR: Internal server error.");

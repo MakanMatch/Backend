@@ -117,7 +117,7 @@ router.post("/verify", async (req, res) => {
         const saveUser = await user.save();
         if (saveUser) {
             Logger.log(`IDENTITY EMAILVERIFICATION: Email verification for userID ${user.userID} successful.`);
-            res.send("SUCCESS: Email verification successful. You can now log in with your verified email.");
+            return res.send("SUCCESS: Email verification successful. You can now log in with your verified email.");
         } else {
             Logger.log(`IDENTITY EMAILVERIFICATION ERROR: Failed to remove verification token for userID ${user.userID}`)
             return res.status(500).send("ERROR: Failed to remove verification token.")

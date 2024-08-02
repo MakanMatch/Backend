@@ -41,7 +41,7 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
     const schema = yup.object().shape({
         username: yup.string().required().trim().min(1).max(50),
         email: yup.string().required().email(),
-        contactNum: yup.string().optional().trim().max(8)
+        contactNum: yup.string().optional().trim().max(8).nullable()
     });
 
     if (userType === "Host" && (req.body.contactNum === '' || req.body.contactNum === undefined)) {

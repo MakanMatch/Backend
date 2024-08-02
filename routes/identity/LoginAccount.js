@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { Guest, Host, Admin } = require('../../models');
+const { Guest, Host, Admin, UserRecord } = require('../../models');
 const { Encryption, Logger } = require('../../services');
 const TokenManager = require('../../services/TokenManager').default();
 const jwt = require('jsonwebtoken');
+const { Op } = require('sequelize');
 require('dotenv').config();
 
 router.post("/", async (req, res) => {
     // console.log("received at LoginAccount");
     let data = req.body;
-    console.log(data);
 
     try {
         let user;
@@ -44,6 +44,25 @@ router.post("/", async (req, res) => {
         if (!user) {
             res.status(400).send("UERROR: Invalid username or email or password.");
             return;
+        }
+
+        // Check is user is banned
+        const userRecord = await UserRecord.findOne({
+            where: {
+                [Op.or]: [
+                    { hID: user.userID },
+                    { gID: user.userID },
+                    { aID: user.userID }
+                ]
+            }
+        })
+        if (!userRecord) {
+            Logger.log(`IDENTITY LOGINACCOUNT ERROR: No matching user record found for login attempt to account with ID: ${user.userID}`)
+            return res.status(500).send("ERROR: Failed to process request. Please try again.")
+        }
+
+        if (userRecord.banned) {
+            return res.status(403).send("UERROR: Your account has been banned. Contact customer support or the MakanMatch team via email.")
         }
 
         // Check password

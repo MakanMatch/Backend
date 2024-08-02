@@ -3,7 +3,7 @@ const router = express.Router();
 const path = require("path");
 const FileManager = require("../../services/FileManager");
 const Extensions = require("../../services/Extensions");
-const { FoodListing, Host, Guest, Admin, Review, Reservation, ReviewLike } = require("../../models");
+const { FoodListing, Host, Guest, Admin, Review, Reservation, ReviewLike, UserRecord } = require("../../models");
 const Logger = require("../../services/Logger");
 const { Sequelize } = require('sequelize');
 const Universal = require("../../services/Universal");
@@ -17,21 +17,14 @@ router.get('/myAccount', validateToken, (req, res) => {
 
 router.get("/listings", async (req, res) => { // GET all food listings
     const hostID = req.query.hostID;
-    const includeHost = req.query.includeHost;
     const includeReservations = req.query.includeReservations;
-    var whereClause = { published: true };
-    if (hostID) {
-        whereClause.hostID = hostID;
-    }
-
-    var includeClause = []
-    if (includeHost == 'true') {
-        includeClause.push({
+    var includeClause = [
+        {
             model: Host,
             as: "Host",
             attributes: ["userID", "username", "foodRating"]
-        })
-    }
+        }
+    ]
     if (includeReservations == 'true') {
         includeClause.push({
             model: Guest,
@@ -40,6 +33,24 @@ router.get("/listings", async (req, res) => { // GET all food listings
     }
 
     try {
+        const bannedHostIDs = (await UserRecord.findAll({
+            where: {
+                [Op.and]: [
+                    { banned: true },
+                    { hID: { [Op.not]: null } }
+                ]
+            }
+        })).map(record => record.hID);
+
+        var whereClause = { published: true };
+        if (hostID) {
+            whereClause.hostID = hostID;
+        } else {
+            whereClause.hostID = {
+                [Op.notIn]: bannedHostIDs
+            }
+        }
+
         const foodListings = await FoodListing.findAll({
             where: whereClause,
             include: includeClause
@@ -166,7 +177,26 @@ router.get("/accountInfo", async (req, res) => { // GET account information
         if (!targetUserID) { res.status(400).send("ERROR: One or more required payloads not provided."); }
         let user, userType;
 
-        user = await Guest.findByPk(targetUserID);
+        // Check if user is banned
+        const userRecord = await UserRecord.findOne({
+            where: {
+                [Op.or]: [
+                    { hID: targetUserID },
+                    { gID: targetUserID },
+                    { aID: targetUserID }
+                ]
+            }
+        })
+        if (!userRecord) {
+            return res.status(500).send("ERROR: Failed to process request. Please try again.")
+        }
+
+        if (userRecord.banned) {
+            return res.status(403).send("UERROR: Account is banned.")
+        }
+
+        user = await Guest.findOne({ where: { userID: targetUserID } });
+
         if (user) {
             userType = 'Guest';
         } else {
@@ -325,10 +355,13 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
         return res.status(403).send("ERROR: Unauthorized access.");
     }
 
+    const userRecords = await UserRecord.findAll();
+
     const hosts = await Host.findAll();
     const hostsWithUserType = (hosts.map(host => {
         const hostObj = host.toJSON(); // Convert Sequelize instance to plain object
         hostObj.userType = "Host";
+        hostObj.banned = userRecords.find(record => record.hID === hostObj.userID).banned;
         return hostObj;
     }));
 
@@ -339,6 +372,7 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
         const guestsWithUserType = (guests.map(guest => {
             const guestObj = guest.toJSON(); // Convert Sequelize instance to plain object
             guestObj.userType = "Guest";
+            guestObj.banned = userRecords.find(record => record.gID === guestObj.userID).banned;
             return guestObj;
         }));
         const allUsers = hostsWithUserType.concat(guestsWithUserType);
@@ -346,7 +380,7 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
             return res.status(200).send([]);
         } else {
             allUsers.forEach(user => {
-                responseArray.push(Extensions.sanitiseData(user, ["userID", "username", "email", "userType", "hygieneGrade"], ["password"], []));
+                responseArray.push(Extensions.sanitiseData(user, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned"], ["password"], []));
             });
             return res.status(200).json(responseArray);
         }
@@ -356,7 +390,7 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
         } else {
             warningHosts = hostsWithUserType.filter(host => host.hygieneGrade <= 2.5);
             warningHosts.forEach(host => {
-                responseArray.push(Extensions.sanitiseData(host, ["userID", "username", "email", "userType", "hygieneGrade"], ["password"], []));
+                responseArray.push(Extensions.sanitiseData(host, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned"], ["password"], []));
             });
             return res.status(200).json(responseArray);
         }

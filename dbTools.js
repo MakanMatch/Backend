@@ -210,6 +210,35 @@ async function signJWT() {
     }
 }
 
+async function createWarning() {
+    var creating = true;
+    while (creating) {
+        console.log("")
+        console.log("Creating a new warning...")
+
+        try {
+            const warning = await Warning.create({
+                reason: prompt("Reason: "),
+                hostID: prompt("Host ID: "),
+                issuingAdminID: prompt("Issuing admin ID: "),
+                datetime: new Date().toISOString()
+            })
+        } catch (err) {
+            console.log("Failed to create warning; error: " + err)
+            creating = prompt("Try again? (y/n) ") == "y"
+            console.log("")
+            continue
+        }
+
+        console.log("Warning created!")
+        console.log("")
+        if (prompt("Create another warning? (y/n): ").toLowerCase() !== 'y') {
+            creating = false;
+            console.log("")
+        }
+    }
+}
+
 sequelize.sync({ alter: true })
     .then(async () => {
         const tools = (process.argv.slice(2)).map(t => t.toLowerCase())
@@ -242,6 +271,10 @@ sequelize.sync({ alter: true })
 
         if (tools.includes("signjwt")) {
             await signJWT()
+        }
+
+        if (tools.includes("createwarning")) {
+            await createWarning()
         }
     })
     .catch(err => {

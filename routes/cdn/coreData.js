@@ -388,7 +388,7 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
         if (!hostsWithUserType || !Array.isArray(hostsWithUserType) || hostsWithUserType.length === 0) {
             return res.status(200).send([]);
         } else {
-            warningHosts = hostsWithUserType.filter(host => host.hygieneGrade <= 2.5);
+            warningHosts = hostsWithUserType.filter(host => host.hygieneGrade <= 2.5 && host.hygieneGrade > 0);
             warningHosts.forEach(host => {
                 responseArray.push(Extensions.sanitiseData(host, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned"], ["password"], []));
             });

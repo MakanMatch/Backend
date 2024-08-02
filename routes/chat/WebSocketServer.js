@@ -684,7 +684,7 @@ function startWebSocketServer(app) {
                         (await Guest.findByPk(recipientID));
                     const emailTemplatePath = path.join("emails", "MissedMessage.html");
                     const emailContent = HTMLRenderer.render(emailTemplatePath, {
-                        senderUsername: sender.username,
+                        senderUsername: sender.username, userUsername: recipient.username,
                     });
                     const text = `You have missed messages from ${sender.username} since their last response. Please login to view them.`;
                     Emailer.sendEmail(

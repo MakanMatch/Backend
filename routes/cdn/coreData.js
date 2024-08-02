@@ -138,7 +138,7 @@ router.get("/getListing", checkUser, async (req, res) => {
             "datetime",
             "portionPrice",
             "approxAddress",
-            "address",
+            "approxCoordinates",
             "totalSlots",
             "published",
             "hostID",

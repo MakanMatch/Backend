@@ -10,7 +10,6 @@ require('dotenv').config();
 router.post("/", async (req, res) => {
     // console.log("received at LoginAccount");
     let data = req.body;
-    console.log(data);
 
     try {
         let user;

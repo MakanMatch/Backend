@@ -17,21 +17,14 @@ router.get('/myAccount', validateToken, (req, res) => {
 
 router.get("/listings", async (req, res) => { // GET all food listings
     const hostID = req.query.hostID;
-    const includeHost = req.query.includeHost;
     const includeReservations = req.query.includeReservations;
-    var whereClause = { published: true };
-    if (hostID) {
-        whereClause.hostID = hostID;
-    }
-
-    var includeClause = []
-    if (includeHost == 'true') {
-        includeClause.push({
+    var includeClause = [
+        {
             model: Host,
             as: "Host",
             attributes: ["userID", "username", "foodRating"]
-        })
-    }
+        }
+    ]
     if (includeReservations == 'true') {
         includeClause.push({
             model: Guest,
@@ -40,6 +33,24 @@ router.get("/listings", async (req, res) => { // GET all food listings
     }
 
     try {
+        const bannedHostIDs = (await UserRecord.findAll({
+            where: {
+                [Op.and]: [
+                    { banned: true },
+                    { hID: { [Op.not]: null } }
+                ]
+            }
+        })).map(record => record.hID);
+
+        var whereClause = { published: true };
+        if (hostID) {
+            whereClause.hostID = hostID;
+        } else {
+            whereClause.hostID = {
+                [Op.notIn]: bannedHostIDs
+            }
+        }
+
         const foodListings = await FoodListing.findAll({
             where: whereClause,
             include: includeClause

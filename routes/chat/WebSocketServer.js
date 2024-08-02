@@ -2,10 +2,10 @@ const express = require("express");
 const http = require("http");
 const WebSocket = require("ws");
 const { ChatHistory, ChatMessage, Reservation, FoodListing, Host, Guest } = require("../../models");
-const Universal = require("../../services/Universal");
-const Logger = require("../../services/Logger");
 const { Op } = require('sequelize');
 const TokenManager = require("../../services/TokenManager").default();
+const { Universal, Logger, Extensions, Emailer, HTMLRenderer } = require("../../services");
+const path = require("path");
 
 class ChatEvent {
     static errorEvent = "error";
@@ -334,6 +334,7 @@ function startWebSocketServer(app) {
                             chatID: chatID,
                             username1: hostUsername,
                             username2: user.username,
+                            chatPartnerID: hostID
                         })
                         ws.send(message);
                     }
@@ -364,7 +365,7 @@ function startWebSocketServer(app) {
                             const guestUsername = listingGuest.username;
 
                             // Get chat ID
-                            const chatID = await getChatID(guestID, user.userID)
+                            const chatID = await getChatID(guestID, userID)
                             if (typeof chatID == "string" && chatID.startsWith("ERROR")) {
                                 Logger.log(`CHAT WEBSOCKETSERVER CONNECTION ERROR: Failed to retrieve/generate chat history for guest ${guestID} and host ${userID}; error: ${chatID}`)
                                 ws.send(ChatEvent.error("Failed to formulate chat history. Please try again."))
@@ -383,7 +384,8 @@ function startWebSocketServer(app) {
                                 action: "chat_id",
                                 chatID: chatID,
                                 username1: user.username,
-                                username2: guestUsername
+                                username2: guestUsername,
+                                chatPartnerID: guestID
                             })
                             ws.send(message);
                         }
@@ -536,6 +538,48 @@ function startWebSocketServer(app) {
                 return;
             }
 
+            // const latestMessageByRecipient = await ChatMessage.findOne({
+            //     where: {
+            //         chatID: chatID,
+            //         senderID: clientStore[connectionID].conversations[chatID].recipientID
+            //     },
+            //     order: [["datetime", "DESC"]]
+            // });
+
+            // if (latestMessageByRecipient){
+
+            
+
+            // const dateDiff = Extensions.timeDiffInSeconds(new Date(latestMessageByRecipient.datetime), new Date())
+            // console.log(dateDiff)
+            // if (dateDiff > 10) {
+            //     console.log('wahoooooo')
+            //     // Retrieve messages sent in the last 2 hours
+            //     const messages = await ChatMessage.findAll({
+            //         where: {
+            //             chatID: chatID,
+            //             datetime: {
+            //                 [Op.gt]: new Date(new Date().getTime() - 100000) // Last 2 hours
+            //             },
+            //             senderID: clientStore[connectionID].userID
+            //         }
+            //     });
+            //     //Create a list of missed messages
+            //     var missedMessages = {};
+            //     var senderID = clientStore[connectionID].userID;
+            //     var sender = await Host.findByPk(senderID) || await Guest.findByPk(senderID);
+            //     missedMessages[sender.username] = [];
+
+            //     // for (message in messages){
+            //     //     var messageContent = message.message
+            //     //     missedMessages[sender.usernane].push(messageContent)
+            //     // }
+            //     const emailTemplatePath = path.join(__dirname, '../../views/emails/MissedMessage.html');
+            //     const emailContent = HTMLRenderer.render(emailTemplatePath, { senderUsername: senderUsername, missedMessages: missedMessages[sender.username] });
+            //     const text = `You have missed messages from ${senderUsername} in the last 2 hours. Please login to view them.`
+            //     Emailer.sendEmail(sender.email, "Missed Messages", text, emailContent)
+            // }
+        // }
             const responseMessage ={
                 action: "send",
                 message : broadcastJSON

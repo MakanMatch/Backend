@@ -46,7 +46,7 @@ router.post("/", async (req, res) => {
             return;
         }
 
-        // Ceck is user is banned
+        // Check is user is banned
         const userRecord = await UserRecord.findOne({
             where: {
                 [Op.or]: [

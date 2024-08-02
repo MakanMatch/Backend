@@ -52,7 +52,7 @@ router.post('/toggleBanUser', validateAdmin, async (req, res) => {
 
         if (!saveUser) {
             Logger.log(`IDENTITY USERMANAGEMENT BANUSER ERROR: Failed to toggle ban status for user with ID ${userID}`)
-            res.status(500).send("ERROR: Failed to ban user");
+            return res.status(500).send("ERROR: Failed to ban user");
         }
 
         Logger.log(`IDENTITY USERMANAGEMENT BANUSER: ${user.banned ? 'Banned' : 'Unbanned'} user with ID ${userID}`);
@@ -77,10 +77,14 @@ router.put("/editUserDetails", validateAdmin, async (req, res) => {
         } else if (userType === 'Host') {
             user = await Host.findByPk(userID);
         }
-        
+
         if (!user) {
             Logger.log(`IDENTITY USERMANAGEMENT EDITUSERDETAILS ERROR: User not found with ID ${userID}`);
             return res.status(404).send("ERROR: User not found.");
+        }
+
+        if (!fname || !lname) {
+            return res.status(400).send("UERROR: First name and last name are required.");
         }
 
         if (!nameRegex.test(fname) || !nameRegex.test(lname)) {
@@ -103,7 +107,7 @@ router.put("/editUserDetails", validateAdmin, async (req, res) => {
             return res.status(400).send("UERROR: Contact number must be 8 digits long.");
         }
 
-        if (!contactNum == '' && !await isUniqueContactNum(contactNum, user)) {
+        if (contactNum !== '' && !await isUniqueContactNum(contactNum, user)) {
             return res.status(400).send("UERROR: Contact number already exists.");
         }
 

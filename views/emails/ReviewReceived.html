@@ -4,26 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Review Received | MakanMatch</title>
+    <style>
+        a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-    <img src="https://avatars.githubusercontent.com/u/171593551?s=400&u=b8bf5300282f0aab4e16996d6ff056a4498e6cbd&v=4" height="150px">
-    <h2>Review Received</h2>
-    <p>Hooray! You've received a review from <strong>{{ username }}</strong>!</p>
-    <p>Please feel free to checkout what words they've sent to you on Makan Reviews page</p>
-    <p>Don't know where's Makan Review page?</p>
-    <br>
-    <p>Simply click on your profile picture on the top right corner to go to your account page, then click on the "Makan Reviews" tab
-         on the sidebar and you'll be able to see all the reviews you've received!</p>
-    <br>
-    <p>Or just click <a href="http://localhost:8500/reviews?hostID={{ hostID }}"></a> to view your reviews!</p>
-    <br>
-    <p>Thank you for using MakanMatch!</p>
-    <br>
-    <p>Best regards,<br>
-        MakanMatch Team
-    </p>
-    <br>
-    <br>
-    <p>© 2024 The MakanMatch Team. All rights reserved.</p>
+    <div>
+        <img src="https://avatars.githubusercontent.com/u/171593551?s=400&u=b8bf5300282f0aab4e16996d6ff056a4498e6cbd&v=4" alt="MakanMatch Logo" height="150px">
+        <h2>Review Received</h2>
+        <p>Dear {{ hostFName}} {{ hostLName }},</p>
+        <p>We are pleased to inform you that you have received a new review from <strong>{{ username }}</strong>!</p>
+        <p>To view the details of the review, please visit the <strong>Makan Reviews</strong> page on our website.</p>
+        <p>To locate the Makan Reviews page, follow these steps:</p>
+        <ol>
+            <li>Click on your profile picture located in the top right corner of the page to access your account.</li>
+            <li>Navigate to the "Makan Reviews" tab in the sidebar to view all the reviews you have received.</li>
+        </ol>
+        <p>Alternatively, you can directly access your reviews by clicking <a href="http://localhost:8500/reviews?hostID={{ hostID }}">here</a>.</p>
+        <p>Thank you for using MakanMatch.</p>
+        <p>Best regards,<br>
+        The MakanMatch Team</p>
+    </div>
+    <div>
+        <p>© 2024 The MakanMatch Team. All rights reserved.</p>
+    </div>
 </body>
 </html>

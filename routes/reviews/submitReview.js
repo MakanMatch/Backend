@@ -131,8 +131,8 @@ router.route("/")
                     HTMLRenderer.render(
                         path.join("emails", "ReviewReceived.html"),
                         {
-                            hostName: `${host.firstName} ${host.lastName}`,
-                            guestName: `${guest.firstName} ${guest.lastName}`,
+                            hostName: `${host.fname} ${host.lname}`,
+                            guestName: `${guest.fname} ${guest.lname}`,
                             hostID: hostID
                         }
                     )

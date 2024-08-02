@@ -5,4 +5,4 @@ router.get("/", (req, res) => {
     res.send("Superuser API");
 });
 
-module.exports = { router, at: '/admin/superuserAPI' };
+module.exports = { router, at: '/admin/super' };

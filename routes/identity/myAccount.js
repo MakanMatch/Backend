@@ -131,11 +131,12 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
             return res.status(400).send('UERROR: User not found.');
         }
 
-        deleteUser = await user.destroy();
+        const deleteUser = await user.destroy();
 
         if (!deleteUser) {
             Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT ERROR: Failed to delete user ${userID}`)
             res.status(500).send(`ERROR: Failed to delete user ${userID}`)
+            return
         }
 
         Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT: ${userType} account ${userID} deleted.`)

@@ -341,13 +341,11 @@ router.put('/changeAddress', validateToken, async (req, res) => {
 
             // Update all of the host's listings
             if (req.user.userType == "Host") {
-                const geoLocation = location.geometry.location;
-                const coordinates = { lat: geoLocation.lat, lng: geoLocation.lng };
                 const updatedListings = await FoodListing.update(
                     {
                         approxCoordinates: approxCoordinates,
                         address: address,
-                        approxAddress: `${street} ${postalCode}`
+                        approxAddress: approximateAddress
                     },
                     {
                         where: { hostID: user.userID }

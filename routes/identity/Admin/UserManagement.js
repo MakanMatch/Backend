@@ -76,10 +76,8 @@ router.put("/editUserDetails", validateAdmin, async (req, res) => {
             user = await Guest.findByPk(userID);
         } else if (userType === 'Host') {
             user = await Host.findByPk(userID);
-        } else if (userType === 'Admin') {
-            user = await Admin.findByPk(userID);
         }
-
+        
         if (!user) {
             Logger.log(`IDENTITY USERMANAGEMENT EDITUSERDETAILS ERROR: User not found with ID ${userID}`);
             return res.status(404).send("ERROR: User not found.");

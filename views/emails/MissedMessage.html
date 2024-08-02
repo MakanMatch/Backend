@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Missed Chat Messages | MakanMatch</title>
+</head>
+<body>
+    <img src="https://avatars.githubusercontent.com/u/171593551?s=400&u=b8bf5300282f0aab4e16996d6ff056a4498e6cbd&v=4" height="150px">
+    <h2>Missed Chat Messages</h2>
+    <p>We have observed that you have not yet had the opportunity to review your recent messages. To assist you, we have consolidated a summary of these messages for your convenience:</p>
+    <ul>
+        <li>Sender's Username: {{senderUsername}}</li>
+        {% for message in messages %}
+            <li>{{message}}</li>
+        {% endfor %}
+    </ul>
+    <p>We hope that you will read the messages that your chat partner has sent you.</p>
+    <p>Best regards,<br>
+        MakanMatch Team
+    </p>
+    <br>
+    <br>
+    <p>© 2024 The MakanMatch Team. All rights reserved.</p>
+</body>
+</html>

@@ -87,6 +87,49 @@ router.post("/", async (req, res) => {
             const location = response.data.results[0];
             if (!location) {
                 return res.status(400).send("UERROR: Invalid address.");
+            } else {
+                const fullCoordinates = `${location.geometry.location.lat},${location.geometry.location.lng}`;
+                components = location.address_components;
+                let street = '';
+                let city = '';
+                let state = '';
+
+                components.forEach(component => {
+                    if (component.types.includes('route')) {
+                        street = component.long_name;
+                    }
+                    if (component.types.includes('locality')) {
+                        city = component.long_name;
+                    }
+                    if (component.types.includes('administrative_area_level_1')) {
+                        state = component.long_name;
+                    }
+                });
+                
+                let approximateAddress = '';
+                if (street) {
+                    approximateAddress += street;
+                }
+                if (city) {
+                    if (approximateAddress) approximateAddress += ', ';
+                    approximateAddress += city;
+                }
+                if (state) {
+                    if (approximateAddress) approximateAddress += `, ${state}`;
+                }
+
+                const encodedApproximateAddress = encodeURIComponent(String(approximateAddress));
+                const approxUrl = `https://maps.googleapis.com/maps/api/geocode/json?address="${encodedApproximateAddress}"&key=${apiKey}`;
+                const approxResponse = await axios.get(approxUrl);
+                const approxLocation = approxResponse.data.results[0].geometry.location;
+                if (!approxLocation) {
+                    return res.status(400).send("UERROR: Invalid address.");
+                } else {
+                    const approxCoordinates = `${approxLocation.lat},${approxLocation.lng}`;
+                    accountData.coordinates = fullCoordinates;
+                    accountData.approxCoordinates = approxCoordinates
+                    accountData.approxAddress = approximateAddress;
+                }
             }
 
             accountData.contactNum = contactNum;

@@ -69,7 +69,7 @@ router.route("/uploadPaymentQR")
                     return res.status(500).send("ERROR: Failed to update host payment image.");
                 }
 
-                return res.status(200).send("SUCCESS: Payment QR uploaded successfully");
+                return res.status(200).send("SUCCESS: Payment QR uploaded successfully. Image name: " + req.file.filename);
             } catch (err) {
                 Logger.log(`ORDERS MANAGEGUESTS UPLOADPAYMENTQR POST ERROR: Failed to upload Payment QR; error: ${err}.`);
                 return res.status(500).send("ERROR: Failed to upload Payment QR.")

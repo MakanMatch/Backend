@@ -22,7 +22,7 @@ router.get("/listings", async (req, res) => { // GET all food listings
         {
             model: Host,
             as: "Host",
-            attributes: ["userID", "username", "foodRating"]
+            attributes: ["userID", "username", "foodRating", "flaggedForHygiene"]
         }
     ]
     if (includeReservations == 'true') {
@@ -165,7 +165,8 @@ router.get("/getListing", checkUser, async (req, res) => {
             "referenceNum",
             "guestID",
             "portions",
-            "totalPrice"
+            "totalPrice",
+            "flaggedForHygiene"
         ], ["createdAt", "updatedAt"])
     )
     return
@@ -228,7 +229,7 @@ router.get("/accountInfo", async (req, res) => { // GET account information
             resetKey: user.resetKey,
             resetKeyExpiration: user.resetKeyExpiration,
             createdAt: user.createdAt,
-            userType: userType
+            userType: userType,
         };
 
         if (userType === 'Admin') {
@@ -240,6 +241,7 @@ router.get("/accountInfo", async (req, res) => { // GET account information
             accountInfo.hygieneGrade = user.hygieneGrade;
             accountInfo.paymentImage = user.paymentImage;
             accountInfo.reviewsCount = user.reviewsCount;
+            accountInfo.flaggedForHygiene = user.flaggedForHygiene;
         } else if (userType === 'Guest') {
             accountInfo.favCuisine = user.favCuisine;
             accountInfo.mealsMatched = user.mealsMatched;
@@ -380,7 +382,7 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
             return res.status(200).send([]);
         } else {
             allUsers.forEach(user => {
-                responseArray.push(Extensions.sanitiseData(user, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned"], ["password"], []));
+                responseArray.push(Extensions.sanitiseData(user, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned", "flaggedForHygiene"], ["password"], []));
             });
             return res.status(200).json(responseArray);
         }
@@ -390,7 +392,7 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
         } else {
             warningHosts = hostsWithUserType.filter(host => host.hygieneGrade <= 2.5 && host.hygieneGrade > 0);
             warningHosts.forEach(host => {
-                responseArray.push(Extensions.sanitiseData(host, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned"], ["password"], []));
+                responseArray.push(Extensions.sanitiseData(host, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned", "flaggedForHygiene"], ["password"], []));
             });
             return res.status(200).json(responseArray);
         }

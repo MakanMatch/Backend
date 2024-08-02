@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
-const { Universal, Emailer, Encryption, Logger } = require('../../services');
+const { Universal, Emailer, Encryption, Logger, HTMLRenderer } = require('../../services');
 require('dotenv').config();
+const path = require("path");
 
 router.post("/resetKey", async (req, res) => {
     // console.log("received at AccountRecovery ResetKey");
     let data = req.body;
-    console.log(data);
     let { usernameOrEmail } = req.body;
 
     try {
@@ -24,7 +24,7 @@ router.post("/resetKey", async (req, res) => {
         }
 
         const resetKey = Universal.generateUniqueID(6);
-        console.log(resetKey);
+        // console.log(resetKey);
 
         // Save resetKey and expiration to user record
         user.resetKey = resetKey;
@@ -32,12 +32,32 @@ router.post("/resetKey", async (req, res) => {
         await user.save();
 
         // Send email with reset key using the Emailer service
+        const emailText = `
+Account Recovery
+
+Hello ${user.username},
+
+We received a request to reset your password. If you made this request, please use this password reset key to reset your password:
+${resetKey}
+
+If you did not request a password reset, please ignore this email or contact our support team if you have any concerns.
+
+Best regards,
+MakanMatch Team
+    `
+
         const emailSent = await Emailer.sendEmail(
             user.email,
-            'Password Reset Key',
-            `Your password reset key is ${resetKey}`,
-            `<p>Your password reset key is <strong>${resetKey}</strong></p>`
-        );
+            "Account Recovery | MakanMatch",
+            emailText,
+            HTMLRenderer.render(
+                path.join("emails", "AccountRecovery.html"),
+                {
+                    username: user.username,
+                    passwordResetKey: resetKey
+                }
+            )
+        )
 
         if (emailSent) {
             res.send('SUCCESS: Reset key sent.');

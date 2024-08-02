@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
-const { Universal, Emailer, Logger } = require('../../services');
+const { Universal, Emailer, Logger, HTMLRenderer } = require('../../services');
 require('dotenv').config();
+const path = require('path');
 
 router.post("/send", async (req, res) => {
     let { email } = req.body;
@@ -35,12 +36,29 @@ router.post("/send", async (req, res) => {
         const verificationLink = `${origin}/auth/verifyToken?userID=${user.userID}&token=${verificationToken}`;
 
         // Send email with verification link using the Emailer service
+        const emailText = `
+Email Verification
+
+Please verify your email using this link:
+${verificationLink}
+
+If you did not request this, please ignore this email.
+
+Best regards,
+MakanMatch Team
+`
+        
         const emailSent = await Emailer.sendEmail(
             user.email,
-            'Email Verification',
-            `Click the link to verify your email: ${verificationLink}`,
-            `<p>Click the link to verify your email: <a href="${verificationLink}">${verificationLink}</a></p>`
-        );
+            "Email Verification | MakanMatch",
+            emailText,
+            HTMLRenderer.render(
+                path.join("emails", "ResendEmailVerification.html"),
+                {
+                    verificationLink: verificationLink
+                }
+            )
+        )
 
         if (emailSent) {
             res.send('SUCCESS: Verification email sent.');

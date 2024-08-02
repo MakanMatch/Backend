@@ -23,10 +23,15 @@ router.post('/issueWarning', validateToken, async (req, res) => {
         return res.status(404).send("ERROR: Host not found");
     }
 
-    const checkForExistingWarning = await Warning.findByPk(hostID);
+    const checkForExistingWarning = await Warning.findOne({
+        where: {
+            hostID: hostID
+        }
+    });
+    console.log(checkForExistingWarning);
 
     if (checkForExistingWarning) {
-        return res.status(400).send("ERROR: Host has already been issued a warning");
+        return res.status(400).send("UERROR: Host has already been issued a warning");
     }
 
     const hostToBan = await Warning.create({
@@ -43,7 +48,7 @@ router.post('/issueWarning', validateToken, async (req, res) => {
     const updateHostFlagged = await Host.update({
         flaggedForHygiene: true
     }, {
-        where: { hostID: hostID }
+        where: { userID: hostID }
     });
 
     if (!updateHostFlagged) {

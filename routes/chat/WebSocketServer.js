@@ -455,7 +455,7 @@ function startWebSocketServer(app) {
                 return;
             }
 
-            const responseMessage = { action: "edit", message: targetMessage.message, messageID: messageId };
+            const responseMessage = { action: "edit", message: targetMessage.message, messageID: messageId, chatID: chatID };
             broadcastMessage(responseMessage, chatID)
             return;
         } catch (error) {
@@ -494,7 +494,7 @@ function startWebSocketServer(app) {
         try {
             await targetMessage.destroy();
 
-            const responseMessage = { action: "delete", messageID: targetMessage.messageID };
+            const responseMessage = { action: "delete", messageID: targetMessage.messageID, chatID: chatID };
             broadcastMessage(responseMessage, chatID)
         } catch (error) {
             Logger.log(`CHAT WEBSOCKETSERVER HANDLEDELETEMESSAGE ERROR: Failed to delete message with ID ${messageId} by user ${clientStore[connectionID].userID} in chat ${chatID}; error: ${error}`)

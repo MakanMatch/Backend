@@ -125,7 +125,7 @@ router.put("/editUserDetails", validateAdmin, async (req, res) => {
         Logger.log(`IDENTITY USERMANAGEMENT EDITUSERDETAILS: Edited user details for user with ID ${userID}`);
         res.send("SUCCESS: User details updated");
     } catch (err) {
-        Logger.log(`IDENTITY USERMANAGEMENT EDITUSERDETAILS ERROR: Failed to edit user details; error: ${err}`);
+        Logger.log(`IDENTITY USERMANAGEMENT EDITUSERDETAILS ERROR: Failed to edit user details for user with ID ${userID}; error: ${err}`);
         res.status(500).send("ERROR: Failed to edit user details");
     }
 });

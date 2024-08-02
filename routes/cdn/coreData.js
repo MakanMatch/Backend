@@ -166,6 +166,24 @@ router.get("/accountInfo", async (req, res) => { // GET account information
         if (!targetUserID) { res.status(400).send("ERROR: One or more required payloads not provided."); }
         let user, userType;
 
+        // Check if user is banned
+        const userRecord = await UserRecord.findOne({
+            where: {
+                [Op.or]: [
+                    { hID: targetUserID },
+                    { gID: targetUserID },
+                    { aID: targetUserID }
+                ]
+            }
+        })
+        if (!userRecord) {
+            return res.status(500).send("ERROR: Failed to process request. Please try again.")
+        }
+
+        if (userRecord.banned) {
+            return res.status(403).send("UERROR: Account is banned.")
+        }
+
         user = await Guest.findOne({ where: { userID: targetUserID } });
         if (user) {
             userType = 'Guest';

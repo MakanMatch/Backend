@@ -14,7 +14,7 @@ router.post('/toggleBanUser', validateToken, async (req, res) => {
 
     try {
         // Find the user
-        user = await UserRecord.findOne({
+        const user = await UserRecord.findOne({
             where: {
                 [Op.or]: [
                     { hID: userID },

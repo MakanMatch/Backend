@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router();
-const { FoodListing } = require('../../models')
+const { FoodListing, Guest, Reservation } = require('../../models')
 const Universal = require('../../services/Universal');
 const FileManager = require('../../services/FileManager');
 const { storeFile } = require('../../middleware/storeFile');
@@ -116,7 +116,18 @@ router.post("/updateListing", validateToken, async (req, res) => {
     }
 
     const listingID = req.body.listingID
-    const listing = await FoodListing.findByPk(listingID)
+    const listing = await FoodListing.findByPk(listingID, {
+        include: [{
+            model: Guest,
+            as: "guests",
+            attributes: ["userID"],
+            through: {
+                model: Reservation,
+                as: "Reservation",
+                attributes: ["portions"]
+            }
+        }]
+    })
     if (!listing) {
         res.status(404).send("ERROR: Listing not found.")
         return
@@ -149,6 +160,12 @@ router.post("/updateListing", validateToken, async (req, res) => {
     } catch (err) {
         // send back errors
         res.status(400).send(`ERROR: Data validation errors occurred. Errors: ${err.errors.join(", ")}`)
+        return
+    }
+
+    const alreadyReservedSlots = listing.guests.map(g => g.Reservation.portions).reduce((t, n) => t + n, 0)
+    if (newData.totalSlots < alreadyReservedSlots) {
+        res.status(400).send("UERROR: Total slots cannot be less than the number of reserved slots.")
         return
     }
 

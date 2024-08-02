@@ -1,12 +1,13 @@
 const express = require("express");
 const http = require("http");
 const WebSocket = require("ws");
-const {ChatHistory, ChatMessage, Reservation, FoodListing, Host, Guest } = require("../../models");
+const { ChatHistory, ChatMessage, Reservation, FoodListing, Host, Guest } = require("../../models");
 const { Op } = require("sequelize");
 const TokenManager = require("../../services/TokenManager").default();
-const { Universal, Logger, Extensions, Emailer, HTMLRenderer} = require("../../services");
+const { Universal, Logger, Extensions, Emailer, HTMLRenderer } = require("../../services");
 const path = require("path");
 let emailSent = false;
+
 class ChatEvent {
     static errorEvent = "error";
     static error(message, errorType = "error") {
@@ -65,10 +66,7 @@ function startWebSocketServer(app) {
 
         const chatID = parsedMessage.chatID;
 
-        // Quick vibe check
-        if (
-            !Object.keys(clientStore[connectionID].conversations).includes(chatID)
-        ) {
+        if (!Object.keys(clientStore[connectionID].conversations).includes(chatID)) {
             ws.send(ChatEvent.error("Chat history not found."));
             return;
         }
@@ -512,10 +510,7 @@ function startWebSocketServer(app) {
     async function handleEditMessage(editedMessage, connectionID, chatID) {
         const ws = clientStore[connectionID].ws;
 
-        // Quick vibe check
-        if (
-            !Object.keys(clientStore[connectionID].conversations).includes(chatID)
-        ) {
+        if (!Object.keys(clientStore[connectionID].conversations).includes(chatID)) {
             ws.send(ChatEvent.error("Chat history not found."));
             return;
         }
@@ -566,10 +561,7 @@ function startWebSocketServer(app) {
     async function handleDeleteMessage(deletedMessage, connectionID, chatID) {
         const ws = clientStore[connectionID].ws;
 
-        // Quick vibe check
-        if (
-            !Object.keys(clientStore[connectionID].conversations).includes(chatID)
-        ) {
+        if (!Object.keys(clientStore[connectionID].conversations).includes(chatID)) {
             ws.send(ChatEvent.error("Chat history not found."));
             return;
         }
@@ -612,11 +604,8 @@ function startWebSocketServer(app) {
 
     async function handleMessageSend(receivedMessage, connectionID, chatID) {
         const ws = clientStore[connectionID].ws;
-
-        // Quick vibe check
-        if (
-            !Object.keys(clientStore[connectionID].conversations).includes(chatID)
-        ) {
+        
+        if (!Object.keys(clientStore[connectionID].conversations).includes(chatID)) {
             ws.send(ChatEvent.error("Chat history not found."));
             return;
         }

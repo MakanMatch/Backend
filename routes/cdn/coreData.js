@@ -193,6 +193,7 @@ router.get("/accountInfo", async (req, res) => { // GET account information
             username: user.username,
             email: user.email,
             contactNum: user.contactNum,
+            approxAddress: user.approxAddress,
             address: user.address,
             emailVerified: user.emailVerified,
             resetKey: user.resetKey,

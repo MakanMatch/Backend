@@ -350,7 +350,6 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
         const hostObj = host.toJSON(); // Convert Sequelize instance to plain object
         hostObj.userType = "Host";
         hostObj.banned = userRecords.find(record => record.hID === hostObj.userID).banned;
-        console.log("Host banned: " + hostObj.banned);
         return hostObj;
     }));
 
@@ -362,7 +361,6 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
             const guestObj = guest.toJSON(); // Convert Sequelize instance to plain object
             guestObj.userType = "Guest";
             guestObj.banned = userRecords.find(record => record.gID === guestObj.userID).banned;
-            console.log("Guest banned: " + guestObj.banned);
             return guestObj;
         }));
         const allUsers = hostsWithUserType.concat(guestsWithUserType);
@@ -370,7 +368,7 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
             return res.status(200).send([]);
         } else {
             allUsers.forEach(user => {
-                responseArray.push(Extensions.sanitiseData(user, ["userID", "username", "email", "userType", "hygieneGrade", "banned"], ["password"], []));
+                responseArray.push(Extensions.sanitiseData(user, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned"], ["password"], []));
             });
             return res.status(200).json(responseArray);
         }
@@ -380,7 +378,7 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
         } else {
             warningHosts = hostsWithUserType.filter(host => host.hygieneGrade <= 2.5);
             warningHosts.forEach(host => {
-                responseArray.push(Extensions.sanitiseData(host, ["userID", "username", "email", "userType", "hygieneGrade", "banned"], ["password"], []));
+                responseArray.push(Extensions.sanitiseData(host, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned"], ["password"], []));
             });
             return res.status(200).json(responseArray);
         }

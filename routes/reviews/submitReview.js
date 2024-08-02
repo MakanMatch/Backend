@@ -130,9 +130,9 @@ router.route("/")
                     Please login to your account to view the review that you've received.
 
                     To locate the Makan Reviews page, follow these steps:
-                    1. Login to your account
-                    2. Click on your profile picture located in the top right corner of the page to access your account.
-                    3.Navigate to the "Makan Reviews" tab in the sidebar to view all the reviews you have received.
+                        1. Login to your account
+                        2. Click on your profile picture located in the top right corner of the page to access your account.
+                        3.Navigate to the "Makan Reviews" tab in the sidebar to view all the reviews you have received.
 
                     Alternatively, you can directly access your reviews by clicking or copy this link to your browser this link: "http://localhost:8500/reviews?hostID=${hostID}"
 

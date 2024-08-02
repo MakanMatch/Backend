@@ -18,16 +18,17 @@
     <div>
         <img src="https://avatars.githubusercontent.com/u/171593551?s=400&u=b8bf5300282f0aab4e16996d6ff056a4498e6cbd&v=4" alt="MakanMatch Logo" height="150px">
         <h2>Review Received</h2>
-        <p>Dear {{ hostFName}} {{ hostLName }},</p>
-        <p>We are pleased to inform you that you have received a new review from <strong>{{ username }}</strong>!</p>
+        <p>Dear {{ hostName }},</p>
+        <p>We are pleased to inform you that you have received a new review from <strong>{{ guestName }}</strong>!</p>
         <p>To view the details of the review, please visit the <strong>Makan Reviews</strong> page on our website.</p>
         <p>To locate the Makan Reviews page, follow these steps:</p>
         <ol>
+            <li>Login to your account</li>
             <li>Click on your profile picture located in the top right corner of the page to access your account.</li>
             <li>Navigate to the "Makan Reviews" tab in the sidebar to view all the reviews you have received.</li>
         </ol>
         <p>Alternatively, you can directly access your reviews by clicking <a href="http://localhost:8500/reviews?hostID={{ hostID }}">here</a>.</p>
-        <p>Thank you for using MakanMatch.</p>
+        <p>We hope you have a pleasant experience! Thank you for using MakanMatch.</p>
         <p>Best regards,<br>
         The MakanMatch Team</p>
     </div>

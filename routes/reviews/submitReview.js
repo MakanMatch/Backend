@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const FileManager = require('../../services/FileManager');
-const { Universal } = require("../../services")
+const { Universal, Emailer, HTMLRenderer } = require("../../services")
 const { storeImages } = require("../../middleware/storeImages");
 const { Review, Host, Guest } = require('../../models');
 const Logger = require('../../services/Logger');
@@ -101,6 +101,44 @@ router.route("/")
                 if (!updateHostRating) {
                     return res.status(500).send("ERROR: Failed to update host food rating and hygiene rating.");
                 }
+
+                // Send Email to host about new review received
+                const emailText = `
+                    Dear ${host.firstName} ${host.lastName},
+
+                    You have received a new review from ${guest.firstName} ${guest.lastName}.
+
+                    Please login to your account to view the review that you've received.
+
+                    To locate the Makan Reviews page, follow these steps:
+                    1. Login to your account
+                    2. Click on your profile picture located in the top right corner of the page to access your account.
+                    3.Navigate to the "Makan Reviews" tab in the sidebar to view all the reviews you have received.
+
+                    Alternatively, you can directly access your reviews by clicking or copy this link to your browser this link: "http://localhost:8500/reviews?hostID=${hostID}"
+
+                    We hope you have a pleasant experience! Thank you for using MakanMatch.
+
+                    Best Regards,
+                    MakanMatch Team
+                `
+
+                Emailer.sendEmail(
+                    host.email,
+                    "Review Received | MakanMatch",
+                    emailText,
+                    HTMLRenderer.render(
+                        path.join("emails", "ReviewReceived.html"),
+                        {
+                            hostName: `${host.firstName} ${host.lastName}`,
+                            guestName: `${guest.firstName} ${guest.lastName}`,
+                            hostID: hostID
+                        }
+                    )
+                )
+                .catch((err) => {
+                    Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Failed to send email to host with ID ${hostID}; error: ${err}.`);
+                });
                 return res.send("SUCCESS: Review submitted successfully");
             } catch (err) {
                 Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Failed to submit review; error: ${err}.`);

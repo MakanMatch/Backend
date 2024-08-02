@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const FileManager = require('../../services/FileManager');
-const { Universal, Emailer, HTMLRenderer } = require("../../services")
+const { Universal, Emailer, HTMLRenderer, Extensions } = require("../../services")
 const { storeImages } = require("../../middleware/storeImages");
 const { Review, Host, Guest } = require('../../models');
 const Logger = require('../../services/Logger');
@@ -37,6 +37,24 @@ router.route("/")
                 const guest = await Guest.findByPk(guestID)
                 if (!host || !guest) {
                     return res.status(404).send("ERROR: Host or guest not found.");
+                }
+
+                const latestReview = await Review.findAll({
+                    include: [
+                        {
+                            model: Guest,
+                            as: "reviewPoster",
+                            where: {
+                                userID: guestID
+                            }
+                        }
+                    ],
+                    order: [["createdAt", "DESC"]]
+                })
+                if (latestReview && Array.isArray(latestReview) && latestReview.length > 0) {
+                    if (Extensions.timeDiffInSeconds(latestReview[0].createdAt, new Date()) < 60) {
+                        return res.status(400).send("UERROR: You can only submit a review once per minute.");
+                    }
                 }
 
                 const fileUrls = [];

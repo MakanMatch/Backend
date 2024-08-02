@@ -148,6 +148,7 @@ router.get("/getListing", checkUser, async (req, res) => {
             "lname",
             "markedPaid",
             "paidAndPresent",
+            "chargeableCancelActive",
             "mealsMatched",
             "foodRating",
             "hygieneGrade",

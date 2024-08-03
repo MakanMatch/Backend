@@ -6,8 +6,6 @@ require('dotenv').config();
 const path = require("path");
 
 router.post("/resetKey", async (req, res) => {
-    // console.log("received at AccountRecovery ResetKey");
-    let data = req.body;
     let { usernameOrEmail } = req.body;
 
     try {
@@ -46,7 +44,7 @@ Best regards,
 MakanMatch Team
     `
 
-        const emailSent = await Emailer.sendEmail(
+        Emailer.sendEmail(
             user.email,
             "Account Recovery | MakanMatch",
             emailText,
@@ -58,12 +56,13 @@ MakanMatch Team
                 }
             )
         )
-
-        if (emailSent) {
-            res.send('SUCCESS: Reset key sent.');
-        } else {
+        .catch(err => {
+            Logger.log(`IDENTITY ACCOUNTRECOVERY RESETKEY ERROR: Failed to send reset key to ${user.userID}. Error: ${err}`)  
             res.status(500).send("Failed to send reset key.");
-        }
+            return
+        })
+
+        res.send('SUCCESS: Reset key sent.');
     } catch (err) {
         console.error(err);
         res.status(500).send("Internal server error.");

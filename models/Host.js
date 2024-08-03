@@ -109,7 +109,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         flaggedForHygiene: {
             type: DataTypes.BOOLEAN,
-            allowNull: true,
+            allowNull: false,
             defaultValue: false
         }
     }, { tableName: 'hosts' })

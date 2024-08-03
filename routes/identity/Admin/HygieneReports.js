@@ -61,7 +61,7 @@ router.post('/issueWarning', validateToken, async (req, res) => {
 
         Our system has detected that your hygiene grade has fallen below the acceptable standards.
 
-        Your account has been flagged. Please take immediate action to bring improve your hygiene grade to avoid further action being taken against your account.
+        Your account has been flagged. Please take immediate action to improve your hygiene grade to avoid further action being taken against your account.
 
         This is a warning to inform you that your hygiene grade is currently at ${host.hygieneGrade}.
 
@@ -71,8 +71,6 @@ router.post('/issueWarning', validateToken, async (req, res) => {
             - Cleaning your kitchen and dining area regularly
             - Ensuring all food is prepared and stored in a clean environment
             - Providing disposable cutlery if guests prefer so
-
-        You may click this link to direct you to your reviews page: "http://localhost:8500/reviews?hostID=${hostID}"
 
         We hope you have a pleasant experience! Thank you for using MakanMatch.
 
@@ -93,7 +91,6 @@ router.post('/issueWarning', validateToken, async (req, res) => {
         )
     )
     .catch((err) => {
-        console.log(err);
         Logger.log(`ADMIN HYGIENEREPORTS ISSUEWARNING ERROR: Failed to send email to host with ID ${hostID}; error: ${err}.`);
     });
 

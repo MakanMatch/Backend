@@ -48,7 +48,7 @@ Best regards,
 MakanMatch Team
 `
         
-        const emailSent = await Emailer.sendEmail(
+        Emailer.sendEmail(
             user.email,
             "Email Verification | MakanMatch",
             emailText,
@@ -59,14 +59,13 @@ MakanMatch Team
                 }
             )
         )
-
-        if (emailSent) {
-            res.send('SUCCESS: Verification email sent.');
-            return
-        } else {
+        .catch(err => {
+            Logger.log(`IDENTITY EMAILVERIFICATION ERROR: Failed to send verification email to ${user.email}. Error: ${err}`)
             res.status(500).send("ERROR: Failed to send verification email.");
             return
-        }
+        })
+
+        res.send('SUCCESS: Verification email sent.');
     } catch (err) {
         console.error(err);
         res.status(500).send("ERROR: Internal server error.");
@@ -75,7 +74,6 @@ MakanMatch Team
 });
 
 router.post("/verify", async (req, res) => {
-    // console.log("received at EmailVerification verifyEmail");
     let { userID, token } = req.body;
 
     if (!token || !userID) {
@@ -96,7 +94,6 @@ router.post("/verify", async (req, res) => {
         
         const expirationDate = new Date(user.emailVerificationTokenExpiration)
         if (expirationDate < Date.now()) {
-            // TODO: Remove email verification token and expiration from db and return token expired response
             user.emailVerificationToken = null;
             user.emailVerificationTokenExpiration = null;
             const saveUser = await user.save();

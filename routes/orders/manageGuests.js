@@ -93,12 +93,16 @@ router.route("/togglePaidAndPresent")
         else { whereClause['guestID'] = guestID, whereClause['listingID'] = listingID }
 
         // find guest
-        const guest = await Guest.findByPk(guestID);
+        const guest = await Guest.findByPk(guestID,{
+            attributes: ['userID', 'mealsMatched']
+        });
         if (!guest) {
             return res.status(404).send("ERROR: Guest not found.");
         }
         // find host
-        const host = await Host.findByPk(userID);
+        const host = await Host.findByPk(userID, {
+            attributes: ['userID', 'mealsMatched']
+        });
         if (!host) {
             return res.status(404).send("ERROR: Host not found.");
         }

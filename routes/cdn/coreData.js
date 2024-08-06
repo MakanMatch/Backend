@@ -200,7 +200,6 @@ router.get("/accountInfo", async (req, res) => { // GET account information
             resetKey: user.resetKey,
             resetKeyExpiration: user.resetKeyExpiration,
             createdAt: user.createdAt,
-            userType: userType,
             reviewsCount: user.reviewsCount
         };
 

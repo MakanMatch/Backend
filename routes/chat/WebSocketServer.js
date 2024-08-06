@@ -6,7 +6,6 @@ const { Op } = require("sequelize");
 const TokenManager = require("../../services/TokenManager").default();
 const { Universal, Logger, Extensions, Emailer, HTMLRenderer } = require("../../services");
 const path = require("path");
-let emailSent = false;
 
 class ChatEvent {
     static errorEvent = "error";
@@ -190,24 +189,15 @@ function startWebSocketServer(app) {
             // Close connection due to inactivity. Update lastUpdate otherwise.
             const TEN_MINUTES = 10 * 60 * 1000;
             const ONE_HOUR = 60 * 60 * 1000;
-            if (
-                clientStore[connectionID].authToken == null &&
-                Date.now() - new Date(clientStore[connectionID].lastUpdate).getTime() >
-                TEN_MINUTES
-            ) {
-                Logger.log(
-                    `WEBSOCKETSERVER: Closing connection ${connectionID} due to unauthenticated state for 10 minutes.`
-                );
+            if (clientStore[connectionID].authToken == null && Date.now() - new Date(clientStore[connectionID].lastUpdate).getTime() > TEN_MINUTES) {
+                Logger.log(`WEBSOCKETSERVER: Closing connection ${connectionID} due to unauthenticated state for 10 minutes.`);
                 ws.close(1008);
                 delete clientStore[connectionID];
                 return;
             } else if (
-                Date.now() - new Date(clientStore[connectionID].lastUpdate).getTime() >
-                ONE_HOUR
+                Date.now() - new Date(clientStore[connectionID].lastUpdate).getTime() > ONE_HOUR
             ) {
-                Logger.log(
-                    `WEBSOCKETSERVER: Closing connection ${connectionID} due to inactivity for 1 hour.`
-                );
+                Logger.log(`WEBSOCKETSERVER: Closing connection ${connectionID} due to inactivity for 1 hour.`);
                 ws.close(1008);
                 delete clientStore[connectionID];
                 return;
@@ -228,26 +218,14 @@ function startWebSocketServer(app) {
             }
 
             // Check connection authorisation
-            if (
-                parsedMessage.action != "connect" &&
-                clientStore[connectionID].authToken == null
-            ) {
-                ws.send(
-                    ChatEvent.error(
-                        "Connect and authenticate this connection before proceeding with other actions."
-                    )
-                );
+            if (parsedMessage.action != "connect" && clientStore[connectionID].authToken == null) {
+                ws.send(ChatEvent.error("Connect and authenticate this connection before proceeding with other actions."));
                 return;
             } else if (
-                parsedMessage.action != "connect" &&
-                clientStore[connectionID].authToken != null
+                parsedMessage.action != "connect" && clientStore[connectionID].authToken != null
             ) {
-                const refreshResult = await authenticateConnection(
-                    clientStore[connectionID].authToken
-                );
-                if (
-                    typeof refreshResult == "string" &&
-                    refreshResult.startsWith("ERROR")
+                const refreshResult = await authenticateConnection(clientStore[connectionID].authToken);
+                if (typeof refreshResult == "string" && refreshResult.startsWith("ERROR")
                 ) {
                     // Failed to verify authorised connection's credential. De-authorise connection.
                     clientStore[connectionID]["authToken"] = null;
@@ -265,9 +243,7 @@ function startWebSocketServer(app) {
                 }
                 const { payload, token, refreshed } = refreshResult;
                 if (refreshed) {
-                    Logger.log(
-                        `CHAT WEBSOCKETSERVER CONNECTION: Token refreshed for user ${payload.userID} (Connection ID: ${connectionID}).`
-                    );
+                    Logger.log(`CHAT WEBSOCKETSERVER CONNECTION: Token refreshed for user ${payload.userID} (Connection ID: ${connectionID}).`);
                     ws.send(ChatEvent.tokenRefreshed(token));
                     clientStore[connectionID]["authToken"] = token;
                     return;
@@ -604,7 +580,7 @@ function startWebSocketServer(app) {
 
     async function handleMessageSend(receivedMessage, connectionID, chatID) {
         const ws = clientStore[connectionID].ws;
-        
+
         if (!Object.keys(clientStore[connectionID].conversations).includes(chatID)) {
             ws.send(ChatEvent.error("Chat history not found."));
             return;
@@ -661,11 +637,10 @@ function startWebSocketServer(app) {
                     recipientLastMessageDatetime,
                     new Date()
                 );
-                if (datetimeDifference > 21600 && emailSent == false) {
+                if (datetimeDifference > 21600) {
                     // Create missed messages list for email
                     let senderID = clientStore[connectionID].userID;
-                    let sender =
-                        (await Host.findByPk(senderID)) || (await Guest.findByPk(senderID));
+                    let sender = clientStore[connectionID].user;
                     let recipientID =
                         clientStore[connectionID].conversations[chatID].recipientID;
                     let recipient =
@@ -675,18 +650,18 @@ function startWebSocketServer(app) {
                     const emailContent = HTMLRenderer.render(emailTemplatePath, {
                         senderUsername: sender.username, userUsername: recipient.username,
                     });
-                    const text = `You have missed messages from ${sender.username} since their last response. Please login to view them.`;
+                    const text = `Reminder: Unread Chat Messages Dear ${userUsername}, You have missed messages from ${senderUsername} since their last response. Please login to view them. Best regards, The MakanMatch Team`;
                     Emailer.sendEmail(
                         recipient.email,
                         "Missed Messages",
                         text,
                         emailContent
-                    );
-                    emailSent = true;
-                    // Set a timeout to reset emailSent to false after 15 minutes (900,000 milliseconds)
-                    setTimeout(() => {
-                        emailSent = false;
-                    }, 900000); // 15 minutes in milliseconds
+                    )
+                    .catch((error) => {
+                        Logger.log(
+                            `CHAT WEBSOCKETSERVER HANDLEMESSAGESEND ERROR: Failed to send email notification for missed messages to user ${recipientID}; error: ${error}`
+                        );
+                    });
                 }
             }
 

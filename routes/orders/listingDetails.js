@@ -212,7 +212,7 @@ router.post("/deleteListing", validateToken, async (req, res) => {
         return res.status(500).send("ERROR: Failed to retrieve listing.")
     }
 
-    if (listing.hostID != hostID) {
+    if (req.user.userType !== "Admin" && listing.hostID != hostID) {
         return res.status(403).send("ERROR: You are not the host of this listing.")
     }
 
@@ -234,7 +234,6 @@ router.post("/deleteListing", validateToken, async (req, res) => {
                     Logger.log(`ORDERS LISTINGDETAILS DELETELISTING WARNING: Unexpected FM response in deleting image '${image}'; response: ${fileDeletion}`)
                 }
             }
-            console.log(image, fileDeletion)
         } catch (err) {
             Logger.log(`ORDERS LISTINGDETAILS DELETELISTING WARNING: Failed to delete image '${image}' from storage; error: ${err}`)
         }

@@ -15,13 +15,7 @@ router.get("/", validateToken, async (req, res) => { // GET all hosts' food list
     const hostListings = await FoodListing.findAll({
         where: {
             hostID: hostID
-        },
-        include: [
-            {
-                model: Host,
-                as: 'Host'
-            }
-        ]
+        }
     });
     return res.status(200).send(hostListings);
 });

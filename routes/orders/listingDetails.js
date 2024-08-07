@@ -194,4 +194,52 @@ router.post("/updateListing", validateToken, async (req, res) => {
     }
 })
 
+router.post("/deleteListing", validateToken, async (req, res) => {
+    const hostID = req.user.userID;
+    const listingID = req.body.listingID;
+    if (!listingID || typeof listingID !== "string") {
+        return res.status(400).send("ERROR: Listing ID not provided or invalid.")
+    }
+
+    var listing;
+    try {
+        listing = await FoodListing.findByPk(listingID)
+        if (!listing) {
+            return res.status(200).send("SUCCESS: Listing does not exist.")
+        }
+    } catch (err) {
+        Logger.log(`ORDERS LISTINGDETAILS DELETELISTING ERROR: Failed to retrieve listing '${listingID}'; error: ${err}`)
+        return res.status(500).send("ERROR: Failed to retrieve listing.")
+    }
+
+    if (req.user.userType !== "Admin" && listing.hostID != hostID) {
+        return res.status(403).send("ERROR: You are not the host of this listing.")
+    }
+
+    const listingImages = structuredClone(listing.images.split("|"))
+
+    try {
+        await listing.destroy()
+        Logger.log(`ORDERS LISTINGDETAILS DELETELISTING: Listing with ID '${listingID}' deleted by host.`)
+    } catch (err) {
+        Logger.log(`ORDERS LISTINGDETAILS DELETELISTING ERROR: Failed to delete listing '${listingID}'; error: ${err}`)
+        return res.status(500).send("ERROR: Failed to delete listing.")
+    }
+
+    for (const image of listingImages) {
+        try {
+            const fileDeletion = await FileManager.deleteFile(image)
+            if (fileDeletion !== true) {
+                if (fileDeletion != "ERROR: File does not exist.") {
+                    Logger.log(`ORDERS LISTINGDETAILS DELETELISTING WARNING: Unexpected FM response in deleting image '${image}'; response: ${fileDeletion}`)
+                }
+            }
+        } catch (err) {
+            Logger.log(`ORDERS LISTINGDETAILS DELETELISTING WARNING: Failed to delete image '${image}' from storage; error: ${err}`)
+        }
+    }
+
+    return res.status(200).send("SUCCESS: Listing deleted successfully.")
+})
+
 module.exports = { router };

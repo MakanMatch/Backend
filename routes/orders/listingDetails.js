@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router();
-const { FoodListing } = require('../../models')
+const { FoodListing, Guest, Reservation, Host } = require('../../models')
 const Universal = require('../../services/Universal');
 const FileManager = require('../../services/FileManager');
 const { storeFile } = require('../../middleware/storeFile');
@@ -116,7 +116,25 @@ router.post("/updateListing", validateToken, async (req, res) => {
     }
 
     const listingID = req.body.listingID
-    const listing = await FoodListing.findByPk(listingID)
+    const listing = await FoodListing.findByPk(listingID, {
+        include: [
+            {
+                model: Guest,
+                as: "guests",
+                attributes: ["userID"],
+                through: {
+                    model: Reservation,
+                    as: "Reservation",
+                    attributes: ["portions"]
+                }
+            },
+            {
+                model: Host,
+                as: "Host",
+                attributes: ["userID", "paymentImage"]
+            }
+        ]
+    })
     if (!listing) {
         res.status(404).send("ERROR: Listing not found.")
         return
@@ -148,7 +166,18 @@ router.post("/updateListing", validateToken, async (req, res) => {
         }
     } catch (err) {
         // send back errors
-        res.status(400).send(`ERROR: Data validation errors occurred. Errors: ${err.errors.join(", ")}`)
+        res.status(400).send(`ERROR: Data validation errors occurred. Errors: ${err.errors.join(" ")}`)
+        return
+    }
+
+    const alreadyReservedSlots = listing.guests.map(g => g.Reservation.portions).reduce((t, n) => t + n, 0)
+    if (newData.totalSlots < alreadyReservedSlots) {
+        res.status(400).send("UERROR: Total slots cannot be less than the number of reserved slots.")
+        return
+    }
+
+    if (newData.published === true && listing.Host.paymentImage == null) {
+        res.status(400).send("UERROR: Upload a PayNow QR code image before publishing the listing.")
         return
     }
 
@@ -163,6 +192,54 @@ router.post("/updateListing", validateToken, async (req, res) => {
         res.status(400).send("ERROR: Failed to update listing.")
         return
     }
+})
+
+router.post("/deleteListing", validateToken, async (req, res) => {
+    const hostID = req.user.userID;
+    const listingID = req.body.listingID;
+    if (!listingID || typeof listingID !== "string") {
+        return res.status(400).send("ERROR: Listing ID not provided or invalid.")
+    }
+
+    var listing;
+    try {
+        listing = await FoodListing.findByPk(listingID)
+        if (!listing) {
+            return res.status(200).send("SUCCESS: Listing does not exist.")
+        }
+    } catch (err) {
+        Logger.log(`ORDERS LISTINGDETAILS DELETELISTING ERROR: Failed to retrieve listing '${listingID}'; error: ${err}`)
+        return res.status(500).send("ERROR: Failed to retrieve listing.")
+    }
+
+    if (req.user.userType !== "Admin" && listing.hostID != hostID) {
+        return res.status(403).send("ERROR: You are not the host of this listing.")
+    }
+
+    const listingImages = structuredClone(listing.images.split("|"))
+
+    try {
+        await listing.destroy()
+        Logger.log(`ORDERS LISTINGDETAILS DELETELISTING: Listing with ID '${listingID}' deleted by host.`)
+    } catch (err) {
+        Logger.log(`ORDERS LISTINGDETAILS DELETELISTING ERROR: Failed to delete listing '${listingID}'; error: ${err}`)
+        return res.status(500).send("ERROR: Failed to delete listing.")
+    }
+
+    for (const image of listingImages) {
+        try {
+            const fileDeletion = await FileManager.deleteFile(image)
+            if (fileDeletion !== true) {
+                if (fileDeletion != "ERROR: File does not exist.") {
+                    Logger.log(`ORDERS LISTINGDETAILS DELETELISTING WARNING: Unexpected FM response in deleting image '${image}'; response: ${fileDeletion}`)
+                }
+            }
+        } catch (err) {
+            Logger.log(`ORDERS LISTINGDETAILS DELETELISTING WARNING: Failed to delete image '${image}' from storage; error: ${err}`)
+        }
+    }
+
+    return res.status(200).send("SUCCESS: Listing deleted successfully.")
 })
 
 module.exports = { router };

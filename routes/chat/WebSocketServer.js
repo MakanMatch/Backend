@@ -107,8 +107,7 @@ function startWebSocketServer(app) {
                 if (msg.senderID == clientStore[connectionID].userID) {
                     msg.sender = clientStore[connectionID].user.username;
                 } else {
-                    msg.sender =
-                        clientStore[connectionID].conversations[chatID].recipientUsername;
+                    msg.sender = clientStore[connectionID].conversations[chatID].recipientUsername;
                 }
 
                 return msg;
@@ -119,9 +118,7 @@ function startWebSocketServer(app) {
             for (const connectionID of Object.keys(clientStore)) {
                 activeUsers[clientStore[connectionID].userID] = connectionID;
             }
-            const partnerIsActive = Object.keys(activeUsers).includes(
-                clientStore[connectionID].conversations[chatID].recipientID
-            );
+            const partnerIsActive = Object.keys(activeUsers).includes(clientStore[connectionID].conversations[chatID].recipientID);
             const message = {
                 action: "chat_history",
                 previousMessages: processedMessages,
@@ -132,12 +129,8 @@ function startWebSocketServer(app) {
             broadcastMessage(message, chatID);
             return;
         } catch (error) {
-            Logger.log(
-                `CHAT WEBSOCKETSERVER GETCHATANDMESSAGES ERROR: Failed to retrieve chat history for connection ${connectionID}; error: ${error}`
-            );
-            ws.send(
-                ChatEvent.error("Failed to retrieve chat history. Please try again.")
-            );
+            Logger.log(`CHAT WEBSOCKETSERVER GETCHATANDMESSAGES ERROR: Failed to retrieve chat history for connection ${connectionID}; error: ${error}`);
+            ws.send(ChatEvent.error("Failed to retrieve chat history. Please try again."));
             return;
         }
     }
@@ -188,7 +181,7 @@ function startWebSocketServer(app) {
             // Close connection due to inactivity. Update lastUpdate otherwise.
             const TEN_MINUTES = 10 * 60 * 1000;
             const ONE_HOUR = 60 * 60 * 1000;
-            if (clientStore[connectionID].authToken == null && Date.now() - new Date(clientStore[connectionID].lastUpdate).getTime() > TEN_MINUTES) {
+            if (clientStore[connectionID].authToken == null && (Date.now() - new Date(clientStore[connectionID].lastUpdate).getTime()) > TEN_MINUTES) {
                 Logger.log(`WEBSOCKETSERVER: Closing connection ${connectionID} due to unauthenticated state for 10 minutes.`);
                 ws.close(1008);
                 delete clientStore[connectionID];
@@ -209,9 +202,7 @@ function startWebSocketServer(app) {
             try {
                 parsedMessage = JSON.parse(message);
             } catch (err) {
-                Logger.log(
-                    `CHAT WEBSOCKETSERVER ONMESSAGE ERROR: Failed to parse message from client; error: ${err}`
-                );
+                Logger.log(`CHAT WEBSOCKETSERVER ONMESSAGE ERROR: Failed to parse message from client; error: ${err}`);
                 ws.send(ChatEvent.error("Invalid message event."));
                 return;
             }
@@ -224,20 +215,14 @@ function startWebSocketServer(app) {
                 parsedMessage.action != "connect" && clientStore[connectionID].authToken != null
             ) {
                 const refreshResult = await authenticateConnection(clientStore[connectionID].authToken);
-                if (typeof refreshResult == "string" && refreshResult.startsWith("ERROR")
-                ) {
+                if (typeof refreshResult == "string" && refreshResult.startsWith("ERROR")) {
                     // Failed to verify authorised connection's credential. De-authorise connection.
                     clientStore[connectionID]["authToken"] = null;
                     clientStore[connectionID]["userID"] = null;
                     clientStore[connectionID]["user"] = null;
                     clientStore[connectionID]["userType"] = null;
                     clientStore[connectionID]["conversations"] = {};
-                    ws.send(
-                        JSON.stringify({
-                            event: "error",
-                            message: refreshResult,
-                        })
-                    );
+                    ws.send(JSON.stringify({ event: "error", message: refreshResult}));
                     return;
                 }
                 const { payload, token, refreshed } = refreshResult;
@@ -253,31 +238,19 @@ function startWebSocketServer(app) {
                 // Use authentication connection to verify authorisation
                 const authToken = parsedMessage.authToken;
                 if (!authToken) {
-                    ws.send(
-                        ChatEvent.error(
-                            "Provide an auth token to authorise this connection."
-                        )
-                    );
+                    ws.send(ChatEvent.error("Provide an auth token to authorise this connection."));
                     return;
                 }
                 const verificationResult = await authenticateConnection(authToken);
                 if (
-                    typeof verificationResult == "string" &&
-                    verificationResult.startsWith("ERROR")
+                    typeof verificationResult == "string" &&verificationResult.startsWith("ERROR")
                 ) {
-                    ws.send(
-                        JSON.stringify({
-                            event: "error",
-                            message: verificationResult,
-                        })
-                    );
+                    ws.send(JSON.stringify({event: "error", message: verificationResult,}));
                     return;
                 }
                 const { payload, token, refreshed } = verificationResult;
                 if (refreshed) {
-                    Logger.log(
-                        `CHAT WEBSOCKETSERVER ONMESSAGE CONNECT: Token refreshed for user ${payload.userID} (Connection ID: ${connectionID}).`
-                    );
+                    Logger.log(`CHAT WEBSOCKETSERVER ONMESSAGE CONNECT: Token refreshed for user ${payload.userID} (Connection ID: ${connectionID}).`);
                     ws.send(ChatEvent.tokenRefreshed(token));
                     clientStore[connectionID]["authToken"] = token;
                 }
@@ -296,11 +269,7 @@ function startWebSocketServer(app) {
                         clientStore[connectionID]["user"] = null;
                         clientStore[connectionID]["userType"] = null;
                         clientStore[connectionID]["conversations"] = {};
-                        ws.send(
-                            ChatEvent.error(
-                                "User not found. Re-connect with the auth token of an existing user."
-                            )
-                        );
+                        ws.send(ChatEvent.error("User not found. Re-connect with the auth token of an existing user."));
                         return;
                     }
 
@@ -321,12 +290,7 @@ function startWebSocketServer(app) {
                         },
                     });
                     if (!reservations) {
-                        ws.send(
-                            ChatEvent.error(
-                                "Failed to retrieve your reservations. Please try again.",
-                                "user"
-                            )
-                        );
+                        ws.send(ChatEvent.error("Failed to retrieve your reservations. Please try again.", "user"));
                         return;
                     }
                     const reservationsJSON = reservations.map((reservation) =>
@@ -397,13 +361,7 @@ function startWebSocketServer(app) {
                         where: {
                             hostID: user.userID,
                         },
-                        include: [
-                            {
-                                model: Guest,
-                                as: "guests",
-                                attributes: ["userID", "username"],
-                            },
-                        ],
+                        include: [{model: Guest, as: "guests", attributes: ["userID", "username"]}]
                     });
                     const listingsJSON = listings.map((listing) => listing.toJSON());
 
@@ -414,21 +372,14 @@ function startWebSocketServer(app) {
                         for (const listingGuest of guests) {
                             // Get guest information
                             const guestID = listingGuest.userID;
-                            const reservationReferenceNum =
-                                listingGuest.Reservation.referenceNum;
+                            const reservationReferenceNum = listingGuest.Reservation.referenceNum;
                             const guestUsername = listingGuest.username;
 
                             // Get chat ID
                             const chatID = await getChatID(guestID, userID);
                             if (typeof chatID == "string" && chatID.startsWith("ERROR")) {
-                                Logger.log(
-                                    `CHAT WEBSOCKETSERVER CONNECTION ERROR: Failed to retrieve/generate chat history for guest ${guestID} and host ${userID}; error: ${chatID}`
-                                );
-                                ws.send(
-                                    ChatEvent.error(
-                                        "Failed to formulate chat history. Please try again."
-                                    )
-                                );
+                                Logger.log(`CHAT WEBSOCKETSERVER CONNECTION ERROR: Failed to retrieve/generate chat history for guest ${guestID} and host ${userID}; error: ${chatID}`);
+                                ws.send(ChatEvent.error("Failed to formulate chat history. Please try again."));
                                 return;
                             }
 
@@ -472,9 +423,7 @@ function startWebSocketServer(app) {
         });
 
         ws.on("error", (error) => {
-            Logger.log(
-                `CHAT WEBSOCKETSERVER WEBSOCKET ONERROR: Error occurred in web socket with connection ID ${connectionID}; error: ${error}`
-            );
+            Logger.log(`CHAT WEBSOCKETSERVER WEBSOCKET ONERROR: Error occurred in web socket with connection ID ${connectionID}; error: ${error}`);
         });
     });
 
@@ -525,9 +474,7 @@ function startWebSocketServer(app) {
             broadcastMessage(responseMessage, chatID);
             return;
         } catch (error) {
-            Logger.log(
-                `CHAT WEBSOCKETSERVER HANDLEEDITMESSAGE ERROR: Failed to edit message with ID ${messageId} by user ${clientStore[connectionID].userID} in chat ${chatID}; error: ${error}`
-            );
+            Logger.log(`CHAT WEBSOCKETSERVER HANDLEEDITMESSAGE ERROR: Failed to edit message with ID ${messageId} by user ${clientStore[connectionID].userID} in chat ${chatID}; error: ${error}`);
             ws.send(ChatEvent.error("Failed to edit message. Please try again."));
             return;
         }
@@ -554,9 +501,7 @@ function startWebSocketServer(app) {
         }
 
         if (targetMessage.senderID != clientStore[connectionID].userID) {
-            ws.send(
-                ChatEvent.error("You are not authorised to delete this message.")
-            );
+            ws.send(ChatEvent.error("You are not authorised to delete this message."));
             return;
         }
 
@@ -570,9 +515,7 @@ function startWebSocketServer(app) {
             };
             broadcastMessage(responseMessage, chatID);
         } catch (error) {
-            Logger.log(
-                `CHAT WEBSOCKETSERVER HANDLEDELETEMESSAGE ERROR: Failed to delete message with ID ${messageId} by user ${clientStore[connectionID].userID} in chat ${chatID}; error: ${error}`
-            );
+            Logger.log(`CHAT WEBSOCKETSERVER HANDLEDELETEMESSAGE ERROR: Failed to delete message with ID ${messageId} by user ${clientStore[connectionID].userID} in chat ${chatID}; error: ${error}`);
             ws.send(ChatEvent.error("Failed to delete message. Please try again."));
         }
     }
@@ -598,11 +541,9 @@ function startWebSocketServer(app) {
             broadcastJSON.sender = clientStore[connectionID].user.username;
 
             if (
-                receivedMessage.replyToID &&
-                typeof receivedMessage.replyToID == "string"
+                receivedMessage.replyToID && typeof receivedMessage.replyToID == "string"
             ) {
-                const replyTargetMessage = await ChatMessage.findByPk(
-                    receivedMessage.replyToID,
+                const replyTargetMessage = await ChatMessage.findByPk(receivedMessage.replyToID,
                     { attributes: ["messageID", "message"] }
                 );
                 if (replyTargetMessage) {
@@ -611,10 +552,9 @@ function startWebSocketServer(app) {
                 }
             }
 
-            const latestMessageBySender = await ChatMessage.findOne({
+            const latestMessageInChat = await ChatMessage.findOne({
                 where: {
                     chatID: chatID,
-                    senderID: clientStore[connectionID].userID,
                 },
                 order: [["datetime", "DESC"]],
             });
@@ -626,61 +566,35 @@ function startWebSocketServer(app) {
                 return;
             }
 
-            const latestMessageByRecipient = await ChatMessage.findOne({
-                where: {
-                    chatID: chatID,
-                    senderID: clientStore[connectionID].conversations[chatID].recipientID,
-                },
-                order: [["datetime", "DESC"]],
-            });
-
-            if (latestMessageByRecipient) {
-                // Get the datetime of the recipient's last message
-                const recipientLastMessageDatetime = new Date(
-                    latestMessageByRecipient.datetime
-                );
-                // Check for 6 hours difference between the new message and the latest message from the recipient
-                const datetimeDifference = Extensions.timeDiffInSeconds(
-                    recipientLastMessageDatetime,
-                    new Date()
-                );
-
-                // Check the sender's latest message compared to the current time
-                const senderLastMessageDatetime = new Date(latestMessageBySender.datetime);
-
-                const senderDatetimeDifference = Extensions.timeDiffInSeconds(
-                    senderLastMessageDatetime,
-                    new Date()
-                );
-                if (datetimeDifference > 21600 && senderDatetimeDifference > 21600) {
-                    // Create missed messages list for email
-                    let senderID = clientStore[connectionID].userID;
-                    let sender = clientStore[connectionID].user;
-                    let recipientID =
-                        clientStore[connectionID].conversations[chatID].recipientID;
-                    let recipient =
-                        (await Host.findByPk(recipientID)) ||
-                        (await Guest.findByPk(recipientID));
-                    const emailTemplatePath = path.join("emails", "MissedMessage.html");
-                    const emailContent = HTMLRenderer.render(emailTemplatePath, {
-                        senderUsername: sender.username, userUsername: recipient.username,
-                    });
-                    const text = `Dear ${recipient.username}, 
-                    You have missed messages from ${sender.username}
-                    Please login to view them. 
-                    Best regards, 
-                    MakanMatch Team`;
-                    Emailer.sendEmail(
-                        recipient.email,
-                        "Missed Messages",
-                        text,
-                        emailContent
-                    )
-                    .catch((error) => {
-                        Logger.log(
-                            `CHAT WEBSOCKETSERVER HANDLEMESSAGESEND ERROR: Failed to send email notification for missed messages to user ${recipientID}; error: ${error}`
-                        );
-                    });
+            if(latestMessageInChat) {
+                const latestMessageSender = latestMessageInChat.senderID;
+                if (latestMessageSender !== clientStore[connectionID].userID) {
+                    const latestMessageDatetime = new Date(latestMessageInChat.datetime);
+                    const datetimeDifference = Extensions.timeDiffInSeconds(latestMessageDatetime, new Date());
+                    if (datetimeDifference > 21600) {
+                        // Create missed messages list for email
+                        let sender = clientStore[connectionID].user;
+                        let recipientID = clientStore[connectionID].conversations[chatID].recipientID;
+                        let recipient = (await Host.findByPk(recipientID)) || (await Guest.findByPk(recipientID));
+                        const emailTemplatePath = path.join("emails", "MissedMessage.html");
+                        const emailContent = HTMLRenderer.render(emailTemplatePath, {
+                            senderUsername: sender.username, userUsername: recipient.username,
+                        });
+                        const text = `Dear ${recipient.username}, 
+                        You have missed messages from ${sender.username}
+                        Please login to view them. 
+                        Best regards, 
+                        MakanMatch Team`;
+                        Emailer.sendEmail(
+                            recipient.email,
+                            "Missed Messages",
+                            text,
+                            emailContent
+                        )
+                        .catch((error) => {
+                            Logger.log(`CHAT WEBSOCKETSERVER HANDLEMESSAGESEND ERROR: Failed to send email notification for missed messages to user ${recipientID}; error: ${error}`);
+                        });
+                    }
                 }
             }
 
@@ -692,9 +606,7 @@ function startWebSocketServer(app) {
 
             broadcastMessage(responseMessage, chatID);
         } catch (error) {
-            Logger.log(
-                `CHAT WEBSOCKETSERVER HANDLEMESSAGESEND ERROR: Failed to create message sent by user ${clientStore[connectionID].userID} for chat ${chatID}; error: ${error}`
-            );
+            Logger.log(`CHAT WEBSOCKETSERVER HANDLEMESSAGESEND ERROR: Failed to create message sent by user ${clientStore[connectionID].userID} for chat ${chatID}; error: ${error}`);
             ws.send(ChatEvent.error("Failed to create message. Please try again."));
         }
     }
@@ -708,8 +620,7 @@ function startWebSocketServer(app) {
 
         for (const chatID of Object.keys(clientStore[connectionID].conversations)) {
             // Loop through connection's chats to get the respective recipient's websockets
-            const recipientID =
-                clientStore[connectionID].conversations[chatID].recipientID; // recipient of chat
+            const recipientID = clientStore[connectionID].conversations[chatID].recipientID; // recipient of chat
             if (Object.keys(activeUsers).includes(recipientID)) {
                 // Check if chat recipient is currently active
                 // Obtain the recipient's websocket from clientStore
@@ -737,8 +648,7 @@ function startWebSocketServer(app) {
         const processedMessage = JSON.stringify(message);
         var sockets = [];
         for (const connectionID of Object.keys(clientStore)) {
-            const connectionConversations =
-                clientStore[connectionID]["conversations"];
+            const connectionConversations = clientStore[connectionID]["conversations"];
             if (Object.keys(connectionConversations).includes(chatID)) {
                 sockets.push(clientStore[connectionID]["ws"]);
             }

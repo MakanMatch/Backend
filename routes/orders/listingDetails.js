@@ -205,7 +205,7 @@ router.post("/deleteListing", validateToken, async (req, res) => {
     try {
         listing = await FoodListing.findByPk(listingID)
         if (!listing) {
-            return res.status(404).send("ERROR: Listing not found.")
+            return res.status(200).send("SUCCESS: Listing does not exist.")
         }
     } catch (err) {
         Logger.log(`ORDERS LISTINGDETAILS DELETELISTING ERROR: Failed to retrieve listing '${listingID}'; error: ${err}`)

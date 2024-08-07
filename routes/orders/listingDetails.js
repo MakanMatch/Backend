@@ -216,14 +216,31 @@ router.post("/deleteListing", validateToken, async (req, res) => {
         return res.status(403).send("ERROR: You are not the host of this listing.")
     }
 
+    const listingImages = structuredClone(listing.images.split("|"))
+
     try {
         await listing.destroy()
         Logger.log(`ORDERS LISTINGDETAILS DELETELISTING: Listing with ID '${listingID}' deleted by host.`)
-        return res.send("SUCCESS: Listing deleted successfully.")
     } catch (err) {
         Logger.log(`ORDERS LISTINGDETAILS DELETELISTING ERROR: Failed to delete listing '${listingID}'; error: ${err}`)
         return res.status(500).send("ERROR: Failed to delete listing.")
     }
+
+    for (const image of listingImages) {
+        try {
+            const fileDeletion = await FileManager.deleteFile(image)
+            if (fileDeletion !== true) {
+                if (fileDeletion != "ERROR: File does not exist.") {
+                    Logger.log(`ORDERS LISTINGDETAILS DELETELISTING WARNING: Unexpected FM response in deleting image '${image}'; response: ${fileDeletion}`)
+                }
+            }
+            console.log(image, fileDeletion)
+        } catch (err) {
+            Logger.log(`ORDERS LISTINGDETAILS DELETELISTING WARNING: Failed to delete image '${image}' from storage; error: ${err}`)
+        }
+    }
+
+    return res.status(200).send("SUCCESS: Listing deleted successfully.")
 })
 
 module.exports = { router };

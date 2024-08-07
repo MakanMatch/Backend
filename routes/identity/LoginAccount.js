@@ -65,6 +65,14 @@ router.post("/", async (req, res) => {
             if (userRecord.banned) {
                 return res.status(404).send("UERROR: Your account has been banned. Contact customer support or the MakanMatch team via email.")
             }
+
+            // Check for 7 days email unverified
+            const currentTime = new Date();
+            const accountAgeInDays = Math.floor((currentTime - new Date(user.createdAt)) / (1000 * 60 * 60 * 24));
+
+            if (accountAgeInDays > 7 && !user.emailVerified) {
+                return res.status(403).send("UERROR: Your account is locked due to failure to verify email within 7 days. Contact customer support or the MakanMatch team via email.");
+            }
         }
 
         // Check password

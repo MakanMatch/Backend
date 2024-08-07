@@ -2,6 +2,7 @@ require('./services/BootCheck').check()
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken')
+const util = require('util');
 const { FoodListing, Guest, Host, Reservation } = require('./models')
 const Encryption = require("./services/Encryption")
 require('dotenv').config()
@@ -44,8 +45,8 @@ const app = express();
 app.use(cors({ exposedHeaders: ['refreshedtoken'] }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-// app.use(express.static('public'))
 app.set("view engine", "ejs");
+app.set('trust proxy', true);
 const startWebSocketServer = require('./routes/chat/WebSocketServer');
 startWebSocketServer(app);
 

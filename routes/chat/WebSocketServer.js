@@ -575,14 +575,15 @@ function startWebSocketServer(app) {
                         // Create missed messages list for email
                         let sender = clientStore[connectionID].user;
                         let recipientID = clientStore[connectionID].conversations[chatID].recipientID;
-                        let recipient = (await Host.findByPk(recipientID)) || (await Guest.findByPk(recipientID));
+                        let recipient = (await Guest.findByPk(recipientID)) || (await Host.findByPk(recipientID));
                         const emailTemplatePath = path.join("emails", "MissedMessage.html");
                         const emailContent = HTMLRenderer.render(emailTemplatePath, {
                             senderUsername: sender.username, userUsername: recipient.username,
                         });
                         const text = `Dear ${recipient.username}, 
                         You have missed messages from ${sender.username}
-                        Please login to view them. 
+                        We encourage you to log in to your account and read the messages from your chat partner. Timely communication helps maintain a smooth and engaging experience on MakanMatch.
+                        If you have any questions or need assistance, please do not hesitate to contact our support team.
                         Best regards, 
                         MakanMatch Team`;
                         Emailer.sendEmail(

@@ -4,7 +4,7 @@ const multer = require('multer');
 const FileManager = require('../../services/FileManager');
 const { Universal, Emailer, HTMLRenderer, Extensions } = require("../../services")
 const { storeImages } = require("../../middleware/storeImages");
-const { Review, Host, Guest } = require('../../models');
+const { Review, Host, Guest, Warning } = require('../../models');
 const Logger = require('../../services/Logger');
 const { validateToken } = require('../../middleware/auth');
 const path = require('path');
@@ -158,6 +158,21 @@ router.route("/")
                 .catch((err) => {
                     Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Failed to send email to host with ID ${hostID}; error: ${err}.`);
                 });
+
+                // Check if hygiene grade is above 2.5, unflag host and remove warning
+                if (host.flaggedForHygiene && host.hygieneGrade > 2.5) {
+                    host.flaggedForHygiene = false;
+                    await host.save();
+
+                    const warning = await Warning.findOne({ where: { hostID: hostID } });
+                    if (warning) {
+                        const removePreviousWarning = await warning.destroy();
+                        if (!removePreviousWarning) {
+                            Logger.log(`SUBMITREVIEW ERROR: Failed to remove warning for host with ID ${hostID}.`);
+                        }
+                    }
+                }
+
                 return res.send("SUCCESS: Review submitted successfully");
             } catch (err) {
                 Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Failed to submit review; error: ${err}.`);

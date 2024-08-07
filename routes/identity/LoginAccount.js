@@ -46,23 +46,25 @@ router.post("/", async (req, res) => {
             return;
         }
 
-        // Check is user is banned
-        const userRecord = await UserRecord.findOne({
-            where: {
-                [Op.or]: [
-                    { hID: user.userID },
-                    { gID: user.userID },
-                    { aID: user.userID }
-                ]
+        if (userType !== "Admin") {
+            // Check is user is banned
+            const userRecord = await UserRecord.findOne({
+                where: {
+                    [Op.or]: [
+                        { hID: user.userID },
+                        { gID: user.userID },
+                        { aID: user.userID }
+                    ]
+                }
+            })
+            if (!userRecord) {
+                Logger.log(`IDENTITY LOGINACCOUNT ERROR: No matching user record found for login attempt to account with ID: ${user.userID}`)
+                return res.status(500).send("ERROR: Failed to process request. Please try again.")
             }
-        })
-        if (!userRecord) {
-            Logger.log(`IDENTITY LOGINACCOUNT ERROR: No matching user record found for login attempt to account with ID: ${user.userID}`)
-            return res.status(500).send("ERROR: Failed to process request. Please try again.")
-        }
 
-        if (userRecord.banned) {
-            return res.status(403).send("UERROR: Your account has been banned. Contact customer support or the MakanMatch team via email.")
+            if (userRecord.banned) {
+                return res.status(404).send("UERROR: Your account has been banned. Contact customer support or the MakanMatch team via email.")
+            }
         }
 
         // Check password

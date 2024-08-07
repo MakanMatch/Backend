@@ -215,7 +215,7 @@ router.get("/accountInfo", async (req, res) => { // GET account information
             }
 
             if (userRecord.banned) {
-                return res.status(403).send("UERROR: Account is banned.")
+                return res.status(404).send("UERROR: Account not found.")
             }
         }
 

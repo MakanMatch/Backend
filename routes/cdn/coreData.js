@@ -172,7 +172,7 @@ router.get("/getListing", checkUser, async (req, res) => {
     return
 })
 
-router.get("/accountInfo", async (req, res) => { // GET account information
+router.get("/accountInfo", checkUser, async (req, res) => { // GET account information
     try {
         const targetUserID = req.query.userID;
         if (!targetUserID) { res.status(400).send("ERROR: One or more required payloads not provided."); }
@@ -199,7 +199,7 @@ router.get("/accountInfo", async (req, res) => { // GET account information
             return res.status(404).send("ERROR: User does not exist.");
         }
 
-        if (userType !== "Admin") {
+        if (req.user && req.user.userType && req.user.userType !== "Admin") {
             // Check if user is banned
             const userRecord = await UserRecord.findOne({
                 where: {

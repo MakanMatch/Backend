@@ -19,6 +19,14 @@ router.post('/issueWarning', validateAdmin, async (req, res) => {
         return res.status(404).send("ERROR: Host not found");
     }
 
+    if (host.hygieneGrade > 2.5) {
+        return res.status(400).send("UERROR: Host need to have a rating below 2.5 for a warning to be issued");
+    }
+
+    if (host.hygieneGrade == 0) {
+        return res.status(400).send("UERROR: Host does not have a review yet");
+    }
+
     host.flaggedForHygiene = true;
     const updateHostFlagged = await host.save();
 
@@ -64,7 +72,7 @@ router.post('/issueWarning', validateAdmin, async (req, res) => {
         Logger.log(`ADMIN HYGIENEREPORTS ISSUEWARNING ERROR: Failed to send email to host with ID ${hostID}; error: ${err}.`);
     });
 
-    return res.status(200).send("Warning issued successfully");
+    return res.status(200).send("SUCCESS: Warning issued successfully");
 });
 
 router.post("/unflagHost", validateAdmin, async (req, res) => {
@@ -86,7 +94,7 @@ router.post("/unflagHost", validateAdmin, async (req, res) => {
         return res.status(500).send("ERROR: Failed to update host's flagged status");
     }
 
-    return res.status(200).send("Host unflagged successfully");
+    return res.status(200).send("SUCCESS: Host unflagged successfully");
 });
 
 module.exports = { router, at: '/admin/hygieneReports' };

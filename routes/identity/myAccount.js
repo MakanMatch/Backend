@@ -207,12 +207,12 @@ router.put('/changeName', validateToken, async (req, res) => {
             .required('First name cannot be empty')
             .min(1, 'First name cannot be empty')
             .max(30)
-            .matches(/^[^0-9]*$/, 'First name cannot contain numbers'),
+            .matches(/^[^0-9]*$/, 'UERROR: First name cannot contain numbers'),
         lname: yup.string()
             .required('Last name cannot be empty')
             .min(1, 'Last name cannot be empty')
             .max(30)
-            .matches(/^[^0-9]*$/, 'Last name cannot contain numbers')
+            .matches(/^[^0-9]*$/, 'UERROR: Last name cannot contain numbers')
     });
 
     const { userID, userType } = req.user;

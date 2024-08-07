@@ -194,4 +194,36 @@ router.post("/updateListing", validateToken, async (req, res) => {
     }
 })
 
+router.post("/deleteListing", validateToken, async (req, res) => {
+    const hostID = req.user.userID;
+    const listingID = req.body.listingID;
+    if (!listingID || typeof listingID !== "string") {
+        return res.status(400).send("ERROR: Listing ID not provided or invalid.")
+    }
+
+    var listing;
+    try {
+        listing = await FoodListing.findByPk(listingID)
+        if (!listing) {
+            return res.status(404).send("ERROR: Listing not found.")
+        }
+    } catch (err) {
+        Logger.log(`ORDERS LISTINGDETAILS DELETELISTING ERROR: Failed to retrieve listing '${listingID}'; error: ${err}`)
+        return res.status(500).send("ERROR: Failed to retrieve listing.")
+    }
+
+    if (listing.hostID != hostID) {
+        return res.status(403).send("ERROR: You are not the host of this listing.")
+    }
+
+    try {
+        await listing.destroy()
+        Logger.log(`ORDERS LISTINGDETAILS DELETELISTING: Listing with ID '${listingID}' deleted by host.`)
+        return res.send("SUCCESS: Listing deleted successfully.")
+    } catch (err) {
+        Logger.log(`ORDERS LISTINGDETAILS DELETELISTING ERROR: Failed to delete listing '${listingID}'; error: ${err}`)
+        return res.status(500).send("ERROR: Failed to delete listing.")
+    }
+})
+
 module.exports = { router };

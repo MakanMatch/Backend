@@ -40,6 +40,11 @@ module.exports = (sequelize, DataTypes) => {
             },
             onDelete: 'cascade',
             onUpdate: 'cascade'
+        },
+        banned: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
         }
     }, { tableName: 'userRecords' })
 

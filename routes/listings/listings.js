@@ -20,88 +20,87 @@ router.post("/addListing", validateToken, async (req, res) => {
             longDescription: yup.string().trim().required(),
             portionPrice: yup.number().min(1).max(10).required(),
             totalSlots: yup.number().min(1).max(10).required(),
-            datetime: yup.string().trim().required(),
-            publishInstantly: yup.boolean().required()
+            datetime: yup.string().trim().required()
         });
 
         if (req.files.length === 0) {
             return res.status(400).send("UERROR: No image was uploaded");
-        } else {
-            var validatedData;
-            try {
-                validatedData = await addListingSchema.validate(req.body, { abortEarly: false });
-            } catch (validationError) {
-                return res.status(400).send("UERROR: One or more entered fields are invalid");
-            }
+        }
 
-            if (err instanceof multer.MulterError) {
-                Logger.log(`LISTINGS ADDLISTING: Image upload error: ${err}`);
-                return res.status(400).send("UERROR: Image(s) not accepted");
-            } else if (err) {
-                Logger.log(`LISTINGS ADDLISTING: Internal server error: ${err}`);
-                return res.status(500).send("ERROR: Failed to process image(s)");
+        var validatedData;
+        try {
+            validatedData = await addListingSchema.validate(req.body, { abortEarly: false });
+        } catch (validationError) {
+            return res.status(400).send("UERROR: One or more entered fields are invalid");
+        }
+
+        if (err instanceof multer.MulterError) {
+            Logger.log(`LISTINGS ADDLISTING: Image upload error: ${err}`);
+            return res.status(400).send("UERROR: Image(s) not accepted");
+        } else if (err) {
+            Logger.log(`LISTINGS ADDLISTING: Internal server error: ${err}`);
+            return res.status(500).send("ERROR: Failed to process image(s)");
+        }
+        var allImagesSuccess = false;
+        for (let i = 0; i < req.files.length; i++) {
+            const imageFile = req.files[i];
+            const uploadImageResponse = await FileManager.saveFile(imageFile.filename);
+            if (uploadImageResponse) {
+                allImagesSuccess = true;
+            } else {
+                allImagesSuccess = false;
+                break;
             }
-            var allImagesSuccess = false;
+        }
+        if (!allImagesSuccess) {
+            // Delete all images if one or more images failed to upload
             for (let i = 0; i < req.files.length; i++) {
-                const imageFile = req.files[i];
-                const uploadImageResponse = await FileManager.saveFile(imageFile.filename);
-                if (uploadImageResponse) {
-                    allImagesSuccess = true;
-                } else {
-                    allImagesSuccess = false;
-                    break;
-                }
+                await FileManager.deleteFile(req.files[i].filename);
             }
-            if (!allImagesSuccess) {
-                // Delete all images if one or more images failed to upload
-                for (let i = 0; i < req.files.length; i++) {
-                    await FileManager.deleteFile(req.files[i].filename);
-                }
-                Logger.log(`LISTINGS ADDLISTING ERROR: One or more image checks failed. ${req.files.length} image(s) deleted successfully.`)
-                return res.status(400).send("ERROR: Failed to upload image(s)");
-            }
+            Logger.log(`LISTINGS ADDLISTING ERROR: One or more image checks failed. ${req.files.length} image(s) deleted successfully.`)
+            return res.status(400).send("ERROR: Failed to upload image(s)");
+        }
 
-            const hostInfo = await Host.findByPk(req.user.userID);
-            if (!hostInfo) {
-                return res.status(404).send("UERROR: Your account details were not found");
+        const hostInfo = await Host.findByPk(req.user.userID);
+        if (!hostInfo) {
+            return res.status(404).send("UERROR: Your account details were not found");
+        }
+        try {
+            const listingDetails = {
+                listingID: Universal.generateUniqueID(),
+                title: validatedData.title,
+                images: req.files.map(file => file.filename).join("|"),
+                shortDescription: validatedData.shortDescription,
+                longDescription: validatedData.longDescription,
+                portionPrice: validatedData.portionPrice,
+                totalSlots: validatedData.totalSlots,
+                datetime: validatedData.datetime,
+                approxAddress: hostInfo.approxAddress,
+                address: hostInfo.address,
+                hostID: hostInfo.userID,
+                approxCoordinates: hostInfo.approxCoordinates,
+                published: false,
+            };
+            const addListingResponse = await FoodListing.create(listingDetails);
+            if (addListingResponse) {
+                Logger.log(`LISTINGS ADDLISTING ERROR: Listing with listingID ${listingDetails.listingID} created successfully.`)
+                return res.status(200).json({
+                    message: "SUCCESS: Food listing created successfully",
+                    listingDetails,
+                });
+            } else {
+                return res.status(400).send("ERROR: Failed to create food listing");
             }
-            try {
-                const listingDetails = {
-                    listingID: Universal.generateUniqueID(),
-                    title: validatedData.title,
-                    images: req.files.map(file => file.filename).join("|"),
-                    shortDescription: validatedData.shortDescription,
-                    longDescription: validatedData.longDescription,
-                    portionPrice: validatedData.portionPrice,
-                    totalSlots: validatedData.totalSlots,
-                    datetime: validatedData.datetime,
-                    approxAddress: hostInfo.approxAddress,
-                    address: hostInfo.address,
-                    hostID: hostInfo.userID,
-                    approxCoordinates: hostInfo.approxCoordinates,
-                    published: validatedData.publishInstantly,
-                };
-                const addListingResponse = await FoodListing.create(listingDetails);
-                if (addListingResponse) {
-                    Logger.log(`LISTINGS ADDLISTING ERROR: Listing with listingID ${listingDetails.listingID} created successfully.`)
-                    return res.status(200).json({
-                        message: "SUCCESS: Food listing created successfully",
-                        listingDetails,
-                    });
-                } else {
-                    return res.status(400).send("ERROR: Failed to create food listing");
-                }
-            } catch (error) {
-                Logger.log(`LISTINGS ADDLISTING ERROR: Internal server error: ${error}`);
-                return res.status(500).send("ERROR: Internal server error");
-            }
+        } catch (error) {
+            Logger.log(`LISTINGS ADDLISTING ERROR: Internal server error: ${error}`);
+            return res.status(500).send("ERROR: Internal server error");
         }
     });
 });
 
 router.get("/getFavouritedListingsID", validateToken, async (req, res) => {
     const userID = req.user.userID;
-    
+
     const userRecord = await UserRecord.findOne({
         where: {
             [Op.or]: [
@@ -142,7 +141,7 @@ router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
         res.status(400).send("ERROR: Listing ID not provided");
         return;
     }
- 
+
     const findListing = await FoodListing.findByPk(listingID);
     if (!findListing) {
         return res.status(404).send("ERROR: Listing doesn't exist");
@@ -170,9 +169,9 @@ router.put("/toggleFavouriteListing", validateToken, async (req, res) => {
         res.status(404).send("ERROR: User not found");
         return;
     }
-    
+
     var favListing = userRecord.favourites.filter(favListing => favListing.listingID == listingID) // returns a list with, if the listing has been favourited, the first index as the favourited listing
-    
+
     if (favListing[0]) {
         const favListingRecord = favListing[0].FavouriteListing // get the FavouriteListing model record of the FoodListing that the user wants to unfavourite
         const deleteFavourite = await favListingRecord.destroy() // delete FavouriteListing 

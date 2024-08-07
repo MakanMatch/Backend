@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const FileManager = require("../../services/FileManager");
-const { Host, Reservation } = require("../../models");
+const { Guest, Host, Reservation } = require("../../models");
 const { storeFile } = require("../../middleware/storeFile");
 const { validateToken } = require("../../middleware/auth");
 const Logger = require("../../services/Logger");
@@ -69,7 +69,7 @@ router.route("/uploadPaymentQR")
                     return res.status(500).send("ERROR: Failed to update host payment image.");
                 }
 
-                return res.status(200).send("SUCCESS: Payment QR uploaded successfully");
+                return res.status(200).send("SUCCESS: Payment QR uploaded successfully. Image name: " + req.file.filename);
             } catch (err) {
                 Logger.log(`ORDERS MANAGEGUESTS UPLOADPAYMENTQR POST ERROR: Failed to upload Payment QR; error: ${err}.`);
                 return res.status(500).send("ERROR: Failed to upload Payment QR.")
@@ -91,6 +91,21 @@ router.route("/togglePaidAndPresent")
         let whereClause = {};
         if (identifierMode == 'Reference') { whereClause['referenceNum'] = referenceNum }
         else { whereClause['guestID'] = guestID, whereClause['listingID'] = listingID }
+
+        // find guest
+        const guest = await Guest.findByPk(guestID,{
+            attributes: ['userID', 'mealsMatched']
+        });
+        if (!guest) {
+            return res.status(404).send("ERROR: Guest not found.");
+        }
+        // find host
+        const host = await Host.findByPk(userID, {
+            attributes: ['userID', 'mealsMatched']
+        });
+        if (!host) {
+            return res.status(404).send("ERROR: Host not found.");
+        }
 
         var reservation;
         try {
@@ -115,6 +130,23 @@ router.route("/togglePaidAndPresent")
 
             if (!updatePaidAndPresent) {
                 return res.status(500).send("ERROR: Failed to update paid and present status");
+            }
+
+            // Update guest and host mealsMatched count
+            if (reservation.paidAndPresent == true) {
+                guest.mealsMatched += 1;
+                host.mealsMatched += 1;
+            } else {
+                guest.mealsMatched -= 1;
+                host.mealsMatched -= 1;
+            }
+
+            // Save guest and host mealsMatched count
+            const updateGuestMealsMatched = await guest.save();
+            const updateHostMealsMatched = await host.save();
+
+            if (!updateGuestMealsMatched || !updateHostMealsMatched) {
+                return res.status(500).send("ERROR: Failed to update meals matched count");
             }
 
             return res.status(200).json({ paidAndPresent: reservation.paidAndPresent });

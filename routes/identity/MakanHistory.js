@@ -57,11 +57,7 @@ router.get("/getGuestPastReservations", validateToken, async(req, res) => {
                         });
                     }
                 });
-                if (resultantResponse.length !== 0) {
-                    return res.status(200).json(resultantResponse);
-                } else {
-                    return res.status(400).send("ERROR: Failed to retrieve user's past reservations");
-                }
+                return res.status(200).json(resultantResponse);
             } else {
                 return res.status(200).json([]);
             }

@@ -41,7 +41,7 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
     const schema = yup.object().shape({
         username: yup.string().required().trim().min(1).max(50),
         email: yup.string().required().email(),
-        contactNum: yup.string().optional().trim().max(8)
+        contactNum: yup.string().optional().trim().max(8).nullable()
     });
 
     if (userType === "Host" && (req.body.contactNum === '' || req.body.contactNum === undefined)) {
@@ -81,7 +81,7 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         // Update user information
         user.username = username;
         user.email = email;
-        if (contactNum === '') {
+        if (contactNum === '' || contactNum === null) {
             user.contactNum = null;
         } else {
             user.contactNum = contactNum;
@@ -92,7 +92,7 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
 
         if (!saveUser) {
             Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS ERROR: Failed to save user details for userID ${userID}`)
-            res.status(500).send("ERROR: Failed to update user details")
+            return res.status(500).send("ERROR: Failed to update user details")
         }
 
         Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS: Updated user details for userID ${userID}`)
@@ -104,7 +104,16 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
 });
 
 router.delete('/deleteAccount', validateToken, async (req, res) => {
-    const { userID, userType } = req.user;
+    let userID;
+    let userType;
+
+    if (req.user.userType === "Admin") {
+        userID = req.query.targetUserID;
+        userType = req.query.userType;
+    } else {
+        userID = req.user.userID;
+        userType = req.user.userType;
+    }
 
     try {
         let user;
@@ -122,11 +131,12 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
             return res.status(400).send('UERROR: User not found.');
         }
 
-        deleteUser = await user.destroy();
+        const deleteUser = await user.destroy();
 
         if (!deleteUser) {
             Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT ERROR: Failed to delete user ${userID}`)
             res.status(500).send(`ERROR: Failed to delete user ${userID}`)
+            return
         }
 
         Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT: ${userType} account ${userID} deleted.`)
@@ -180,7 +190,7 @@ router.put('/changePassword', validateToken, async (req, res) => {
 
         if (!saveNewPassword) {
             Logger.log(`IDENTITY MYACCOUNT CHANGEPASSWORD ERROR: Failed to save new password for user ${userID}`)
-            res.status(500).send(`ERROR: Failed to save new password for user ${userID}`)
+            return res.status(500).send(`ERROR: Failed to save new password for user ${userID}`)
         }
 
         Logger.log(`IDENTITY MYACCOUNT CHANGEPASSWORD: Password successfully changed for user ${userID}`)
@@ -197,12 +207,12 @@ router.put('/changeName', validateToken, async (req, res) => {
             .required('First name cannot be empty')
             .min(1, 'First name cannot be empty')
             .max(30)
-            .matches(/^[^0-9]*$/, 'First name cannot contain numbers'),
+            .matches(/^[^0-9]*$/, 'UERROR: First name cannot contain numbers'),
         lname: yup.string()
             .required('Last name cannot be empty')
             .min(1, 'Last name cannot be empty')
             .max(30)
-            .matches(/^[^0-9]*$/, 'Last name cannot contain numbers')
+            .matches(/^[^0-9]*$/, 'UERROR: Last name cannot contain numbers')
     });
 
     const { userID, userType } = req.user;
@@ -362,7 +372,7 @@ router.put('/changeAddress', validateToken, async (req, res) => {
             res.send("SUCCESS: Address updated successfully.");
         } catch (err) {
             Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to update address for user ${userID}; error: ${err}`);
-            res.status(500).send("ERROR: Failed to update address.");
+            return res.status(500).send("ERROR: Failed to update address.");
         }
     } catch (err) {
         Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to update address for user ${userID}; error: ${err}`);

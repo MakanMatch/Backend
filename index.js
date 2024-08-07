@@ -74,6 +74,8 @@ if (config["routerRegistration"] != "automated") {
     app.use(require('./routes/identity/AccountRecovery').at || '/', require('./routes/identity/AccountRecovery').router);
     app.use(require('./routes/identity/emailVerification').at || '/', require('./routes/identity/emailVerification').router);
     app.use(require("./routes/identity/myAccount").at || '/', require("./routes/identity/myAccount").router);
+    app.use(require("./routes/identity/Admin/UserManagement").at || '/', require("./routes/identity/Admin/UserManagement").router);
+    app.use(require("./routes/identity/Admin/HygieneReports").at || '/', require("./routes/identity/Admin/HygieneReports").router);
     app.use(require("./routes/listings/listings").at || '/', require("./routes/listings/listings").router);
     app.use(require("./routes/orders/listingDetails").at || '/', require("./routes/orders/listingDetails").router);
     app.use(require("./routes/chat/manageChat").at || '/', require("./routes/chat/manageChat").router);
@@ -100,7 +102,7 @@ async function onDBSynchronise() {
             fname: "Susie",
             lname: "Jones",
             username: "susiejones",
-            email: "susie_jones@gmail.com",
+            email: "susie_jones@example.com",
             password: await Encryption.hash("SusieJones123"),
             contactNum: "82228111",
             address: "Block 321, Hougang Avenue 10, #10-567",
@@ -125,7 +127,7 @@ async function onDBSynchronise() {
             "fname": "Jamie",
             "lname": "Oliver",
             "username": "jamieoliver",
-            "email": "jamie_oliver@gmail.com",
+            "email": "jamie_oliver@example.com",
             "password": await Encryption.hash("123456789"),
             "contactNum": "81118222",
             "approxAddress": "Anchorvale Lane, Singapore 542310",

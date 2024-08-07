@@ -1,7 +1,7 @@
-// Warning(adminID, hostID, reason, datetime, acknowledged)
-// PK: (adminID, hostID)
+// Warning(issuingAdminID, hostID, reason, datetime)
+// PK: (issuingAdminID, hostID)
 // FK: 
-// -	adminID references Admin(userID)
+// -	issuingAdminID references Admin(userID)
 // -	hostID references Host(userID)
 
 /**
@@ -19,12 +19,7 @@ module.exports = (sequelize, DataTypes) => {
         datetime: {
             type: DataTypes.STRING,
             allowNull: false
-        },
-        acknowledged: {
-            type: DataTypes.BOOLEAN,
-            allowNull: false,
-            defaultValue: false
-        },
+        }
     }, { tableName: 'warnings' })
 
     // Associations

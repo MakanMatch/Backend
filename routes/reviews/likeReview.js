@@ -7,9 +7,6 @@ const { validateToken } = require('../../middleware/auth');
 router.route("/")
     .post(validateToken, async (req, res) => {
         const guestID = req.user.userID;
-        if (!guestID) {
-            return res.status(400).send("ERROR: Missing guest ID");
-        }
         const { reviewID } = req.body;
         if (!reviewID) {
             return res.status(400).send("ERROR: Missing review ID");

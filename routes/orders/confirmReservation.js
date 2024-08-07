@@ -169,7 +169,7 @@ router.get("/getReservations", validateToken, async (req, res) => {
             includeClause.push({
                 model: Host,
                 as: "Host",
-                attributes: ["userID", "username", "foodRating", "fname", "lname", "paymentImage"]
+                attributes: ["userID", "username", "foodRating", "fname", "lname", "paymentImage", "coordinates", "address"]
             })
         }
         if (includeListingReservations) {

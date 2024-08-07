@@ -170,7 +170,7 @@ router.route("/")
                     if (warning) {
                         const removePreviousWarning = await warning.destroy();
                         if (!removePreviousWarning) {
-                            Logger.log(`SUBMITREVIEW ERROR: Failed to remove warning for host with ID ${hostID}.`);
+                            Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Failed to remove warning for host with ID ${hostID}.`);
                         }
                     }
                 }

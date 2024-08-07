@@ -201,7 +201,7 @@ router.route("/")
                 if (warning) {
                     const removePreviousWarning = await warning.destroy();
                     if (!removePreviousWarning) {
-                        Logger.log(`SUBMITREVIEW ERROR: Failed to remove warning for host with ID ${hostID}.`);
+                        Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to remove warning for host with ID ${hostID}.`);
                     }
                 }
             }
@@ -297,7 +297,7 @@ router.route("/")
             if (warning) {
                 const removePreviousWarning = await warning.destroy();
                 if (!removePreviousWarning) {
-                    Logger.log(`SUBMITREVIEW ERROR: Failed to remove warning for host with ID ${hostID}.`);
+                    Logger.log(`REVIEWS MANAGEREVIEWS DELETE ERROR: Failed to remove warning for host with ID ${hostID}.`);
                 }
             }
         }

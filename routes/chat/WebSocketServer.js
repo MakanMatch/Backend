@@ -4,7 +4,7 @@ const WebSocket = require("ws");
 const { ChatHistory, ChatMessage, Reservation, FoodListing, Host, Guest } = require("../../models");
 const { Op } = require("sequelize");
 const TokenManager = require("../../services/TokenManager").default();
-const { Universal, Logger, Extensions, Emailer, HTMLRenderer } = require("../../services");
+const { Universal, Logger, Extensions, Emailer, HTMLRenderer, FileManager } = require("../../services");
 const path = require("path");
 
 class ChatEvent {
@@ -507,6 +507,18 @@ function startWebSocketServer(app) {
 
         try {
             await targetMessage.destroy();
+            if (targetMessage.image) {
+                try {
+                    await FileManager.deleteFile(targetMessage.image)
+                    .then(result => {
+                        if (result) {
+                            Logger.log(`CHAT WEBSOCKETSERVER HANDLEDELETEMESSAGE: Deleted image ${targetMessage.image} associated with message ${messageId}`);
+                        }
+                    })
+                } catch (error) {
+                    Logger.log(`CHAT WEBSOCKETSERVER HANDLEDELETEMESSAGE ERROR: Failed to delete image ${targetMessage.image} associated with message ${messageId}; error: ${error}`);
+                }
+            }
 
             const responseMessage = {
                 action: "delete",

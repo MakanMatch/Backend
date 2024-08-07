@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Review, Guest, Host } = require('../../models');
+const { Review, Guest, Host, Warning } = require('../../models');
 const Logger = require('../../services/Logger');
 const { storeImages } = require('../../middleware/storeImages');
 const FileManager = require('../../services/FileManager');
@@ -192,6 +192,20 @@ router.route("/")
                 }
             }
 
+            // Check if hygiene grade is above 2.5, unflag host and remove warning
+            if (host.flaggedForHygiene && (host.hygieneGrade > 2.5 || host.hygieneGrade == 0)) {
+                host.flaggedForHygiene = false;
+                await host.save();
+
+                const warning = await Warning.findOne({ where: { hostID: host.userID } });
+                if (warning) {
+                    const removePreviousWarning = await warning.destroy();
+                    if (!removePreviousWarning) {
+                        Logger.log(`SUBMITREVIEW ERROR: Failed to remove warning for host with ID ${hostID}.`);
+                    }
+                }
+            }
+
             return res.send(`SUCCESS: Review with ID ${reviewID} updated.`);
         })
     })
@@ -217,6 +231,9 @@ router.route("/")
                 }
             ]
         });
+        if (!review) {
+            return res.status(404).send(`ERROR: Review with ID ${reviewID} not found.`);
+        }
 
         if (guestID !== review.reviewPoster.userID) {
             return res.status(403).send("ERROR: You are not authorized to delete this review.");
@@ -268,6 +285,20 @@ router.route("/")
             const updateHostRating = await host.save();
             if (!updateHostRating) {
                 return res.status(500).send("ERROR: Failed to update host rating");
+            }
+        }
+
+        // Check if hygiene grade is above 2.5, unflag host and remove warning
+        if (host.flaggedForHygiene && (host.hygieneGrade > 2.5 || host.hygieneGrade == 0)) {
+            host.flaggedForHygiene = false;
+            await host.save();
+
+            const warning = await Warning.findOne({ where: { hostID: host.userID } });
+            if (warning) {
+                const removePreviousWarning = await warning.destroy();
+                if (!removePreviousWarning) {
+                    Logger.log(`SUBMITREVIEW ERROR: Failed to remove warning for host with ID ${hostID}.`);
+                }
             }
         }
 

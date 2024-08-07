@@ -39,21 +39,23 @@ router.route("/")
                     return res.status(404).send("ERROR: Host or guest not found.");
                 }
 
-                const latestReview = await Review.findAll({
-                    include: [
-                        {
-                            model: Guest,
-                            as: "reviewPoster",
-                            where: {
-                                userID: guestID
+                if (!process.env.DEBUG_MODE && !process.env.DEBUG_MODE == "True") {
+                    const latestReview = await Review.findAll({
+                        include: [
+                            {
+                                model: Guest,
+                                as: "reviewPoster",
+                                where: {
+                                    userID: guestID
+                                }
                             }
+                        ],
+                        order: [["createdAt", "DESC"]]
+                    })
+                    if (latestReview && Array.isArray(latestReview) && latestReview.length > 0) {
+                        if (Extensions.timeDiffInSeconds(latestReview[0].createdAt, new Date()) < 60) {
+                            return res.status(400).send("UERROR: You can only submit a review once per minute.");
                         }
-                    ],
-                    order: [["createdAt", "DESC"]]
-                })
-                if (latestReview && Array.isArray(latestReview) && latestReview.length > 0) {
-                    if (Extensions.timeDiffInSeconds(latestReview[0].createdAt, new Date()) < 60) {
-                        return res.status(400).send("UERROR: You can only submit a review once per minute.");
                     }
                 }
 
@@ -164,7 +166,7 @@ router.route("/")
                     host.flaggedForHygiene = false;
                     await host.save();
 
-                    const warning = await Warning.findOne({ where: { hostID: hostID } });
+                    const warning = await Warning.findOne({ where: { hostID: host.userID } });
                     if (warning) {
                         const removePreviousWarning = await warning.destroy();
                         if (!removePreviousWarning) {

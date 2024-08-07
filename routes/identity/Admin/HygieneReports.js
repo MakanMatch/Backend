@@ -95,6 +95,7 @@ router.post('/issueWarning', validateAdmin, async (req, res) => {
             {
                 hostName: `${host.fname} ${host.lname}`,
                 hygieneGrade: `${host.hygieneGrade}`,
+                reason: reason
             }
         )
     )

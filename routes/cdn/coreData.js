@@ -22,7 +22,7 @@ router.get("/listings", async (req, res) => { // GET all food listings
         {
             model: Host,
             as: "Host",
-            attributes: ["userID", "username", "foodRating"]
+            attributes: ["userID", "username", "foodRating", "flaggedForHygiene"]
         }
     ]
     if (includeReservations == 'true') {
@@ -149,7 +149,8 @@ router.get("/getListing", checkUser, async (req, res) => {
             "datetime",
             "portionPrice",
             "approxAddress",
-            "address",
+            "approxCoordinates",
+            "paymentImage",
             "totalSlots",
             "published",
             "hostID",
@@ -166,35 +167,18 @@ router.get("/getListing", checkUser, async (req, res) => {
             "referenceNum",
             "guestID",
             "portions",
-            "totalPrice"
+            "totalPrice",
+            "flaggedForHygiene"
         ], ["createdAt", "updatedAt"])
     )
     return
 })
 
-router.get("/accountInfo", async (req, res) => { // GET account information
+router.get("/accountInfo", checkUser, async (req, res) => { // GET account information
     try {
         const targetUserID = req.query.userID;
         if (!targetUserID) { res.status(400).send("ERROR: One or more required payloads not provided."); }
         let user, userType;
-
-        // Check if user is banned
-        const userRecord = await UserRecord.findOne({
-            where: {
-                [Op.or]: [
-                    { hID: targetUserID },
-                    { gID: targetUserID },
-                    { aID: targetUserID }
-                ]
-            }
-        })
-        if (!userRecord) {
-            return res.status(500).send("ERROR: Failed to process request. Please try again.")
-        }
-
-        if (userRecord.banned) {
-            return res.status(403).send("UERROR: Account is banned.")
-        }
 
         user = await Guest.findOne({ where: { userID: targetUserID } });
 
@@ -215,6 +199,26 @@ router.get("/accountInfo", async (req, res) => { // GET account information
 
         if (!user) {
             return res.status(404).send("ERROR: User does not exist.");
+        }
+
+        if (req.user && req.user.userType && req.user.userType !== "Admin") {
+            // Check if user is banned
+            const userRecord = await UserRecord.findOne({
+                where: {
+                    [Op.or]: [
+                        { hID: targetUserID },
+                        { gID: targetUserID },
+                        { aID: targetUserID }
+                    ]
+                }
+            })
+            if (!userRecord) {
+                return res.status(500).send("ERROR: Failed to process request. Please try again.")
+            }
+
+            if (userRecord.banned) {
+                return res.status(404).send("UERROR: Account not found.")
+            }
         }
 
         const accountInfo = {
@@ -242,6 +246,7 @@ router.get("/accountInfo", async (req, res) => { // GET account information
             accountInfo.hygieneGrade = user.hygieneGrade;
             accountInfo.paymentImage = user.paymentImage;
             accountInfo.reviewsCount = user.reviewsCount;
+            accountInfo.flaggedForHygiene = user.flaggedForHygiene;
         } else if (userType === 'Guest') {
             accountInfo.favCuisine = user.favCuisine;
             accountInfo.mealsMatched = user.mealsMatched;
@@ -386,7 +391,7 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
             return res.status(200).send([]);
         } else {
             allUsers.forEach(user => {
-                responseArray.push(Extensions.sanitiseData(user, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned"], ["password"], []));
+                responseArray.push(Extensions.sanitiseData(user, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned", "flaggedForHygiene"], ["password"], []));
             });
             return res.status(200).json(responseArray);
         }
@@ -394,9 +399,9 @@ router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all use
         if (!hostsWithUserType || !Array.isArray(hostsWithUserType) || hostsWithUserType.length === 0) {
             return res.status(200).send([]);
         } else {
-            warningHosts = hostsWithUserType.filter(host => host.hygieneGrade <= 2.5);
+            warningHosts = hostsWithUserType.filter(host => host.hygieneGrade <= 2.5 && host.hygieneGrade > 0);
             warningHosts.forEach(host => {
-                responseArray.push(Extensions.sanitiseData(host, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned"], ["password"], []));
+                responseArray.push(Extensions.sanitiseData(host, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned", "flaggedForHygiene"], ["password"], []));
             });
             return res.status(200).json(responseArray);
         }

@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
-const { Universal, Emailer, Logger } = require('../../services');
+const { Universal, Emailer, Logger, HTMLRenderer } = require('../../services');
 require('dotenv').config();
+const path = require('path');
 
 router.post("/send", async (req, res) => {
     let { email } = req.body;
@@ -35,20 +36,36 @@ router.post("/send", async (req, res) => {
         const verificationLink = `${origin}/auth/verifyToken?userID=${user.userID}&token=${verificationToken}`;
 
         // Send email with verification link using the Emailer service
-        const emailSent = await Emailer.sendEmail(
-            user.email,
-            'Email Verification',
-            `Click the link to verify your email: ${verificationLink}`,
-            `<p>Click the link to verify your email: <a href="${verificationLink}">${verificationLink}</a></p>`
-        );
+        const emailText = `
+Email Verification
 
-        if (emailSent) {
-            res.send('SUCCESS: Verification email sent.');
-            return
-        } else {
+Please verify your email using this link:
+${verificationLink}
+
+If you did not request this, please ignore this email.
+
+Best regards,
+MakanMatch Team
+`
+        
+        Emailer.sendEmail(
+            user.email,
+            "Email Verification | MakanMatch",
+            emailText,
+            HTMLRenderer.render(
+                path.join("emails", "ResendEmailVerification.html"),
+                {
+                    verificationLink: verificationLink
+                }
+            )
+        )
+        .catch(err => {
+            Logger.log(`IDENTITY EMAILVERIFICATION ERROR: Failed to send verification email to ${user.email}. Error: ${err}`)
             res.status(500).send("ERROR: Failed to send verification email.");
             return
-        }
+        })
+
+        res.send('SUCCESS: Verification email sent.');
     } catch (err) {
         console.error(err);
         res.status(500).send("ERROR: Internal server error.");
@@ -57,7 +74,6 @@ router.post("/send", async (req, res) => {
 });
 
 router.post("/verify", async (req, res) => {
-    // console.log("received at EmailVerification verifyEmail");
     let { userID, token } = req.body;
 
     if (!token || !userID) {
@@ -78,7 +94,6 @@ router.post("/verify", async (req, res) => {
         
         const expirationDate = new Date(user.emailVerificationTokenExpiration)
         if (expirationDate < Date.now()) {
-            // TODO: Remove email verification token and expiration from db and return token expired response
             user.emailVerificationToken = null;
             user.emailVerificationTokenExpiration = null;
             const saveUser = await user.save();
@@ -99,7 +114,7 @@ router.post("/verify", async (req, res) => {
         const saveUser = await user.save();
         if (saveUser) {
             Logger.log(`IDENTITY EMAILVERIFICATION: Email verification for userID ${user.userID} successful.`);
-            res.send("SUCCESS: Email verification successful. You can now log in with your verified email.");
+            return res.send("SUCCESS: Email verification successful. You can now log in with your verified email.");
         } else {
             Logger.log(`IDENTITY EMAILVERIFICATION ERROR: Failed to remove verification token for userID ${user.userID}`)
             return res.status(500).send("ERROR: Failed to remove verification token.")

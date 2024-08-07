@@ -92,7 +92,7 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
 
         if (!saveUser) {
             Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS ERROR: Failed to save user details for userID ${userID}`)
-            res.status(500).send("ERROR: Failed to update user details")
+            return res.status(500).send("ERROR: Failed to update user details")
         }
 
         Logger.log(`IDENTITY MYACCOUNT UPDATEACCOUNTDETAILS: Updated user details for userID ${userID}`)
@@ -190,7 +190,7 @@ router.put('/changePassword', validateToken, async (req, res) => {
 
         if (!saveNewPassword) {
             Logger.log(`IDENTITY MYACCOUNT CHANGEPASSWORD ERROR: Failed to save new password for user ${userID}`)
-            res.status(500).send(`ERROR: Failed to save new password for user ${userID}`)
+            return res.status(500).send(`ERROR: Failed to save new password for user ${userID}`)
         }
 
         Logger.log(`IDENTITY MYACCOUNT CHANGEPASSWORD: Password successfully changed for user ${userID}`)
@@ -207,12 +207,12 @@ router.put('/changeName', validateToken, async (req, res) => {
             .required('First name cannot be empty')
             .min(1, 'First name cannot be empty')
             .max(30)
-            .matches(/^[^0-9]*$/, 'First name cannot contain numbers'),
+            .matches(/^[^0-9]*$/, 'UERROR: First name cannot contain numbers'),
         lname: yup.string()
             .required('Last name cannot be empty')
             .min(1, 'Last name cannot be empty')
             .max(30)
-            .matches(/^[^0-9]*$/, 'Last name cannot contain numbers')
+            .matches(/^[^0-9]*$/, 'UERROR: Last name cannot contain numbers')
     });
 
     const { userID, userType } = req.user;
@@ -372,7 +372,7 @@ router.put('/changeAddress', validateToken, async (req, res) => {
             res.send("SUCCESS: Address updated successfully.");
         } catch (err) {
             Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to update address for user ${userID}; error: ${err}`);
-            res.status(500).send("ERROR: Failed to update address.");
+            return res.status(500).send("ERROR: Failed to update address.");
         }
     } catch (err) {
         Logger.log(`IDENTITY MYACCOUNT CHANGEADDRESS ERROR: Failed to update address for user ${userID}; error: ${err}`);

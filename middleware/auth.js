@@ -54,7 +54,7 @@ const validateToken = async (req, res, next) => {
     }
     // Check if user is banned
     if (record.banned === true) {
-        return res.status(403).send("ERROR: User is banned.");
+        return res.status(404).send("ERROR: User is banned.");
     }
 
     // Populate request with user information
@@ -120,7 +120,7 @@ const checkUser = async (req, res, next) => {
     }
     // Check if user is banned
     if (record.banned === true) {
-        return res.status(403).send("ERROR: User is banned.");
+        return res.status(404).send("ERROR: User is banned.");
     }
 
     // Populate request with user information

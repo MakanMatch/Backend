@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin } = require('../../models');
-const { Emailer, Universal, Encryption, Logger } = require('../../services');
+const { Emailer, Universal, Encryption, Logger, HTMLRenderer } = require('../../services');
 const axios = require('axios');
 require('dotenv').config();
+const path = require("path");
 
 async function isUniqueUsername(username) {
     const usernameExists = await Guest.findOne({ where: { username } }) ||
@@ -148,12 +149,31 @@ router.post("/", async (req, res) => {
         const verificationLink = `${origin}/auth/verifyToken?userID=${userID}&token=${emailVeriToken}`;
 
         // Send email with verification link using the Emailer service
+        const emailText = `
+    Welcome to MakanMatch!
+    Hello {{ userName }},
+    Thank you for joining MakanMatch! We are thrilled to have you on board. Your account has been successfully created, and you can now start exploring food listings, making reservations, and more!
+    To complete your registraiton process, please verify your email using this link: 
+    ${verificationLink}
+
+    If you have any questions or need assistance, feel free to reach out to our support team.
+    We hope you enjoy your experience with MakanMatch!
+    
+    Best regards,
+    MakanMatch Team
+    `
         var emailSent = await Emailer.sendEmail(
             email,
-            'Email Verification',
-            `Click the link to verify your email: ${verificationLink}`,
-            `<p>Click the link to verify your email: <a href="${verificationLink}">${verificationLink}</a></p>`
-        );
+            "Welcome to MakanMatch!",
+            emailText,
+            HTMLRenderer.render(
+                path.join("emails", "WelcomeMessage.html"),
+                {
+                    username: user.username,
+                    emailVerificationLink: verificationLink
+                }
+            )
+        )
 
         if (!emailSent) {
             user.emailVerificationToken = null;
@@ -167,7 +187,7 @@ router.post("/", async (req, res) => {
         Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created. Verification email auto-dispatched.`);
         res.send("SUCCESS: Account created. Please verify your email.");
     } catch (err) {
-        Logger.log(`IDENTITY CREATEACCOUNT ERROR: Failed to create ${isHostAccount ? 'Host' : 'Guest'} account for user email ${email}.`);
+        Logger.log(`IDENTITY CREATEACCOUNT ERROR: Failed to create ${isHostAccount ? 'Host' : 'Guest'} account for user email ${email}. Error: ${err}`);
         res.status(500).send("ERROR: Internal server error.");
     }
 });

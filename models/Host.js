@@ -106,6 +106,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: true,
             defaultValue: 0
+        },
+        flaggedForHygiene: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
         }
     }, { tableName: 'hosts' })
 
@@ -119,7 +124,8 @@ module.exports = (sequelize, DataTypes) => {
 
         Host.belongsToMany(models.Admin, {
             through: models.Warning,
-            as: "warnings"
+            as: "warnings",
+            foreignKey: "hostID"
         })
     }
 

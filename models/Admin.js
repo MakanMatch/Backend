@@ -69,7 +69,8 @@ module.exports = (sequelize, DataTypes) => {
     Admin.associate = (models) => {
         Admin.belongsToMany(models.Host, {
             through: models.Warning,
-            as: "warnings"
+            as: "warnings",
+            foreignKey: "issuingAdminID"
         })
     }
 

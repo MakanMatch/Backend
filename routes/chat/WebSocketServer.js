@@ -122,7 +122,6 @@ function startWebSocketServer(app) {
             const partnerIsActive = Object.keys(activeUsers).includes(
                 clientStore[connectionID].conversations[chatID].recipientID
             );
-
             const message = {
                 action: "chat_history",
                 previousMessages: processedMessages,
@@ -612,6 +611,14 @@ function startWebSocketServer(app) {
                 }
             }
 
+            const latestMessageBySender = await ChatMessage.findOne({
+                where: {
+                    chatID: chatID,
+                    senderID: clientStore[connectionID].userID,
+                },
+                order: [["datetime", "DESC"]],
+            });
+
             const newMessage = await ChatMessage.create(message);
 
             if (!newMessage) {
@@ -632,12 +639,20 @@ function startWebSocketServer(app) {
                 const recipientLastMessageDatetime = new Date(
                     latestMessageByRecipient.datetime
                 );
-                // Check for 6 hours difference
+                // Check for 6 hours difference between the new message and the latest message from the recipient
                 const datetimeDifference = Extensions.timeDiffInSeconds(
                     recipientLastMessageDatetime,
                     new Date()
                 );
-                if (datetimeDifference > 21600) {
+
+                // Check the sender's latest message compared to the current time
+                const senderLastMessageDatetime = new Date(latestMessageBySender.datetime);
+
+                const senderDatetimeDifference = Extensions.timeDiffInSeconds(
+                    senderLastMessageDatetime,
+                    new Date()
+                );
+                if (datetimeDifference > 21600 && senderDatetimeDifference > 21600) {
                     // Create missed messages list for email
                     let senderID = clientStore[connectionID].userID;
                     let sender = clientStore[connectionID].user;
@@ -650,7 +665,11 @@ function startWebSocketServer(app) {
                     const emailContent = HTMLRenderer.render(emailTemplatePath, {
                         senderUsername: sender.username, userUsername: recipient.username,
                     });
-                    const text = `Reminder: Unread Chat Messages Dear ${userUsername}, You have missed messages from ${senderUsername} since their last response. Please login to view them. Best regards, The MakanMatch Team`;
+                    const text = `Dear ${recipient.username}, 
+                    You have missed messages from ${sender.username}
+                    Please login to view them. 
+                    Best regards, 
+                    MakanMatch Team`;
                     Emailer.sendEmail(
                         recipient.email,
                         "Missed Messages",

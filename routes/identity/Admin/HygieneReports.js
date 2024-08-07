@@ -27,6 +27,36 @@ router.post('/issueWarning', validateAdmin, async (req, res) => {
         return res.status(400).send("UERROR: Host does not have a review yet");
     }
 
+    // Check if there is a previous warning and remove it
+    const previousWarning = await Warning.findOne({
+        where: {
+            hostID: hostID
+        }
+    })
+
+    if (previousWarning) {
+        const removePreviousWarning = await previousWarning.destroy();
+        if (!removePreviousWarning) {
+            return res.status(500).send("ERROR: Failed to remove previous warning");
+        }
+    }
+
+    const datetime = new Date().toISOString();
+
+    const issuedWarning = new Warning({
+        reason: reason,
+        issuingAdminID: issuingAdminID,
+        hostID: hostID,
+        datetime: datetime
+    });
+
+    const saveWarning = await issuedWarning.save();
+
+    if (!saveWarning) {
+        return res.status(500).send("ERROR: Failed to save warning");
+    }
+
+
     host.flaggedForHygiene = true;
     const updateHostFlagged = await host.save();
 
@@ -72,35 +102,6 @@ router.post('/issueWarning', validateAdmin, async (req, res) => {
         Logger.log(`ADMIN HYGIENEREPORTS ISSUEWARNING ERROR: Failed to send email to host with ID ${hostID}; error: ${err}.`);
     });
 
-    // Check if there is a previous warning and remove it
-    const previousWarning = await Warning.findOne({
-        where: {
-            hostID: hostID
-        }
-    })
-
-    if (previousWarning) {
-        const removePreviousWarning = await previousWarning.destroy();
-        if (!removePreviousWarning) {
-            return res.status(500).send("ERROR: Failed to remove previous warning");
-        }
-    }
-
-    const datetime = new Date().toISOString();
-
-    const issuedWarning = new Warning({
-        reason: reason,
-        issuingAdminID: issuingAdminID,
-        hostID: hostID,
-        datetime: datetime
-    });
-
-    const saveWarning = await issuedWarning.save();
-
-    if (!saveWarning) {
-        return res.status(500).send("ERROR: Failed to save warning");
-    }
-
     return res.status(200).send("SUCCESS: Warning issued successfully");
 });
 
@@ -121,6 +122,18 @@ router.post("/unflagHost", validateAdmin, async (req, res) => {
 
     if (!updateHostFlagged) {
         return res.status(500).send("ERROR: Failed to update host's flagged status");
+    }
+
+    // Remove the warning associated with the host
+    const warning = await Warning.findOne({
+        where: { hostID: hostID }
+    });
+
+    if (warning) {
+        const removeWarning = await warning.destroy();
+        if (!removeWarning) {
+            return res.status(500).send("ERROR: Failed to remove warning");
+        }
     }
 
     return res.status(200).send("SUCCESS: Host unflagged successfully");

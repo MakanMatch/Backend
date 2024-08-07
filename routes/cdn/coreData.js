@@ -159,6 +159,7 @@ router.get("/getListing", checkUser, async (req, res) => {
             "lname",
             "markedPaid",
             "paidAndPresent",
+            "chargeableCancelActive",
             "mealsMatched",
             "foodRating",
             "hygieneGrade",
@@ -223,12 +224,13 @@ router.get("/accountInfo", async (req, res) => { // GET account information
             username: user.username,
             email: user.email,
             contactNum: user.contactNum,
+            approxAddress: user.approxAddress,
             address: user.address,
             emailVerified: user.emailVerified,
             resetKey: user.resetKey,
             resetKeyExpiration: user.resetKeyExpiration,
             createdAt: user.createdAt,
-            userType: userType
+            reviewsCount: user.reviewsCount
         };
 
         if (userType === 'Admin') {
@@ -301,7 +303,7 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
                     }]
                 })
 
-                const reviewsJSON = reviews.map(review => review.toJSON());
+                var reviewsJSON = reviews.map(review => review.toJSON());
                 
                 if (!checkGuest) {
                     const likedReviews = await ReviewLike.findAll({
@@ -323,6 +325,10 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
                 }
 
                 if (order === "images") {
+                    // Filter out reviews with images
+                    reviewsJSON = reviewsJSON.filter(review => review.images);
+
+                    // Sort reviews in descending order of image count
                     reviewsJSON.sort((a, b) => {
                         const imageCountA = a.images ? a.images.split("|").length : 0;
                         const imageCountB = b.images ? b.images.split("|").length : 0;

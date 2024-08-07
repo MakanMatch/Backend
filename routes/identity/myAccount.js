@@ -41,7 +41,7 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
     const schema = yup.object().shape({
         username: yup.string().required().trim().min(1).max(50),
         email: yup.string().required().email(),
-        contactNum: yup.string().optional().trim().max(8)
+        contactNum: yup.string().optional().trim().max(8).nullable()
     });
 
     if (userType === "Host" && (req.body.contactNum === '' || req.body.contactNum === undefined)) {
@@ -81,7 +81,7 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         // Update user information
         user.username = username;
         user.email = email;
-        if (contactNum === '') {
+        if (contactNum === '' || contactNum === null) {
             user.contactNum = null;
         } else {
             user.contactNum = contactNum;
@@ -104,7 +104,16 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
 });
 
 router.delete('/deleteAccount', validateToken, async (req, res) => {
-    const { userID, userType } = req.user;
+    let userID;
+    let userType;
+
+    if (req.user.userType === "Admin") {
+        userID = req.query.targetUserID;
+        userType = req.query.userType;
+    } else {
+        userID = req.user.userID;
+        userType = req.user.userType;
+    }
 
     try {
         let user;
@@ -122,11 +131,12 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
             return res.status(400).send('UERROR: User not found.');
         }
 
-        deleteUser = await user.destroy();
+        const deleteUser = await user.destroy();
 
         if (!deleteUser) {
             Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT ERROR: Failed to delete user ${userID}`)
             res.status(500).send(`ERROR: Failed to delete user ${userID}`)
+            return
         }
 
         Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT: ${userType} account ${userID} deleted.`)

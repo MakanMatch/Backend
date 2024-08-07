@@ -119,7 +119,8 @@ module.exports = (sequelize, DataTypes) => {
 
         Host.belongsToMany(models.Admin, {
             through: models.Warning,
-            as: "warnings"
+            as: "warnings",
+            foreignKey: "hostID"
         })
     }
 

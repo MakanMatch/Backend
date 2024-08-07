@@ -41,7 +41,7 @@ router.post("/", async (req, res) => {
         address = `${street} ${postalCode}`;
     }
     const nameRegex = /^[a-zA-Z\s]+$/;
-
+    
     try {
         if (!nameRegex.test(fname) || !nameRegex.test(lname)) {
             return res.status(400).send("UERROR: First name and last name cannot contain numbers.");

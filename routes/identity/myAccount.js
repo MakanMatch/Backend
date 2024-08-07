@@ -79,8 +79,12 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         }
 
         // Update user information
-        user.username = username;
-        user.email = email;
+        user.username = username;        if (email !== user.email) {
+            user.email = email;
+            user.emailVerified = false;
+        } else {
+            user.email = email;
+        }
         if (contactNum === '' || contactNum === null) {
             user.contactNum = null;
         } else {

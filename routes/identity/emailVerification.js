@@ -18,6 +18,18 @@ router.post("/send", async (req, res) => {
             return;
         }
 
+        const now = Date.now();
+        const thirtySeconds = 30000;
+
+        // Check if the last verification token was sent less than 30 seconds ago
+        if (user.emailVerificationTokenExpiration) {
+            const lastSentTime = new Date(user.emailVerificationTokenExpiration).getTime() - 86400000;
+            if (now - lastSentTime < thirtySeconds) {
+                res.status(429).send("ERROR: Please wait 30 seconds before requesting a new verification email.");
+                return;
+            }
+        }
+
         const verificationToken = Universal.generateUniqueID(6);
         const verificationTokenExpiration = new Date(Date.now() + 86400000).toISOString();
 

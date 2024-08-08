@@ -41,7 +41,7 @@ if (OpenAIChat.checkPermission()) {
 // Import middleware
 const checkHeaders = require('./middleware/headersCheck');
 const logRoutes = require('./middleware/logRoutes');
-const { newRequest } = require('./middleware/analytics');
+const { newRequest, beforeResponse } = require('./middleware/analytics');
 
 // Configure express app and chat web socket server
 const app = express();
@@ -56,8 +56,9 @@ startWebSocketServer(app);
 // Top-level middleware
 if (config["routeLogging"] !== false) { app.use(logRoutes) }
 if (Analytics.checkPermission()) {
-    console.log("Registering analytics middleware.")
+    console.log("MAIN: Registering analytics middleware.")
     app.use(newRequest)
+    app.use(beforeResponse)
 }
 
 // Main routes

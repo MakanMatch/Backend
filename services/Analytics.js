@@ -166,7 +166,7 @@ class Analytics {
             try {
                 listingMetricsRecord.set(newData);
                 await listingMetricsRecord.save();
-                console.log("ListingAnalytics record updated:", listingMetricsRecord.toJSON())
+                // console.log("ListingAnalytics record updated:", listingMetricsRecord.toJSON())
                 if (this.cacheData.listingUpdates[listingID] !== undefined) {
                     delete this.cacheData.listingUpdates[listingID]
                 }
@@ -186,7 +186,6 @@ class Analytics {
             }
 
             var newData = requestMetricsRecord.toJSON()
-            console.log(`Checking ${requestIdentifier} at`, cacheCopy.requestUpdates)
             for (const metric of Object.keys(cacheCopy.requestUpdates[requestIdentifier])) {
                 if (!this.nonNumericalMetricRegistry.requestMetrics.includes(metric)) {
                     newData[metric] += cacheCopy.requestUpdates[requestIdentifier][metric]
@@ -198,7 +197,7 @@ class Analytics {
             try {
                 requestMetricsRecord.set(newData);
                 await requestMetricsRecord.save();
-                console.log("RequestAnalytics record updated:", requestMetricsRecord.toJSON())
+                // console.log("RequestAnalytics record updated:", requestMetricsRecord.toJSON())
                 if (this.cacheData.requestUpdates[requestIdentifier] !== undefined) {
                     delete this.cacheData.requestUpdates[requestIdentifier]
                 }
@@ -226,7 +225,7 @@ class Analytics {
             try {
                 systemAnalyticsRecord.set(newData);
                 await systemAnalyticsRecord.save();
-                console.log("SystemAnalytics record updated:", systemAnalyticsRecord.toJSON())
+                // console.log("SystemAnalytics record updated:", systemAnalyticsRecord.toJSON())
                 this.cacheData.systemUpdates = {}
             } catch (err) {
                 return `ERROR: Failed to persist SystemAnalytics updates; error: ${err}`
@@ -245,6 +244,7 @@ class Analytics {
         console.log(`Update ${this.#metadata.updates} queued.`)
 
         if (this.#metadata.updates >= this.#metadata.updatePersistenceInterval) {
+            console.log("Persisting....")
             return await this.persistData()
         }
 

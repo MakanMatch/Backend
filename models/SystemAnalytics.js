@@ -30,6 +30,11 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: 0
         },
+        fileUploads: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
+        },
         logins: {
             type: DataTypes.INTEGER,
             allowNull: false,

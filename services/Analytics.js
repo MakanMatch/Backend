@@ -1,5 +1,6 @@
 const { SystemAnalytics, ListingAnalytics, RequestAnalytics } = require('../models');
 const Extensions = require('./Extensions');
+const Logger = require('./Logger');
 const Universal = require('./Universal')
 const prompt = require("prompt-sync")({ sigint: true });
 
@@ -23,7 +24,7 @@ class Analytics {
     static metricRegistry = {
         listingMetrics: ["impressions", "clicks"],
         requestMetrics: ["requestsCount", "successResponses", "lastRequest"],
-        systemMetrics: ["lastBoot", "accountCreations", "listingCreations", "emailDispatches", "logins"]
+        systemMetrics: ["lastBoot", "accountCreations", "listingCreations", "emailDispatches", "fileUploads", "logins"]
     }
 
     static nonNumericalMetricRegistry = {
@@ -40,7 +41,7 @@ class Analytics {
         return process.env.ANALYTICS_CDN_IGNORE !== "False"
     }
 
-    static async setup(updatePersistenceInterval = null) {
+    static async setup(withLastBoot = false, updatePersistenceInterval = null) {
         if (!this.checkPermission()) {
             return "ERROR: Analytics service operation permission denied."
         }
@@ -68,8 +69,15 @@ class Analytics {
         if (typeof systemSetupResult === "string") {
             return systemSetupResult
         }
-        this.#metadata.systemMetricsInstanceID = systemSetupResult.instanceID;
-        
+        if (withLastBoot) {
+            try {
+                systemSetupResult.lastBoot = new Date().toISOString()
+                await systemSetupResult.save()
+            } catch (err) {
+                Logger.log("ANALYTICS SETUP WARNING: Failed to update last boot in system metrics; error:", err)
+            }
+        }
+
         return true;
     }
 
@@ -101,6 +109,7 @@ class Analytics {
                     systemMetricsInstance = systemMetrics[0];
                 }
 
+                this.#metadata.systemMetricsInstanceID = systemMetricsInstance.instanceID;
                 return systemMetricsInstance;
             } else if (mode == "listing") {
                 if (!listingID) {
@@ -145,7 +154,7 @@ class Analytics {
 
     static async persistData() {
         const cacheCopy = structuredClone(this.cacheData)
-        
+
         if (!this.#setup) {
             return "ERROR: Analytics service not yet set up."
         }
@@ -442,6 +451,7 @@ class Analytics {
                     accountCreations: 0,
                     listingCreations: 0,
                     emailDispatches: 0,
+                    fileUploads: 0,
                     logins: 0
                 })
                 await systemMetricsInstance.save()
@@ -674,7 +684,7 @@ class Analytics {
         }
     }
 
-    static async getListingMetrics(listingID=null) {
+    static async getListingMetrics(listingID = null) {
         if (!this.#setup) {
             return "ERROR: Analytics service not yet set up."
         }
@@ -704,7 +714,7 @@ class Analytics {
         }
     }
 
-    static async getRequestMetrics(requestURL=null, method=null) {
+    static async getRequestMetrics(requestURL = null, method = null) {
         if (!this.#setup) {
             return "ERROR: Analytics service not yet set up."
         }

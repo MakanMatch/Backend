@@ -46,7 +46,7 @@ const beforeResponse = async (req, res, next) => {
         // Requests should never fail due to intervening Analytics code
         try {
             // Analyse response body
-            if (!Analytics.checkPermission()) {
+            if (!Analytics.checkPermission() || (Analytics.ignoreCDN() && req.originalUrl.startsWith("/cdn"))) {
                 send.call(this, body);
                 next();
                 return
@@ -55,7 +55,20 @@ const beforeResponse = async (req, res, next) => {
             const requestURLOnly = req.originalUrl.split("?")[0];
             const parsedBody = processBody(body);
 
-            // console.log(requestURLOnly, parsedBody);
+            // Update request success status
+            if (res.statusCode == 200) {
+                Analytics.supplementRequestMetricUpdate(requestURLOnly, req.method, {
+                    successResponses: 1
+                })
+                    .then(result => {
+                        if (result !== true) {
+                            Logger.log(`ANALYTICS BEFORERESPONSE: Failed to update request success status. Error: ${result}`)
+                        }
+                    })
+                    .catch(err => {
+                        Logger.log(`ANALYTICS BEFORERESPONSE: Failed to update request success status. Error: ${err}`)
+                    })
+            }
 
             if (requestURLOnly == "/createAccount" && typeof parsedBody == "string" && parsedBody.startsWith("SUCCESS")) {
                 console.log("Supplementing account creation metric...")

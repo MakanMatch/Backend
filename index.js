@@ -98,34 +98,50 @@ async function onDBSynchronise() {
         console.log(await Analytics.setup())
     
         prompt("Continue? ")
-    
+
+        console.log(await Analytics.supplementListingMetricUpdate("abc123", {
+            clicks: 1
+        }))
+
+        prompt("Continue? ")
+
+        console.log(await Analytics.supplementListingMetricUpdate("abc123", {
+            impressions: 3,
+            clicks: 2
+        }))
+
+        prompt("Continue? ")
+        
+        console.log(await Analytics.supplementRequestMetricUpdate("/cdn/getHostPaymentQR", "GET", {
+            requestsCount: 1,
+            successResponses: 1,
+            lastRequest: new Date().toISOString()
+        }))
+
+        prompt("Continue? ")
+
+        console.log(await Analytics.supplementRequestMetricUpdate("/cdn/getHostPaymentQR", "GET", {
+            successResponses: 2
+        }))
+
+        prompt("Continue? ")
+
+        console.log(await Analytics.supplementRequestMetricUpdate("/cdn/getHostPaymentQR", "POST", {
+            requestsCount: 5
+        }))
+
+        prompt("Continue? ")
+
         console.log(await Analytics.supplementSystemMetricUpdate({
             lastBoot: new Date().toISOString(),
-            totalRequests: 2
+            totalRequests: 5
         }))
 
         prompt("Continue? ")
 
         console.log(await Analytics.supplementSystemMetricUpdate({
-            logins: 4
+            logins: 7
         }))
-
-        prompt("Continue? ")
-
-        console.log(await Analytics.supplementSystemMetricUpdate({
-            emailDispatches: 4,
-            accountCreations: 3
-        }))
-
-        prompt("Continue? ")
-
-        // console.log(await Analytics.supplementSystemMetricUpdate({
-        //     totalRequests: 2
-        // }))
-
-        // console.log(await Analytics.supplementSystemMetricUpdate({
-        //     totalRequests: 2
-        // }))
     
         console.log(Analytics.cacheData);
     })()

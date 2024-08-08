@@ -14,7 +14,7 @@ class Analytics {
     }
     static cacheData = {
         listingUpdates: {},
-        reqeustUpdates: {},
+        requestUpdates: {},
         systemUpdates: {}
     }
 
@@ -40,10 +40,12 @@ class Analytics {
         }
 
         // Load data from SQL tables
-        const systemSetupResult = this.createRecordIfNotExist("system");
-        if (systemSetupResult !== true) {
+        const systemSetupResult = await this.createRecordIfNotExist("system");
+        if (typeof systemSetupResult === "string") {
             return systemSetupResult
         }
+
+        return true;
     }
 
     static async createRecordIfNotExist(mode = "system", listingID = null, requestURL = null, requestMethod = null) {
@@ -99,12 +101,12 @@ class Analytics {
                 var requestMetrics = await RequestAnalytics.findOne({
                     where: {
                         requestURL: requestURL,
-                        requestMethod: requestMethod
+                        method: requestMethod
                     }
                 })
                 if (!requestMetrics) {
                     console.log("Creating new request metrics record...")
-                    requestMetrics = await RequestAnalytics.create({ requestURL: requestURL, requestMethod: requestMethod })
+                    requestMetrics = await RequestAnalytics.create({ requestURL: requestURL, method: requestMethod })
                     if (!requestMetrics) {
                         throw new Error("Failed to create new request metrics record.")
                     }
@@ -142,15 +144,14 @@ class Analytics {
                 listingMetricsRecord.set(newData);
                 await listingMetricsRecord.save();
                 console.log("ListingAnalytics record updated:", listingMetricsRecord.toJSON())
-                this.cacheData.listingUpdates[listingID] = {}
-                console.log(`Listing updates for ID ${listingID} reset:`, this.cacheData.listingUpdates)
+                delete this.cacheData.listingUpdates[listingID]
             } catch (err) {
                 return `ERROR: Failed to persist ListingAnalytics updates for ID ${listingID}; error: ${err}`
             }
         }
 
         // Process request metrics
-        for (const requestIdentifier of Object.keys(this.cacheData.reqeustUpdates)) {
+        for (const requestIdentifier of Object.keys(this.cacheData.requestUpdates)) {
             const requestMethod = requestIdentifier.split("_")[0]
             const requestURL = requestIdentifier.split("_")[1]
 
@@ -160,11 +161,11 @@ class Analytics {
             }
 
             var newData = requestMetricsRecord.toJSON()
-            for (const metric of Object.keys(this.cacheData.reqeustUpdates[requestIdentifier])) {
+            for (const metric of Object.keys(this.cacheData.requestUpdates[requestIdentifier])) {
                 if (!this.nonNumericalMetricRegistry.requestMetrics.includes(metric)) {
-                    newData[metric] += this.cacheData.reqeustUpdates[requestIdentifier][metric]
+                    newData[metric] += this.cacheData.requestUpdates[requestIdentifier][metric]
                 } else {
-                    newData[metric] = this.cacheData.reqeustUpdates[requestIdentifier][metric]
+                    newData[metric] = this.cacheData.requestUpdates[requestIdentifier][metric]
                 }
             }
 
@@ -172,8 +173,7 @@ class Analytics {
                 requestMetricsRecord.set(newData);
                 await requestMetricsRecord.save();
                 console.log("RequestAnalytics record updated:", requestMetricsRecord.toJSON())
-                this.cacheData.reqeustUpdates[requestIdentifier] = {}
-                console.log(`Request updates for URL ${requestURL} (${requestMethod}) reset:`, this.cacheData.reqeustUpdates)
+                delete this.cacheData.requestUpdates[requestIdentifier]
             } catch (err) {
                 return `ERROR: Failed to persist RequestAnalytics updates for identifier ${requestIdentifier}; error: ${err}`
             }
@@ -214,17 +214,23 @@ class Analytics {
     }
 
     static async checkForUpdates() {
-        // prompt("Continue? ");
-        await this.persistData()
+        // await this.persistData()
+        if (this.#metadata.updates >= 7) {
+            await this.persistData()
+        }
     }
 
-    static async supplementListingMetricUpdate(requestURL, requestMethod, data) {
-        if (!requestURL || !requestMethod) {
-            return "ERROR: Provide a valid request URL and method."
+    static async supplementListingMetricUpdate(listingID, data) {
+        if (!listingID) {
+            return "ERROR: Provide a valid listing ID."
         }
 
         if (Array.isArray(data) || typeof data !== "object") {
             return "ERROR: Invalid data input. Input must be in the form of key-value attributes only."
+        }
+
+        if (Object.keys(data).length == 0) {
+            return true;
         }
 
         var processedData = {};
@@ -238,24 +244,22 @@ class Analytics {
             }
         }
 
-        const requestIdentifier = `${requestMethod}_${requestURL}`
-
-        if (this.cacheData.listingUpdates[requestIdentifier] == undefined) {
-            this.cacheData.listingUpdates[requestIdentifier] = {}
+        if (this.cacheData.listingUpdates[listingID] == undefined) {
+            this.cacheData.listingUpdates[listingID] = {}
         }
         for (const metric of Object.keys(processedData)) {
             // If metric doesn't exist, create and set to incoming value
-            if (this.cacheData.listingUpdates[requestIdentifier][metric] === undefined) {
-                this.cacheData.listingUpdates[requestIdentifier][metric] = processedData[metric]
+            if (this.cacheData.listingUpdates[listingID][metric] === undefined) {
+                this.cacheData.listingUpdates[listingID][metric] = processedData[metric]
             } else {
                 if (!this.nonNumericalMetricRegistry.listingMetrics.includes(metric)) {
                     // If metric exists, and is not one of the non-integer metrics, add the incoming value to the existing value
-                    this.cacheData.listingUpdates[requestIdentifier][metric] += processedData[metric]
+                    this.cacheData.listingUpdates[listingID][metric] += processedData[metric]
                 } else {
                     // If metric is a non-integer metric, replace the existing with the incoming value
-                    this.cacheData.listingUpdates[requestIdentifier][metric] = processedData[metric]
+                    this.cacheData.listingUpdates[listingID][metric] = processedData[metric]
                 }
-            }   
+            }
         }
 
         this.#metadata.updates += 1
@@ -264,13 +268,62 @@ class Analytics {
         return true;
     }
 
-    static supplementRequestMetricUpdate() {
+    static async supplementRequestMetricUpdate(requestURL, requestMethod, data) {
+        if (!requestURL || !requestMethod) {
+            return "ERROR: Provide a valid request URL and method."
+        }
 
+        if (Array.isArray(data) || typeof data !== "object") {
+            return "ERROR: Invalid data input. Input must be in the form of key-value attributes only."
+        }
+
+        if (Object.keys(data).length == 0) {
+            return true;
+        }
+
+        var processedData = {};
+        for (const metric of this.metricRegistry.requestMetrics) {
+            if (data[metric] !== undefined) {
+                if (!this.nonNumericalMetricRegistry.requestMetrics.includes(metric) && typeof data[metric] !== "number") {
+                    return `ERROR: Value of given metric '${metric}' is invalid.`
+                }
+
+                processedData[metric] = data[metric]
+            }
+        }
+
+        const requestIdentifier = `${requestMethod}_${requestURL}`
+        if (this.cacheData.requestUpdates[requestIdentifier] == undefined) {
+            this.cacheData.requestUpdates[requestIdentifier] = {}
+        }
+        for (const metric of Object.keys(processedData)) {
+            // If metric doesn't exist, create and set to incoming value
+            if (this.cacheData.requestUpdates[requestIdentifier][metric] === undefined) {
+                this.cacheData.requestUpdates[requestIdentifier][metric] = processedData[metric]
+            } else {
+                if (!this.nonNumericalMetricRegistry.requestMetrics.includes(metric)) {
+                    // If metric exists, and is not one of the non-integer metrics, add the incoming value to the existing value
+                    this.cacheData.requestUpdates[requestIdentifier][metric] += processedData[metric]
+                } else {
+                    // If metric is a non-integer metric, replace the existing with the incoming value
+                    this.cacheData.requestUpdates[requestIdentifier][metric] = processedData[metric]
+                }
+            }
+        }
+
+        this.#metadata.updates += 1
+        this.#metadata.lastUpdate = new Date().toISOString()
+        await this.checkForUpdates();
+        return true;
     }
 
     static async supplementSystemMetricUpdate(data) {
         if (Array.isArray(data) || typeof data !== "object") {
             return "ERROR: Invalid data input. Input must be in the form of key-value attributes only."
+        }
+
+        if (Object.keys(data).length == 0) {
+            return true;
         }
 
         var processedData = {};

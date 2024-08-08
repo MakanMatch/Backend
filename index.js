@@ -94,37 +94,6 @@ if (config["routerRegistration"] != "automated") {
 }
 
 async function onDBSynchronise() {
-    (async () => {
-        console.log(await Analytics.setup())
-
-        prompt("Continue? ")
-        
-        console.log(await Analytics.supplementListingMetricUpdate("abc123", {
-            clicks: 10
-        }))
-
-        prompt("Continue? ")
-
-        console.log(await Analytics.supplementSystemMetricUpdate({
-            logins: 16
-        }))
-
-        console.log(Analytics.cacheData);
-
-        prompt("Continue? ")
-
-        console.log(await Analytics.supplementRequestMetricUpdate("/cdn", "PUT", {
-            requestsCount: 4
-        }))
-
-        console.log("Continue? ")
-    
-        console.log(Analytics.cacheData);
-
-        console.log(await Analytics.getAllMetrics());
-    })()
-    return;
-
     const guests = await Guest.findAll()
     var guestRecord;
     if (guests.length > 0) {

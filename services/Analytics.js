@@ -34,23 +34,42 @@ class Analytics {
         return process.env.ANALYTICS_ENABLED === "True"
     }
 
-    static async setup(updatePersistenceInterval = 3) {
+    static async setup(updatePersistenceInterval = null) {
         if (!this.checkPermission()) {
             return "ERROR: Analytics service operation permission denied."
         }
 
-        this.#metadata.updatePersistenceInterval = updatePersistenceInterval
+        var interval;
+        if (updatePersistenceInterval) {
+            interval = updatePersistenceInterval
+        } else if (process.env.ANALYTICS_PERSISTENCE_INTERVAL) {
+            try {
+                interval = parseInt(process.env.ANALYTICS_PERSISTENCE_INTERVAL)
+            } catch (err) {
+                interval = 10
+                return `WARNING: Invalid value for ANALYTICS_PERSISTENCE_INTERVAL; error: ${err}. Defaulting to 10.`
+            }
+        } else {
+            interval = 10
+        }
+
+        this.#metadata.updatePersistenceInterval = interval;
 
         // Load data from SQL tables
+        this.#setup = true;
         const systemSetupResult = await this.createRecordIfNotExist("system");
         if (typeof systemSetupResult === "string") {
             return systemSetupResult
         }
-
+        
         return true;
     }
 
     static async createRecordIfNotExist(mode = "system", listingID = null, requestURL = null, requestMethod = null) {
+        if (!this.#setup) {
+            return "ERROR: Analytics service not yet set up."
+        }
+
         try {
             if (mode == "system") {
                 const systemMetrics = await SystemAnalytics.findAll({
@@ -126,6 +145,10 @@ class Analytics {
     }
 
     static async persistData() {
+        if (!this.#setup) {
+            return "ERROR: Analytics service not yet set up."
+        }
+
         // Process listing metrics
         for (const listingID of Object.keys(this.cacheData.listingUpdates)) {
             var listingMetricsRecord = await this.createRecordIfNotExist("listing", listingID);
@@ -216,12 +239,22 @@ class Analytics {
     }
 
     static async checkForUpdates() {
-        if (this.#metadata.updates >= 3) {
-            await this.persistData()
+        if (!this.#setup) {
+            return "ERROR: Analytics service not yet set up."
         }
+
+        if (this.#metadata.updates >= 3) {
+            return await this.persistData()
+        }
+
+        return true;
     }
 
     static async supplementListingMetricUpdate(listingID, data) {
+        if (!this.#setup) {
+            return "ERROR: Analytics service not yet set up."
+        }
+
         if (!listingID) {
             return "ERROR: Provide a valid listing ID."
         }
@@ -270,6 +303,10 @@ class Analytics {
     }
 
     static async supplementRequestMetricUpdate(requestURL, requestMethod, data) {
+        if (!this.#setup) {
+            return "ERROR: Analytics service not yet set up."
+        }
+
         if (!requestURL || !requestMethod) {
             return "ERROR: Provide a valid request URL and method."
         }
@@ -319,6 +356,10 @@ class Analytics {
     }
 
     static async supplementSystemMetricUpdate(data) {
+        if (!this.#setup) {
+            return "ERROR: Analytics service not yet set up."
+        }
+
         if (Array.isArray(data) || typeof data !== "object") {
             return "ERROR: Invalid data input. Input must be in the form of key-value attributes only."
         }
@@ -360,6 +401,10 @@ class Analytics {
     }
 
     static async reset(mode = "system", listingID = null, requestURL = null, requestMethod = null) {
+        if (!this.#setup) {
+            return "ERROR: Analytics service not yet set up."
+        }
+
         if (mode == "all") {
             const resetListingsResult = await this.reset("listing")
             if (resetListingsResult !== true) {
@@ -462,6 +507,10 @@ class Analytics {
     }
 
     static async setListingMetrics(listingID, data) {
+        if (!this.#setup) {
+            return "ERROR: Analytics service not yet set up."
+        }
+
         if (!listingID) {
             return "ERROR: Provide a valid listing ID."
         }
@@ -514,6 +563,10 @@ class Analytics {
     }
 
     static async setRequestMetrics(requestURL, requestMethod, data) {
+        if (!this.#setup) {
+            return "ERROR: Analytics service not yet set up."
+        }
+
         if (!requestURL || !requestMethod) {
             return "ERROR: Provide a valid request URL and method."
         }
@@ -567,6 +620,10 @@ class Analytics {
     }
 
     static async setSystemMetrics(data) {
+        if (!this.#setup) {
+            return "ERROR: Analytics service not yet set up."
+        }
+
         if (Array.isArray(data) || typeof data !== "object") {
             return "ERROR: Invalid data input. Input must be in the form of key-value attributes only."
         }
@@ -613,6 +670,10 @@ class Analytics {
     }
 
     static async getListingMetrics(listingID=null) {
+        if (!this.#setup) {
+            return "ERROR: Analytics service not yet set up."
+        }
+
         if (!listingID) {
             try {
                 const listings = await ListingAnalytics.findAll();
@@ -639,6 +700,10 @@ class Analytics {
     }
 
     static async getRequestMetrics(requestURL=null, method=null) {
+        if (!this.#setup) {
+            return "ERROR: Analytics service not yet set up."
+        }
+
         if (requestURL && method) {
             try {
                 const request = await RequestAnalytics.findOne({
@@ -670,6 +735,10 @@ class Analytics {
     }
 
     static async getSystemMetrics() {
+        if (!this.#setup) {
+            return "ERROR: Analytics service not yet set up."
+        }
+
         try {
             const systemMetricsRecord = await SystemAnalytics.findByPk(this.#metadata.systemMetricsInstance);
             if (!systemMetricsRecord) {
@@ -683,10 +752,25 @@ class Analytics {
     }
 
     static async getAllMetrics() {
+        const listingMetricResults = await this.getListingMetrics();
+        if (typeof listingMetricResults === "string") {
+            return listingMetricResults
+        }
+
+        const requestMetricResults = await this.getRequestMetrics();
+        if (typeof requestMetricResults === "string") {
+            return requestMetricResults
+        }
+
+        const systemMetricResults = await this.getSystemMetrics();
+        if (typeof systemMetricResults === "string") {
+            return systemMetricResults
+        }
+
         var allData = {
-            listingMetrics: await this.getListingMetrics(),
-            requestMetrics: await this.getRequestMetrics(),
-            systemMetrics: await this.getSystemMetrics()
+            listingMetrics: listingMetricResults,
+            requestMetrics: requestMetricResults,
+            systemMetrics: systemMetricResults
         }
 
         return allData;

@@ -109,7 +109,7 @@ router.route("/togglePaidAndPresent")
 
         var reservation;
         try {
-            reservation = await Reservation.findOne({ where: whereClause })
+            reservation = await Reservation.findOne({ where: whereClause , attributes: ['paidAndPresent'] });
             if (!reservation) {
                 return res.status(404).send("ERROR: No reservation found.")
             }

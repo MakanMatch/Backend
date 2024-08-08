@@ -110,6 +110,19 @@ const beforeResponse = async (req, res, next) => {
                 .catch(err => {
                     Logger.log(`ANALYTICS BEFORERESPONSE: Failed to supplement account login. Error: ${err}`)
                 })
+        } else if (requestURLOnly == "/listings/addListing" && typeof parsedBody == "object" && parsedBody.message && typeof parsedBody.message == "string" && parsedBody.message.startsWith("SUCCESS")) {
+            console.log("Supplementing listing creation...")
+            Analytics.supplementSystemMetricUpdate({
+                listingCreations: 1
+            })
+                .then(result => {
+                    if (result !== true) {
+                        Logger.log(`ANALYTICS BEFORERESPONSE: Failed to supplement listing creation. Error: ${result}`)
+                    }
+                })
+                .catch(err => {
+                    Logger.log(`ANALYTICS BEFORERESPONSE: Failed to supplement listing creation. Error: ${err}`)
+                })
         }
 
         send.call(this, body);

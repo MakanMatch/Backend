@@ -6,8 +6,9 @@ const { storeImage } = require("../../middleware/storeImage");
 const {ChatHistory, ChatMessage} = require("../../models");
 const Universal = require("../../services/Universal");
 const router = express.Router();
+const validateToken = require("../../middleware/validateToken");
 
-router.post("/createImageMessage", async(req, res) => {
+router.post("/createImageMessage", validateToken, async(req, res) => {
     storeImage(req, res, async(err) => {
         const imageFile = req.file;
         const message = req.body;
@@ -29,13 +30,13 @@ router.post("/createImageMessage", async(req, res) => {
 
         //Validate the message that the user is trying to create
 
-        if (!message.chatID || !message.senderID || !message.message || !message.datetime) {
+        if (!message.chatID || !req.user.userID || !message.message || !message.datetime) {
             return res.status(400).send("ERROR: Invalid message.")
         }
         var newMessage = {
             messageID: Universal.generateUniqueID(),
             chatID: message.chatID,
-            senderID: message.senderID,
+            senderID: req.user.userID,
             message: message.message,
             datetime: message.datetime,
             image: imageFile.filename,

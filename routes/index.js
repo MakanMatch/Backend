@@ -6,8 +6,7 @@ let ignoredFiles = FileOps.read(path.join(__dirname, '../.gitignore')).split('\n
 ignoredFiles += [
     'index.js',
     'WebSocketServer.js',
-    'Chat.js',
-    'listingAnalytics.js'
+    'Chat.js'
 ]
 
 var routes = []

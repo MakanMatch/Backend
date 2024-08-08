@@ -9,6 +9,7 @@ const { Sequelize } = require('sequelize');
 const Universal = require("../../services/Universal");
 const { validateToken, checkUser } = require("../../middleware/auth");
 const { Op } = require("sequelize");
+const { Analytics } = require("../../services");
 
 router.get('/myAccount', validateToken, (req, res) => {
     const userInfo = req.user;
@@ -138,9 +139,34 @@ router.get("/getListing", checkUser, async (req, res) => {
         res.status(404).send("ERROR: Listing not found")
         return
     }
+
+    var preppedData = listing.toJSON();
+
+    if (includeReservations) {
+        const guests = listing.guests.map(g => g.userID)
+        if (!isHost && (!req.user || !guests.includes(req.user.userID))) {
+            delete preppedData.guests;
+        }
+        if (!isHost && (!req.user || !guests.includes(req.user.userID))) {
+            delete preppedData.Host.paymentImage;
+        }
+    }
+
+    if (isHost) {
+        const listingMetrics = await Analytics.getListingMetrics(listingID)
+        if (typeof listingMetrics !== "string") {
+            try {
+                preppedData.impressions = listingMetrics.impressions;
+                const ctr = Math.round((listingMetrics.clicks / listingMetrics.impressions) * 100)
+                preppedData.ctr = `${ctr}%`
+            } catch (err) {
+                Logger.log(`COREDATA GETLISTING ERROR: Failed to collate listing metrics; error: ${err}`)
+            }
+        }
+    }
     
     res.json(
-        Extensions.sanitiseData(listing.toJSON(), [
+        Extensions.sanitiseData(preppedData, [
             "listingID",
             "title",
             "images",
@@ -168,7 +194,9 @@ router.get("/getListing", checkUser, async (req, res) => {
             "guestID",
             "portions",
             "totalPrice",
-            "flaggedForHygiene"
+            "flaggedForHygiene",
+            "impressions",
+            "ctr"
         ], ["createdAt", "updatedAt"])
     )
     return

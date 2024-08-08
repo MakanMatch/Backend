@@ -91,7 +91,7 @@ class Analytics {
                     console.log("Created new metric instance with ID:", systemMetricsInstance.instanceID);
                     this.#metadata.systemMetricsInstance = systemMetricsInstance.instanceID;
                 } else {
-                    console.log("Attaching to latest system metrics instance with ID:", systemMetrics[0].instanceID)
+                    // console.log("Attaching to latest system metrics instance with ID:", systemMetrics[0].instanceID)
                     systemMetricsInstance = systemMetrics[0];
                     this.#metadata.systemMetricsInstance = systemMetricsInstance.instanceID;
                 }
@@ -127,8 +127,6 @@ class Analytics {
                     if (!requestMetrics) {
                         throw new Error("Failed to create new request metrics record.")
                     }
-                } else {
-                    console.log(`Found existing request metrics record for request: ${requestURL} (${requestMethod})`)
                 }
 
                 return requestMetrics;
@@ -146,6 +144,8 @@ class Analytics {
         if (!this.#setup) {
             return "ERROR: Analytics service not yet set up."
         }
+
+        console.log("Persisting data...")
 
         // Process listing metrics
         for (const listingID of Object.keys(cacheCopy.listingUpdates)) {
@@ -244,7 +244,6 @@ class Analytics {
         console.log(`Update ${this.#metadata.updates} queued.`)
 
         if (this.#metadata.updates >= this.#metadata.updatePersistenceInterval) {
-            console.log("Persisting....")
             return await this.persistData()
         }
 

@@ -103,17 +103,17 @@ router.get("/checkFavouriteListing", async (req, res) => { // GET favourite list
 
 router.get("/getListing", checkUser, async (req, res) => {
     const listingID = req.query.id || req.body.listingID;
-    const includeReservations = req.query.includeReservations;
-    const includeHost = req.query.includeHost;
+    const includeReservations = req.query.includeReservations === 'true';
+    const includeHost = req.query.includeHost === 'true';
 
     var includeClause = []
-    if (includeReservations == 'true') {
+    if (includeReservations) {
         includeClause.push({
             model: Guest,
             as: "guests"
         })
     }
-    if (includeHost == 'true') {
+    if (includeHost) {
         includeClause.push({
             model: Host,
             as: "Host"
@@ -142,16 +142,32 @@ router.get("/getListing", checkUser, async (req, res) => {
 
     var preppedData = listing.toJSON();
 
-    if (includeReservations) {
-        const guests = listing.guests.map(g => g.userID)
-        if (!isHost && (!req.user || !guests.includes(req.user.userID))) {
+    const guests = listing.guests ? listing.guests.map(guest => guest.userID) : [];
+
+    // User is not the host or a reserved guest, remove sensitive information
+    if (!isHost && (!req.user || !guests.includes(req.user.userID))) {
+        delete preppedData.address;
+        if (preppedData.guests) {
             delete preppedData.guests;
         }
-        if (!isHost && (!req.user || !guests.includes(req.user.userID))) {
+        if (preppedData.Host) {
             delete preppedData.Host.paymentImage;
+            delete preppedData.Host.address;
+            delete preppedData.Host.coordinates;
         }
     }
 
+    // User is a reserved guest, process other guest information
+    if (req.user && guests.includes(req.user.userID)) {
+        preppedData.guests = preppedData.guests.map(guest => {
+            if (guest.userID != req.user.userID) {
+                delete guest.address;
+            }
+            return guest;
+        });
+    }
+
+    // User is the host, include listing metrics
     if (isHost) {
         const listingMetrics = await Analytics.getListingMetrics(listingID)
         if (typeof listingMetrics !== "string") {
@@ -174,6 +190,8 @@ router.get("/getListing", checkUser, async (req, res) => {
             "longDescription",
             "datetime",
             "portionPrice",
+            "address",
+            "coordinates",
             "approxAddress",
             "approxCoordinates",
             "paymentImage",

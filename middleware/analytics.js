@@ -46,7 +46,7 @@ const newRequest = async (req, res, next) => {
             .catch(err => {
                 Logger.log(`ANALYTICS NEWREQUEST: Failed to update system metrics. Error: ${err}`)
             })
-    } catch { }
+    } catch {}
 
     // Continue to next middleware
     next();

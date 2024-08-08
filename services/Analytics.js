@@ -8,7 +8,7 @@ class Analytics {
     static #setup = false
     static #metadata = {
         systemMetricsInstance: null,
-        updatePersistenceInterval: 50,
+        updatePersistenceInterval: 3,
         lastUpdate: null,
         updates: 0
     }
@@ -34,10 +34,12 @@ class Analytics {
         return process.env.ANALYTICS_ENABLED === "True"
     }
 
-    static async setup(updatePersistenceInterval = 50) {
+    static async setup(updatePersistenceInterval = 3) {
         if (!this.checkPermission()) {
             return "ERROR: Analytics service operation permission denied."
         }
+
+        this.#metadata.updatePersistenceInterval = updatePersistenceInterval
 
         // Load data from SQL tables
         const systemSetupResult = await this.createRecordIfNotExist("system");
@@ -214,7 +216,7 @@ class Analytics {
     }
 
     static async checkForUpdates() {
-        if (this.#metadata.updates >= 7 || false) {
+        if (this.#metadata.updates >= 3) {
             await this.persistData()
         }
     }
@@ -564,24 +566,130 @@ class Analytics {
         }
     }
 
-    static setSystemMetrics() {
+    static async setSystemMetrics(data) {
+        if (Array.isArray(data) || typeof data !== "object") {
+            return "ERROR: Invalid data input. Input must be in the form of key-value attributes only."
+        }
 
+        if (Object.keys(data).length == 0) {
+            return true;
+        }
+
+        var processedData = {};
+        for (const metric of this.metricRegistry.systemMetrics) {
+            if (data[metric] !== undefined) {
+                if (!this.nonNumericalMetricRegistry.systemMetrics.includes(metric) && typeof data[metric] !== "number") {
+                    return `ERROR: Value of given metric '${metric}' is invalid.`
+                }
+
+                processedData[metric] = data[metric]
+            }
+        }
+
+        const systemMetricsRecord = await this.createRecordIfNotExist("system");
+        if (typeof systemMetricsRecord === "string") {
+            return systemMetricsRecord
+        }
+
+        var newData = systemMetricsRecord.toJSON()
+        for (const metric of Object.keys(newData)) {
+            if (["instanceID", "createdAt", "updatedAt"].includes(metric)) { continue; }
+
+            if (processedData[metric] !== undefined) {
+                newData[metric] = processedData[metric]
+            }
+        }
+
+        try {
+            systemMetricsRecord.set(newData);
+            await systemMetricsRecord.save();
+
+            this.cacheData.systemUpdates = {}
+            console.log("SystemAnalytics record updated:", systemMetricsRecord.toJSON())
+            return true;
+        } catch (err) {
+            return `ERROR: Failed to set data for SystemAnalytics record; error: ${err}`
+        }
     }
 
-    static getListingMetrics() {
+    static async getListingMetrics(listingID=null) {
+        if (!listingID) {
+            try {
+                const listings = await ListingAnalytics.findAll();
+                if (!listings || !Array.isArray(listings)) {
+                    throw new Error("Failed to retrieve all listings' metrics.")
+                }
 
+                return listings.map(listing => listing.toJSON())
+            } catch (err) {
+                return `ERROR: Failed to retrieve all listings' metrics; error: ${err}`
+            }
+        } else {
+            try {
+                const listing = await ListingAnalytics.findByPk(listingID);
+                if (!listing) {
+                    return "ERROR: Listing metrics record not found."
+                }
+
+                return listing.toJSON()
+            } catch (err) {
+                return `ERROR: Failed to retrieve listing metrics; error: ${err}`
+            }
+        }
     }
 
-    static getRequestMetrics() {
+    static async getRequestMetrics(requestURL=null, method=null) {
+        if (requestURL && method) {
+            try {
+                const request = await RequestAnalytics.findOne({
+                    where: {
+                        requestURL: requestURL,
+                        method: method
+                    }
+                })
+                if (!request) {
+                    return "ERROR: Request metrics record not found."
+                }
 
+                return request.toJSON()
+            } catch (err) {
+                return `ERROR: Failed to retrieve request metrics; error: ${err}`
+            }
+        } else {
+            try {
+                const requests = await RequestAnalytics.findAll();
+                if (!requests || !Array.isArray(requests)) {
+                    throw new Error("Failed to retrieve all requests' metrics.")
+                }
+
+                return requests.map(request => request.toJSON())
+            } catch (err) {
+                return `ERROR: Failed to retrieve all requests' metrics; error: ${err}`
+            }
+        }
     }
 
-    static getSystemMetrics() {
+    static async getSystemMetrics() {
+        try {
+            const systemMetricsRecord = await SystemAnalytics.findByPk(this.#metadata.systemMetricsInstance);
+            if (!systemMetricsRecord) {
+                return "ERROR: System metrics record not found."
+            }
 
+            return systemMetricsRecord.toJSON()
+        } catch (err) {
+            return `ERROR: Failed to retrieve system metrics; error: ${err}`
+        }
     }
 
-    static getAllMetrics() {
+    static async getAllMetrics() {
+        var allData = {
+            listingMetrics: await this.getListingMetrics(),
+            requestMetrics: await this.getRequestMetrics(),
+            systemMetrics: await this.getSystemMetrics()
+        }
 
+        return allData;
     }
 }
 

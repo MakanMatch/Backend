@@ -96,101 +96,32 @@ if (config["routerRegistration"] != "automated") {
 async function onDBSynchronise() {
     (async () => {
         console.log(await Analytics.setup())
-    
-        // prompt("Continue? ")
-
-        // console.log(await Analytics.supplementListingMetricUpdate("abc123", {
-        //     clicks: 1
-        // }))
 
         prompt("Continue? ")
-
-        console.log(await Analytics.supplementListingMetricUpdate("abc123", {
-            impressions: 3,
-            clicks: 2
-        }))
-
-        console.log(Analytics.cacheData);
-
-        prompt("Continue?")
-
-        console.log(await Analytics.setListingMetrics("abc123", {
-            clicks: 1
-        }))
-
-        prompt("Continue? ")
-
-        console.log(await Analytics.supplementRequestMetricUpdate("/cdn/getHostPaymentQR", "GET", {
-            requestsCount: 1,
-            successResponses: 1,
-            lastRequest: new Date().toISOString()
-        }))
-
-        console.log(Analytics.cacheData);
-
-        prompt("Continue? ")
-
-        console.log(await Analytics.setRequestMetrics("/cdn/getHostPaymentQR", "GET", {
-            successResponses: 69
-        }));
-
-        console.log(Analytics.cacheData);
-
-        prompt("Continue? ")
-
-        console.log(await Analytics.supplementRequestMetricUpdate("/cdn/getHostPaymentQR", "GET", {
-            requestsCount: 1,
-            successResponses: 1,
-            lastRequest: new Date().toISOString()
-        }))
-
-        console.log(await Analytics.supplementListingMetricUpdate("abc123", {
-            impressions: 3,
-            clicks: 2
-        }))
-
-        console.log(Analytics.cacheData);
-
-        prompt("Continue?")
-
-        console.log(await Analytics.persistData());
-
-        prompt("Continue?")
-
-        // prompt("Continue? ")
         
-        // console.log(await Analytics.supplementRequestMetricUpdate("/cdn/getHostPaymentQR", "GET", {
-        //     requestsCount: 1,
-        //     successResponses: 1,
-        //     lastRequest: new Date().toISOString()
-        // }))
+        console.log(await Analytics.supplementListingMetricUpdate("abc123", {
+            clicks: 10
+        }))
 
-        // prompt("Continue? ")
+        prompt("Continue? ")
 
-        // console.log(await Analytics.supplementRequestMetricUpdate("/cdn/getHostPaymentQR", "GET", {
-        //     successResponses: 2
-        // }))
+        console.log(await Analytics.supplementSystemMetricUpdate({
+            logins: 16
+        }))
 
-        // prompt("Continue? ")
+        console.log(Analytics.cacheData);
 
-        // console.log(await Analytics.supplementRequestMetricUpdate("/cdn/getHostPaymentQR", "POST", {
-        //     requestsCount: 5
-        // }))
+        prompt("Continue? ")
 
-        // prompt("Continue? ")
+        console.log(await Analytics.supplementRequestMetricUpdate("/cdn", "PUT", {
+            requestsCount: 4
+        }))
 
-        // console.log(await Analytics.supplementSystemMetricUpdate({
-        //     lastBoot: new Date().toISOString(),
-        //     totalRequests: 5
-        // }))
-
-        // prompt("Continue? ")
-
-        // console.log(await Analytics.supplementSystemMetricUpdate({
-        //     logins: 7
-        // }))
+        console.log("Continue? ")
     
         console.log(Analytics.cacheData);
+
+        console.log(await Analytics.getAllMetrics());
     })()
     return;
 

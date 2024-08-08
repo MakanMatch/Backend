@@ -21,7 +21,7 @@ class Analytics {
     static metricRegistry = {
         listingMetrics: ["impressions", "clicks"],
         requestMetrics: ["requestsCount", "successResponses", "lastRequest"],
-        systemMetrics: ["lastBoot", "totalRequests", "accountCreations", "listingCreations", "emailDispatches", "logins"]
+        systemMetrics: ["lastBoot", "accountCreations", "listingCreations", "emailDispatches", "logins"]
     }
 
     static nonNumericalMetricRegistry = {
@@ -433,7 +433,6 @@ class Analytics {
 
                 systemMetricsInstance.set({
                     lastBoot: null,
-                    totalRequests: 0,
                     accountCreations: 0,
                     listingCreations: 0,
                     emailDispatches: 0,

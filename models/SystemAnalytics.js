@@ -15,11 +15,6 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: true
         },
-        totalRequests: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            defaultValue: 0
-        },
         accountCreations: {
             type: DataTypes.INTEGER,
             allowNull: false,

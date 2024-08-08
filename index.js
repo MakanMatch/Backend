@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken')
 const util = require('util');
 const { FoodListing, Guest, Host, Reservation } = require('./models')
 const Encryption = require("./services/Encryption")
+const prompt = require("prompt-sync")({ sigint: true });
 require('dotenv').config()
 
 const env = process.env.DB_CONFIG || 'development';
@@ -48,6 +49,7 @@ app.use(express.urlencoded({ extended: true }))
 app.set("view engine", "ejs");
 app.set('trust proxy', true);
 const startWebSocketServer = require('./routes/chat/WebSocketServer');
+const { Analytics } = require('./services');
 startWebSocketServer(app);
 
 // Top-level middleware
@@ -92,6 +94,43 @@ if (config["routerRegistration"] != "automated") {
 }
 
 async function onDBSynchronise() {
+    (async () => {
+        console.log(await Analytics.setup())
+    
+        prompt("Continue? ")
+    
+        console.log(await Analytics.supplementSystemMetricUpdate({
+            lastBoot: new Date().toISOString(),
+            totalRequests: 2
+        }))
+
+        prompt("Continue? ")
+
+        console.log(await Analytics.supplementSystemMetricUpdate({
+            logins: 4
+        }))
+
+        prompt("Continue? ")
+
+        console.log(await Analytics.supplementSystemMetricUpdate({
+            emailDispatches: 4,
+            accountCreations: 3
+        }))
+
+        prompt("Continue? ")
+
+        // console.log(await Analytics.supplementSystemMetricUpdate({
+        //     totalRequests: 2
+        // }))
+
+        // console.log(await Analytics.supplementSystemMetricUpdate({
+        //     totalRequests: 2
+        // }))
+    
+        console.log(Analytics.cacheData);
+    })()
+    return;
+
     const guests = await Guest.findAll()
     var guestRecord;
     if (guests.length > 0) {

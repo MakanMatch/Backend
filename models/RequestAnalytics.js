@@ -13,7 +13,8 @@ module.exports = (sequelize, DataTypes) => {
         },
         method: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+            primaryKey: true
         },
         requestsCount: {
             type: DataTypes.INTEGER,
@@ -27,7 +28,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         lastRequest: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         }
     }, { tableName: 'requestAnalytics' })
 

@@ -13,11 +13,13 @@ module.exports = (sequelize, DataTypes) => {
         },
         impressions: {
             type: DataTypes.INTEGER,
-            allowNull: false
+            allowNull: false,
+            defaultValue: 0
         },
         clicks: {
             type: DataTypes.INTEGER,
-            allowNull: false
+            allowNull: false,
+            defaultValue: 0
         }
     }, { tableName: 'listingAnalytics' })
 

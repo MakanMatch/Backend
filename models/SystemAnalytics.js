@@ -13,7 +13,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         lastBoot: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
         totalRequests: {
             type: DataTypes.INTEGER,

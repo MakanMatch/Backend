@@ -15,7 +15,7 @@ const processBody = (jsonString) => {
 const newRequest = async (req, res, next) => {
     // Requests should never fail due to the intervening Analytics code
     try {
-        if (!Analytics.checkPermission() || req.originalUrl.startsWith("/cdn")) {
+        if (!Analytics.checkPermission() || (Analytics.ignoreCDN() && req.originalUrl.startsWith("/cdn"))) {
             next();
             return
         }

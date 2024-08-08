@@ -1,4 +1,5 @@
-const { SystemAnalytics, ListingAnalytics, RequestAnalytics } = require('../models')
+const { SystemAnalytics, ListingAnalytics, RequestAnalytics } = require('../models');
+const Extensions = require('./Extensions');
 const Universal = require('./Universal')
 const prompt = require("prompt-sync")({ sigint: true });
 
@@ -7,9 +8,10 @@ require('dotenv').config()
 class Analytics {
     static #setup = false
     static #metadata = {
-        systemMetricsInstance: null,
+        systemMetricsInstanceID: null,
         updatePersistenceInterval: 10,
         lastUpdate: null,
+        lastPersistence: null,
         updates: 0
     }
     static cacheData = {
@@ -32,6 +34,10 @@ class Analytics {
 
     static checkPermission() {
         return process.env.ANALYTICS_ENABLED === "True"
+    }
+
+    static ignoreCDN() {
+        return process.env.ANALYTICS_CDN_IGNORE !== "False"
     }
 
     static async setup(updatePersistenceInterval = null) {
@@ -62,6 +68,7 @@ class Analytics {
         if (typeof systemSetupResult === "string") {
             return systemSetupResult
         }
+        this.#metadata.systemMetricsInstanceID = systemSetupResult.instanceID;
         
         return true;
     }
@@ -89,11 +96,9 @@ class Analytics {
                     }
 
                     console.log("Created new metric instance with ID:", systemMetricsInstance.instanceID);
-                    this.#metadata.systemMetricsInstance = systemMetricsInstance.instanceID;
                 } else {
                     // console.log("Attaching to latest system metrics instance with ID:", systemMetrics[0].instanceID)
                     systemMetricsInstance = systemMetrics[0];
-                    this.#metadata.systemMetricsInstance = systemMetricsInstance.instanceID;
                 }
 
                 return systemMetricsInstance;
@@ -233,6 +238,7 @@ class Analytics {
         }
 
         this.#metadata.updates = 0
+        this.#metadata.lastPersistence = new Date().toISOString();
         return true;
     }
 
@@ -243,7 +249,7 @@ class Analytics {
 
         console.log(`Update ${this.#metadata.updates} queued.`)
 
-        if (this.#metadata.updates >= this.#metadata.updatePersistenceInterval) {
+        if (this.#metadata.updates >= this.#metadata.updatePersistenceInterval || Extensions.timeDiffInSeconds(new Date(this.#metadata.lastPersistence), new Date()) >= 180) {
             return await this.persistData()
         }
 
@@ -426,7 +432,7 @@ class Analytics {
 
         if (mode == "system") {
             try {
-                const systemMetricsInstance = await SystemAnalytics.findByPk(this.#metadata.systemMetricsInstance);
+                const systemMetricsInstance = await SystemAnalytics.findByPk(this.#metadata.systemMetricsInstanceID);
                 if (!systemMetricsInstance) {
                     return "ERROR: Failed to retrieve SystemAnalytics record for reset."
                 }
@@ -739,7 +745,7 @@ class Analytics {
         }
 
         try {
-            const systemMetricsRecord = await SystemAnalytics.findByPk(this.#metadata.systemMetricsInstance);
+            const systemMetricsRecord = await SystemAnalytics.findByPk(this.#metadata.systemMetricsInstanceID);
             if (!systemMetricsRecord) {
                 return "ERROR: System metrics record not found."
             }

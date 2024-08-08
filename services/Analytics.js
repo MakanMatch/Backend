@@ -8,7 +8,7 @@ class Analytics {
     static #setup = false
     static #metadata = {
         systemMetricsInstance: null,
-        updatePersistenceInterval: 3,
+        updatePersistenceInterval: 10,
         lastUpdate: null,
         updates: 0
     }
@@ -54,6 +54,7 @@ class Analytics {
         }
 
         this.#metadata.updatePersistenceInterval = interval;
+        console.log("Update interval set to", interval)
 
         // Load data from SQL tables
         this.#setup = true;
@@ -81,7 +82,6 @@ class Analytics {
 
                 var systemMetricsInstance;
                 if (systemMetrics.length == 0) {
-                    console.log("Metric record not found, creating...")
                     // Create new system metrics record
                     systemMetricsInstance = await SystemAnalytics.create({ instanceID: Universal.generateUniqueID() })
                     if (!systemMetricsInstance) {
@@ -104,13 +104,10 @@ class Analytics {
 
                 var listingMetrics = await ListingAnalytics.findByPk(listingID);
                 if (!listingMetrics) {
-                    console.log("Creating new listing metrics record...")
                     listingMetrics = await ListingAnalytics.create({ listingID: listingID })
                     if (!listingMetrics) {
                         throw new Error("Failed to create new listing metrics record.")
                     }
-                } else {
-                    console.log(`Found existing listing metrics record for listing: ${listingID}`)
                 }
 
                 return listingMetrics;
@@ -126,7 +123,6 @@ class Analytics {
                     }
                 })
                 if (!requestMetrics) {
-                    console.log("Creating new request metrics record...")
                     requestMetrics = await RequestAnalytics.create({ requestURL: requestURL, method: requestMethod })
                     if (!requestMetrics) {
                         throw new Error("Failed to create new request metrics record.")
@@ -145,23 +141,25 @@ class Analytics {
     }
 
     static async persistData() {
+        const cacheCopy = structuredClone(this.cacheData)
+        
         if (!this.#setup) {
             return "ERROR: Analytics service not yet set up."
         }
 
         // Process listing metrics
-        for (const listingID of Object.keys(this.cacheData.listingUpdates)) {
+        for (const listingID of Object.keys(cacheCopy.listingUpdates)) {
             var listingMetricsRecord = await this.createRecordIfNotExist("listing", listingID);
             if (typeof listingMetricsRecord === "string") {
                 return listingMetricsRecord
             }
 
             var newData = listingMetricsRecord.toJSON()
-            for (const metric of Object.keys(this.cacheData.listingUpdates[listingID])) {
+            for (const metric of Object.keys(cacheCopy.listingUpdates[listingID])) {
                 if (!this.nonNumericalMetricRegistry.listingMetrics.includes(metric)) {
-                    newData[metric] += this.cacheData.listingUpdates[listingID][metric]
+                    newData[metric] += cacheCopy.listingUpdates[listingID][metric]
                 } else {
-                    newData[metric] = this.cacheData.listingUpdates[listingID][metric]
+                    newData[metric] = cacheCopy.listingUpdates[listingID][metric]
                 }
             }
 
@@ -169,14 +167,16 @@ class Analytics {
                 listingMetricsRecord.set(newData);
                 await listingMetricsRecord.save();
                 console.log("ListingAnalytics record updated:", listingMetricsRecord.toJSON())
-                delete this.cacheData.listingUpdates[listingID]
+                if (this.cacheData.listingUpdates[listingID] !== undefined) {
+                    delete this.cacheData.listingUpdates[listingID]
+                }
             } catch (err) {
                 return `ERROR: Failed to persist ListingAnalytics updates for ID ${listingID}; error: ${err}`
             }
         }
 
         // Process request metrics
-        for (const requestIdentifier of Object.keys(this.cacheData.requestUpdates)) {
+        for (const requestIdentifier of Object.keys(cacheCopy.requestUpdates)) {
             const requestMethod = requestIdentifier.split("_")[0]
             const requestURL = requestIdentifier.split("_")[1]
 
@@ -186,11 +186,12 @@ class Analytics {
             }
 
             var newData = requestMetricsRecord.toJSON()
-            for (const metric of Object.keys(this.cacheData.requestUpdates[requestIdentifier])) {
+            console.log(`Checking ${requestIdentifier} at`, cacheCopy.requestUpdates)
+            for (const metric of Object.keys(cacheCopy.requestUpdates[requestIdentifier])) {
                 if (!this.nonNumericalMetricRegistry.requestMetrics.includes(metric)) {
-                    newData[metric] += this.cacheData.requestUpdates[requestIdentifier][metric]
+                    newData[metric] += cacheCopy.requestUpdates[requestIdentifier][metric]
                 } else {
-                    newData[metric] = this.cacheData.requestUpdates[requestIdentifier][metric]
+                    newData[metric] = cacheCopy.requestUpdates[requestIdentifier][metric]
                 }
             }
 
@@ -198,28 +199,27 @@ class Analytics {
                 requestMetricsRecord.set(newData);
                 await requestMetricsRecord.save();
                 console.log("RequestAnalytics record updated:", requestMetricsRecord.toJSON())
-                delete this.cacheData.requestUpdates[requestIdentifier]
+                if (this.cacheData.requestUpdates[requestIdentifier] !== undefined) {
+                    delete this.cacheData.requestUpdates[requestIdentifier]
+                }
             } catch (err) {
                 return `ERROR: Failed to persist RequestAnalytics updates for identifier ${requestIdentifier}; error: ${err}`
             }
         }
 
         // Process system metrics
-        if (Object.keys(this.cacheData.systemUpdates).length !== 0) {
+        if (Object.keys(cacheCopy.systemUpdates).length !== 0) {
             var systemAnalyticsRecord = await this.createRecordIfNotExist("system");
             if (typeof systemAnalyticsRecord === "string") {
                 return systemAnalyticsRecord
             }
 
             var newData = systemAnalyticsRecord.toJSON()
-            console.log("Retrieved data:", newData)
-            for (const metric of Object.keys(this.cacheData.systemUpdates)) {
+            for (const metric of Object.keys(cacheCopy.systemUpdates)) {
                 if (!this.nonNumericalMetricRegistry.systemMetrics.includes(metric)) {
-                    console.log(`Updating numerical metric ${metric} with incoming value ${this.cacheData.systemUpdates[metric]}; new value: ${newData[metric] + this.cacheData.systemUpdates[metric]}`)
-                    newData[metric] += this.cacheData.systemUpdates[metric]
+                    newData[metric] += cacheCopy.systemUpdates[metric]
                 } else {
-                    console.log(`Updating non-numerical metric ${metric} with incoming value ${this.cacheData.systemUpdates[metric]}; old value: ${newData[metric]}`)
-                    newData[metric] = this.cacheData.systemUpdates[metric]
+                    newData[metric] = cacheCopy.systemUpdates[metric]
                 }
             }
 
@@ -228,7 +228,6 @@ class Analytics {
                 await systemAnalyticsRecord.save();
                 console.log("SystemAnalytics record updated:", systemAnalyticsRecord.toJSON())
                 this.cacheData.systemUpdates = {}
-                console.log("System updates reset:", this.cacheData.systemUpdates)
             } catch (err) {
                 return `ERROR: Failed to persist SystemAnalytics updates; error: ${err}`
             }
@@ -243,7 +242,9 @@ class Analytics {
             return "ERROR: Analytics service not yet set up."
         }
 
-        if (this.#metadata.updates >= 3) {
+        console.log(`Update ${this.#metadata.updates} queued.`)
+
+        if (this.#metadata.updates >= this.#metadata.updatePersistenceInterval) {
             return await this.persistData()
         }
 

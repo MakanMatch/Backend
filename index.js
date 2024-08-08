@@ -3,8 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken')
 const util = require('util');
-const { FoodListing, Guest, Host, Reservation } = require('./models')
-const Encryption = require("./services/Encryption")
+const db = require('./models');
+const { FoodListing, Guest, Host, Reservation } = db;
+const { Encryption, Analytics } = require('./services');
 const prompt = require("prompt-sync")({ sigint: true });
 require('dotenv').config()
 
@@ -40,6 +41,7 @@ if (OpenAIChat.checkPermission()) {
 // Import middleware
 const checkHeaders = require('./middleware/headersCheck');
 const logRoutes = require('./middleware/logRoutes');
+const { newRequest } = require('./middleware/analytics');
 
 // Configure express app and chat web socket server
 const app = express();
@@ -49,11 +51,14 @@ app.use(express.urlencoded({ extended: true }))
 app.set("view engine", "ejs");
 app.set('trust proxy', true);
 const startWebSocketServer = require('./routes/chat/WebSocketServer');
-const { Analytics } = require('./services');
 startWebSocketServer(app);
 
 // Top-level middleware
 if (config["routeLogging"] !== false) { app.use(logRoutes) }
+if (Analytics.checkPermission()) {
+    console.log("Registering analytics middleware.")
+    app.use(newRequest)
+}
 
 // Main routes
 app.get("/", (req, res) => {
@@ -94,6 +99,22 @@ if (config["routerRegistration"] != "automated") {
 }
 
 async function onDBSynchronise() {
+    // SQL-reliant service setup
+    if (Analytics.checkPermission()) {
+        Analytics.setup()
+            .then(result => {
+                if (result !== true) {
+                    console.log(`MAIN ANALYTICS SETUP ERROR: Failed to setup Analytics; error: ${result}`)
+                    Logger.log(`MAIN ANALYTICS SETUP ERROR: Failed to setup Analytics; error: ${result}`)
+                } else {
+                    console.log(`MAIN ANALYTICS SETUP: Analytics setup successful.`)
+                }
+            })
+            .catch(err => {
+                Logger.log(`MAIN ANALYTICS SETUP ERROR: Failed to setup Analytics; error: ${err}`)
+            })
+    }
+
     const guests = await Guest.findAll()
     var guestRecord;
     if (guests.length > 0) {
@@ -162,7 +183,6 @@ if (!SEQUELIZE_ACTIVE) {
     })
 } else {
     // Server initialisation with sequelize
-    const db = require("./models");
     db.sequelize.sync()
         .then(() => {
             // Create sample FoodListing

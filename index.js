@@ -114,6 +114,19 @@ async function onDBSynchronise() {
             .catch(err => {
                 Logger.log(`MAIN ANALYTICS SETUP ERROR: Failed to setup Analytics; error: ${err}`)
             })
+
+        // Make boot update
+        Analytics.supplementSystemMetricUpdate({
+            lastBoot: new Date().toISOString()
+        })
+        .then(result => {
+            if (result !== true) {
+                Logger.log(`MAIN ANALYTICS SUPPLEMENTLASTBOOT ERROR: Failed to supplement last boot update; error: ${result}`)
+            }
+        })
+        .catch(err => {
+            Logger.log(`MAIN ANALYTICS SUPPLEMENTLASTBOOT ERROR: Failed to supplement last boot update; error: ${err}`)
+        })
     }
 
     const guests = await Guest.findAll()

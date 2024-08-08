@@ -1,4 +1,5 @@
 const nodeMailer = require('nodemailer');
+const Analytics = require('./Analytics');
 require('dotenv').config();
 
 /**
@@ -12,7 +13,6 @@ class Emailer {
     static contextChecked = false;
 
     static checkPermission() {
-        return false;
         return process.env.EMAILING_ENABLED === "True";
     }
 
@@ -63,6 +63,14 @@ class Emailer {
             })
             .then(() => {
                 console.log(`EMAILER: Sent email to ${to}.`)
+                if (Analytics.checkPermission()) {
+                    Analytics.supplementSystemMetricUpdate({
+                        emailDispatches: 1
+                    })
+                    .catch(err => {
+                        console.log(`EMAILER ANALYTICS: Failed to supplement email dispatch metric. Error: ${err}`)
+                    })
+                }
                 return true;
             })
 

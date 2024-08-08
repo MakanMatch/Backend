@@ -173,8 +173,10 @@ router.get("/getListing", checkUser, async (req, res) => {
         if (typeof listingMetrics !== "string") {
             try {
                 preppedData.impressions = listingMetrics.impressions;
-                const ctr = Math.round((listingMetrics.clicks / listingMetrics.impressions) * 100)
-                preppedData.ctr = `${ctr}%`
+                if (listingMetrics.impressions > 0 && listingMetrics.clicks > 0) {
+                    const ctr = Math.round((listingMetrics.clicks / listingMetrics.impressions) * 100)
+                    preppedData.ctr = `${ctr}%`
+                }
             } catch (err) {
                 Logger.log(`COREDATA GETLISTING ERROR: Failed to collate listing metrics; error: ${err}`)
             }

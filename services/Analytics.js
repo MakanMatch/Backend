@@ -214,8 +214,7 @@ class Analytics {
     }
 
     static async checkForUpdates() {
-        // await this.persistData()
-        if (this.#metadata.updates >= 7) {
+        if (this.#metadata.updates >= 7 || false) {
             await this.persistData()
         }
     }
@@ -460,12 +459,109 @@ class Analytics {
         return `ERROR: Invalid mode '${mode}' provided.`
     }
 
-    static setListingMetrics() {
+    static async setListingMetrics(listingID, data) {
+        if (!listingID) {
+            return "ERROR: Provide a valid listing ID."
+        }
 
+        if (Array.isArray(data) || typeof data !== "object") {
+            return "ERROR: Invalid data input. Input must be in the form of key-value attributes only."
+        }
+
+        if (Object.keys(data).length == 0) {
+            return true;
+        }
+
+        var processedData = {};
+        for (const metric of this.metricRegistry.listingMetrics) {
+            if (data[metric] !== undefined) {
+                if (!this.nonNumericalMetricRegistry.listingMetrics.includes(metric) && typeof data[metric] !== "number") {
+                    return `ERROR: Value of given metric '${metric}' is invalid.`
+                }
+
+                processedData[metric] = data[metric]
+            }
+        }
+
+        const listingMetricsRecord = await this.createRecordIfNotExist("listing", listingID);
+        if (typeof listingMetricsRecord === "string") {
+            return listingMetricsRecord
+        }
+
+        var newData = listingMetricsRecord.toJSON()
+        for (const metric of Object.keys(newData)) {
+            if (["listingID", "createdAt", "updatedAt"].includes(metric)) { continue; }
+
+            if (processedData[metric] !== undefined) {
+                newData[metric] = processedData[metric]
+            }
+        }
+
+        try {
+            listingMetricsRecord.set(newData);
+            await listingMetricsRecord.save();
+
+            if (this.cacheData.listingUpdates[listingID] !== undefined) {
+                delete this.cacheData.listingUpdates[listingID];
+            }
+            console.log("ListingAnalytics record updated:", listingMetricsRecord.toJSON())
+            return true;
+        } catch (err) {
+            return `ERROR: Failed to set data for ListingAnalytics record; error: ${err}`
+        }
     }
 
-    static setRequestMetrics() {
+    static async setRequestMetrics(requestURL, requestMethod, data) {
+        if (!requestURL || !requestMethod) {
+            return "ERROR: Provide a valid request URL and method."
+        }
 
+        if (Array.isArray(data) || typeof data !== "object") {
+            return "ERROR: Invalid data input. Input must be in the form of key-value attributes only."
+        }
+
+        if (Object.keys(data).length == 0) {
+            return true;
+        }
+
+        var processedData = {};
+        for (const metric of this.metricRegistry.requestMetrics) {
+            if (data[metric] !== undefined) {
+                if (!this.nonNumericalMetricRegistry.requestMetrics.includes(metric) && typeof data[metric] !== "number") {
+                    return `ERROR: Value of given metric '${metric}' is invalid.`
+                }
+
+                processedData[metric] = data[metric]
+            }
+        }
+
+        const requestMetricsRecord = await this.createRecordIfNotExist("request", null, requestURL, requestMethod);
+        if (typeof requestMetricsRecord === "string") {
+            return requestMetricsRecord
+        }
+
+        var newData = requestMetricsRecord.toJSON()
+        for (const metric of Object.keys(newData)) {
+            if (["requestURL", "method", "createdAt", "updatedAt"].includes(metric)) { continue; }
+
+            if (processedData[metric] !== undefined) {
+                newData[metric] = processedData[metric]
+            }
+        }
+
+        try {
+            requestMetricsRecord.set(newData);
+            await requestMetricsRecord.save();
+
+            const requestIdentifier = `${requestMethod}_${requestURL}`
+            if (this.cacheData.requestUpdates[requestIdentifier] !== undefined) {
+                delete this.cacheData.requestUpdates[requestIdentifier];
+            }
+            console.log("RequestAnalytics record updated:", requestMetricsRecord.toJSON())
+            return true;
+        } catch (err) {
+            return `ERROR: Failed to set data for RequestAnalytics record; error: ${err}`
+        }
     }
 
     static setSystemMetrics() {

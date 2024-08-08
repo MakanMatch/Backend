@@ -83,6 +83,7 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         if (email !== user.email) {
             user.email = email;
             user.emailVerified = false;
+            user.emailVerificationTime = new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString();
         } else {
             user.email = email;
         }

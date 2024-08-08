@@ -58,6 +58,7 @@ router.post("/", async (req, res) => {
 
         const userID = Universal.generateUniqueID();
         const hashedPassword = await Encryption.hash(password);
+        const emailVerificationTime = new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString();
         const emailVeriToken = Universal.generateUniqueID(6);
         const emailVeriTokenExpiration = new Date(Date.now() + 86400000).toISOString();
         const accountData = {
@@ -66,6 +67,7 @@ router.post("/", async (req, res) => {
             lname,
             username,
             email,
+            emailVerificationTime: emailVerificationTime,
             password: hashedPassword,
             emailVerificationToken: emailVeriToken,
             emailVerificationTokenExpiration: emailVeriTokenExpiration

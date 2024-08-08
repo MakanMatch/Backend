@@ -118,7 +118,7 @@ router.post("/verify", async (req, res) => {
             }
         }
 
-        // Set user as verified (assuming you have an emailVerified attribute)
+        // Set user as verified
         user.emailVerified = true;
         user.emailVerificationToken = null;
         user.emailVerificationTokenExpiration = null;

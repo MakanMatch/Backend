@@ -1,14 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { Guest, Host, Admin, UserRecord } = require('../../models');
-const { Encryption, Logger } = require('../../services');
+const { Encryption, Logger, Extensions } = require('../../services');
 const TokenManager = require('../../services/TokenManager').default();
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 require('dotenv').config();
 
 router.post("/", async (req, res) => {
-    // console.log("received at LoginAccount");
     let data = req.body;
 
     try {
@@ -68,9 +67,10 @@ router.post("/", async (req, res) => {
 
             // Check for 7 days email unverified
             const currentTime = new Date();
-            const accountAgeInDays = Math.floor((currentTime - new Date(user.createdAt)) / (1000 * 60 * 60 * 24));
+            const emailVerificationTime = new Date(user.emailVerificationTime);
+            const unverifiedTime = Extensions.timeDiffInSeconds(emailVerificationTime, currentTime)
 
-            if (accountAgeInDays > 7 && !user.emailVerified) {
+            if (unverifiedTime > (60 * 60 * 24 * 7) && !user.emailVerified) {
                 return res.status(403).send("UERROR: Your account is locked due to failure to verify email within 7 days. Contact customer support or the MakanMatch team via email.");
             }
         }

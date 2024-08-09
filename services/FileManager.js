@@ -1,6 +1,7 @@
 const FireStorage = require('./FireStorage');
 const FileOps = require('./FileOps')
 const path = require('path');
+const Analytics = require('./Analytics');
 
 /**
  * ## Introduction to FileManager
@@ -330,6 +331,14 @@ class FileManager {
         }
         this.persistFileStoreContext();
 
+        if (Analytics.checkPermission()) {
+            Analytics.supplementSystemMetricUpdate({
+                fileUploads: 1
+            })
+                .catch(err => {
+                    console.log(`FILEMANAGER ANALYTICS: Failed to supplement file upload metric. Error: ${err}`)
+                })
+        }
         return true;
     }
 

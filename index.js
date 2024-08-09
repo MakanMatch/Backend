@@ -1,10 +1,8 @@
 require('./services/BootCheck').check()
 const express = require('express');
 const cors = require('cors');
-const jwt = require('jsonwebtoken')
-const util = require('util');
 const db = require('./models');
-const { FoodListing, Guest, Host, Reservation } = db;
+const { Guest, Host } = db;
 const { Encryption, Analytics } = require('./services');
 const prompt = require("prompt-sync")({ sigint: true });
 require('dotenv').config()
@@ -53,7 +51,6 @@ app.use(cors({ exposedHeaders: ['refreshedtoken'] }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.set("view engine", "ejs");
-app.set('trust proxy', true);
 const startWebSocketServer = require('./routes/chat/WebSocketServer');
 startWebSocketServer(app);
 

@@ -52,9 +52,46 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.set("view engine", "ejs");
 const startWebSocketServer = require('./routes/chat/WebSocketServer');
+const { default: rateLimit } = require('express-rate-limit');
 startWebSocketServer(app);
 
+// Rate limiters
+const standardLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000,
+    limit: 240,
+    standardHeaders: true,
+    legacyHeaders: false
+})
+
+const cdnLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000,
+    limit: 300,
+    standardHeaders: true,
+    legacyHeaders: false
+})
+
+const gptLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000,
+    limit: 20,
+    standardHeaders: true,
+    legacyHeaders: false
+})
+
 // Top-level middleware
+
+/// Conditional rate limiter
+var conditionalLimiter = (req, res, next) => {
+    const requestURLOnly = req.originalUrl.split("?")[0]
+    if (requestURLOnly.startsWith("/cdn")) {
+        return cdnLimiter(req, res, next)
+    } else if (requestURLOnly.startsWith("/makanBot")) {
+        return gptLimiter(req, res, next)
+    } else {
+        return standardLimiter(req, res, next)
+    }
+};
+app.use(conditionalLimiter)
+
 app.use((req, res, next) => {
     if (!req.originalUrl.startsWith("/admin/super")) {
         const usageLock = Cache.get("usageLock") === true;

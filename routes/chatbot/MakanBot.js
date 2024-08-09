@@ -5,6 +5,11 @@ const OpenAIChat = require("../../services/OpenAIChat");
 
 router.post("/queryMakanBotWithUserPrompt", async (req, res) => {
     const { messagePrompt, conversationHistory } = req.body;
+    if (!messagePrompt || !conversationHistory) {
+        return res.status(400).send("ERROR: One or more required payloads missing.");
+    } else if (typeof messagePrompt !== "string") {
+        return res.status(400).send("ERROR: Invalid message prompt.");
+    }
 
     if (!OpenAIChat.checkPermission()) {
         return res.status(400).send("ERROR: OpenAIChat is not available at this time.");

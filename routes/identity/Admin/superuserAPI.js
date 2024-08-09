@@ -84,4 +84,32 @@ router.post("/createAdmin", async (req, res) => {
     }
 })
 
+router.post("/deleteAdmin", async (req, res) => {
+    const { username, email, userID } = req.body;
+    if (!username && !email && !userID) {
+        return res.status(400).send("ERROR: One or more required payloads were not provided.");
+    }
+
+    try {
+        var targetAdmin;
+        if (userID) {
+            targetAdmin = await Admin.findByPk(userID);
+        } else if (username) {
+            targetAdmin = await Admin.findOne({ where: { username } });
+        } else {
+            targetAdmin = await Admin.findOne({ where: { email } });
+        }
+
+        if (!targetAdmin) {
+            return res.status(404).send("UERROR: Admin not found.");
+        }
+
+        await targetAdmin.destroy();
+        return res.status(200).send("SUCCESS: Admin deleted successfully.");
+    } catch (err) {
+        Logger.log(`SUPERUSERAPI DELETEADMIN ERROR: Failed to identify and delete admin; error: ${err}`);
+        return res.status(500).send("ERROR: Failed to identify and delete admin.")
+    }
+})
+
 module.exports = { router, at: '/admin/super' };

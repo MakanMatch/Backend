@@ -77,6 +77,9 @@ db.Warning = require('./Warning')(sequelize, Sequelize.DataTypes);
 db.ReviewLike = require('./ReviewLike')(sequelize, Sequelize.DataTypes);
 db.UserRecord = require('./UserRecord')(sequelize, Sequelize.DataTypes);
 db.FavouriteListing = require('./FavouriteListing')(sequelize, Sequelize.DataTypes);
+db.ListingAnalytics = require('./ListingAnalytics')(sequelize, Sequelize.DataTypes);
+db.RequestAnalytics = require('./RequestAnalytics')(sequelize, Sequelize.DataTypes);
+db.SystemAnalytics = require('./SystemAnalytics')(sequelize, Sequelize.DataTypes);
 
 // Auto-detect and import other models (intellisense will not work for these models)
 // fs

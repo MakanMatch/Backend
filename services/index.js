@@ -12,8 +12,10 @@ const Logger = require('./Logger');
 const TokenManager = require('./TokenManager');
 const Universal = require('./Universal');
 const FileManager = require('./FileManager');
+const Analytics = require('./Analytics');
 
 const services = {
+    Analytics,
     BootCheck,
     Cache,
     Emailer,

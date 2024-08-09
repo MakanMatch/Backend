@@ -26,6 +26,10 @@ Emailer.checkContext()
 const Cache = require('./services/Cache')
 Cache.load();
 
+if (Cache.get("usageLock") == undefined) {
+    Cache.set("usageLock", false)
+}
+
 const FileManager = require('./services/FileManager');
 FileManager.setup().catch(err => { Logger.logAndThrow(err) })
 
@@ -54,6 +58,15 @@ const startWebSocketServer = require('./routes/chat/WebSocketServer');
 startWebSocketServer(app);
 
 // Top-level middleware
+app.use((req, res, next) => {
+    if (!req.originalUrl.startsWith("/admin/super")) {
+        const usageLock = Cache.get("usageLock") === true;
+        if (usageLock) {
+            return res.sendStatus(503)
+        }
+    }
+    next()
+})
 app.use(checkHeaders)
 if (config["routeLogging"] !== false) { app.use(logRoutes) }
 if (Analytics.checkPermission()) {

@@ -3,6 +3,7 @@ const { Admin, Host, Guest } = require('../../../models');
 const Logger = require("../../../services/Logger");
 const Universal = require("../../../services/Universal");
 const Extensions = require("../../../services/Extensions");
+const Cache = require("../../../services/Cache");
 const router = express.Router();
 
 async function isUniqueUsername(username) {
@@ -142,6 +143,31 @@ router.post("/deleteAdmin", async (req, res) => {
     } catch (err) {
         Logger.log(`SUPERUSERAPI DELETEADMIN ERROR: Failed to identify and delete admin; error: ${err}`);
         return res.status(500).send("ERROR: Failed to identify and delete admin.")
+    }
+})
+
+router.post("/toggleUsageLock", (req, res) => {
+    const { newStatus } = req.body;
+    if (newStatus && typeof newStatus !== "boolean") {
+        return res.status(400).send("ERROR: Invalid payload provided.");
+    }
+
+    if (newStatus == undefined || newStatus == null) {
+        const saveResult = Cache.set("usageLock", !(Cache.get("usageLock") === true));
+        if (saveResult !== true) {
+            Logger.log(`SUPERUSERAPI TOGGLEUSAGELOCK ERROR: Failed to toggle usage lock; error: ${saveResult}`);
+            return res.status(500).send(`ERROR: Failed to toggle usage lock.`);
+        }
+
+        return res.status(200).send(`SUCCESS: Usage lock toggled to ${Cache.get("usageLock")}`);
+    } else {
+        const saveResult = Cache.set("usageLock", newStatus);
+        if (saveResult !== true) {
+            Logger.log(`SUPERUSERAPI TOGGLEUSAGELOCK ERROR: Failed to toggle usage lock; error: ${saveResult}`);
+            return res.status(500).send(`ERROR: Failed to toggle usage lock.`);
+        }
+
+        return res.status(200).send(`SUCCESS: Usage lock toggled to ${newStatus}`);
     }
 })
 

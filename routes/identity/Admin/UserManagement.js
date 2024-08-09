@@ -145,4 +145,38 @@ router.put("/editUserDetails", validateAdmin, async (req, res) => {
     }
 });
 
+router.post("/resetEmailVerification", validateAdmin, async (req, res) => {
+    const { userID } = req.body;
+    if (!userID) {
+        return res.status(400).send("ERROR: One or more payloads not provided.");
+    }
+
+    try {
+        var user = await Guest.findByPk(userID) || await Host.findByPk(userID);
+        if (!user) {
+            return res.status(404).send("ERROR: User not found.");
+        }
+
+        user.emailVerified = false;
+        const verificationToken = Universal.generateUniqueID(6);
+        user.emailVerificationToken = verificationToken;
+        user.emailVerificationTokenExpiration = new Date(Date.now() + 86400000).toISOString();
+        user.emailVerificationTime = new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString();
+        const verificationLink = `${req.headers.origin}/auth/verifyToken?userID=${user.userID}&token=${verificationToken}`;
+        dispatchVerificationEmail(user.email, verificationLink)
+
+        const saveUser = await user.save();
+        if (!saveUser) {
+            Logger.log(`IDENTITY USERMANAGEMENT RESETEMAILVERIFICATION ERROR: Failed to reset email verification for user with ID ${userID}`);
+            return res.status(500).send("ERROR: Failed to reset email verification");
+        }
+
+        Logger.log(`IDENTITY USERMANAGEMENT RESETEMAILVERIFICATION: Reset email verification for user with ID ${userID}`);
+        return res.send("SUCCESS: Email verification reset.");
+    } catch (err) {
+        Logger.log(`IDENTITY USERMANAGEMENT RESETEMAILVERIFICATION ERROR: Failed to reset email verification for user with ID ${userID}; error: ${err}`);
+        return res.status(500).send("ERROR: Failed to reset email verification");
+    }
+})
+
 module.exports = { router, at: '/admin/userManagement' };

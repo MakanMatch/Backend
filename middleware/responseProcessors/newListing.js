@@ -3,7 +3,7 @@ const Logger = require("../../services/Logger")
 
 module.exports = (requestURL, parsedBody) => {
     if (requestURL == "/listings/addListing" && typeof parsedBody == "object" && parsedBody.message && typeof parsedBody.message == "string" && parsedBody.message.startsWith("SUCCESS")) {
-        console.log("Supplementing listing creation...")
+        // console.log("Supplementing listing creation...")
         Analytics.supplementSystemMetricUpdate({
             listingCreations: 1
         })

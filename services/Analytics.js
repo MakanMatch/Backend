@@ -33,10 +33,11 @@ require('dotenv').config()
  * @method ignoreCDN - Check if the analytics service should ignore CDN requests.
  */
 class Analytics {
+    static defaultInterval = 20;
     static #setup = false
     static #metadata = {
         systemMetricsInstanceID: null,
-        updatePersistenceInterval: 10,
+        updatePersistenceInterval: this.defaultInterval,
         lastUpdate: null,
         lastPersistence: null,
         updates: 0
@@ -79,15 +80,14 @@ class Analytics {
             try {
                 interval = parseInt(process.env.ANALYTICS_PERSISTENCE_INTERVAL)
             } catch (err) {
-                interval = 10
+                interval = this.defaultInterval
                 return `WARNING: Invalid value for ANALYTICS_PERSISTENCE_INTERVAL; error: ${err}. Defaulting to 10.`
             }
         } else {
-            interval = 10
+            interval = this.defaultInterval
         }
 
         this.#metadata.updatePersistenceInterval = interval;
-        console.log("Update interval set to", interval)
 
         // Load data from SQL tables
         this.#setup = true;
@@ -104,6 +104,7 @@ class Analytics {
             }
         }
 
+        console.log("ANALYTICS: Setup complete.")
         return true;
     }
 
@@ -129,7 +130,7 @@ class Analytics {
                         throw new Error("Creation of default SystemAnalytics instance failed.")
                     }
 
-                    console.log("Created new metric instance with ID:", systemMetricsInstance.instanceID);
+                    // console.log("Created new metric instance with ID:", systemMetricsInstance.instanceID);
                 } else {
                     // console.log("Attaching to latest system metrics instance with ID:", systemMetrics[0].instanceID)
                     systemMetricsInstance = systemMetrics[0];
@@ -185,7 +186,9 @@ class Analytics {
             return "ERROR: Analytics service not yet set up."
         }
 
-        console.log("Persisting data...")
+        if (process.env.DEBUG_MODE === "True") {
+            console.log("Persisting data...")
+        }
 
         // Process listing metrics
         for (const listingID of Object.keys(cacheCopy.listingUpdates)) {
@@ -282,7 +285,9 @@ class Analytics {
             return "ERROR: Analytics service not yet set up."
         }
 
-        console.log(`Update ${this.#metadata.updates} queued.`)
+        if (process.env.DEBUG_MODE === "True") {
+            console.log(`Update ${this.#metadata.updates} queued.`)
+        }
 
         if (this.#metadata.updates >= this.#metadata.updatePersistenceInterval || Extensions.timeDiffInSeconds(new Date(this.#metadata.lastPersistence), new Date()) >= 180) {
             return await this.persistData()
@@ -596,7 +601,7 @@ class Analytics {
             if (this.cacheData.listingUpdates[listingID] !== undefined) {
                 delete this.cacheData.listingUpdates[listingID];
             }
-            console.log("ListingAnalytics record updated:", listingMetricsRecord.toJSON())
+            // console.log("ListingAnalytics record updated:", listingMetricsRecord.toJSON())
             return true;
         } catch (err) {
             return `ERROR: Failed to set data for ListingAnalytics record; error: ${err}`
@@ -653,7 +658,7 @@ class Analytics {
             if (this.cacheData.requestUpdates[requestIdentifier] !== undefined) {
                 delete this.cacheData.requestUpdates[requestIdentifier];
             }
-            console.log("RequestAnalytics record updated:", requestMetricsRecord.toJSON())
+            // console.log("RequestAnalytics record updated:", requestMetricsRecord.toJSON())
             return true;
         } catch (err) {
             return `ERROR: Failed to set data for RequestAnalytics record; error: ${err}`
@@ -703,7 +708,7 @@ class Analytics {
             await systemMetricsRecord.save();
 
             this.cacheData.systemUpdates = {}
-            console.log("SystemAnalytics record updated:", systemMetricsRecord.toJSON())
+            // console.log("SystemAnalytics record updated:", systemMetricsRecord.toJSON())
             return true;
         } catch (err) {
             return `ERROR: Failed to set data for SystemAnalytics record; error: ${err}`

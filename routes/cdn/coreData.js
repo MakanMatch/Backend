@@ -173,7 +173,7 @@ router.get("/getListing", checkUser, async (req, res) => {
         if (typeof listingMetrics !== "string") {
             try {
                 preppedData.impressions = listingMetrics.impressions;
-                if (listingMetrics.impressions > 0 && listingMetrics.clicks > 0 && listingMetrics.impressions >= listingMetrics.clicks) {
+                if (listingMetrics.impressions > 0 && listingMetrics.clicks > 0) {
                     const ctr = Math.round((listingMetrics.clicks / listingMetrics.impressions) * 100)
                     preppedData.ctr = `${ctr}%`
                 }

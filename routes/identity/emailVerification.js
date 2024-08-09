@@ -59,7 +59,7 @@ router.post("/send", async (req, res) => {
         if (user.emailVerificationTokenExpiration) {
             const lastSentTime = new Date(user.emailVerificationTokenExpiration).getTime() - 86400000;
             if (now - lastSentTime < thirtySeconds) {
-                res.status(400).send("ERROR: Please wait 30 seconds before requesting a new verification email.");
+                res.status(400).send("UERROR: Please wait 30 seconds before requesting a new verification email.");
                 return;
             }
         }

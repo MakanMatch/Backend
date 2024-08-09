@@ -3,7 +3,7 @@ const Logger = require("../../services/Logger")
 
 module.exports = (requestURL, parsedBody) => {
     if (requestURL == "/loginAccount" && typeof parsedBody == "object" && parsedBody.message && typeof parsedBody.message === "string" && parsedBody.message.startsWith("SUCCESS")) {
-        console.log("Supplementing account login...")
+        // console.log("Supplementing account login...")
         Analytics.supplementSystemMetricUpdate({
             logins: 1
         })

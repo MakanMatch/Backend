@@ -381,19 +381,60 @@ router.post("/cancelReservation", validateToken, async (req, res) => {
             return res.status(400).send("UERROR: Guest has already paid for this reservation. Contact guest to cancel.")
         }
 
+        // Destroy reservation
+        var reservationCopy;
         try {
-            const reservationCopy = structuredClone(reservation.toJSON());
+            reservationCopy = structuredClone(reservation.toJSON());
             await reservation.destroy();
 
-            if (reservationCopy.chargeableCancelActive == true) {
-                // Notify guest of cancellation
-            }
-
             Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION: Reservation ${reservation.referenceNum} for listing ${listingID} cancelled by host ${userID}.`)
-            return res.status(200).send("SUCCESS: Reservation cancelled successfully.")
+            res.status(200).send("SUCCESS: Reservation cancelled successfully.")
         } catch (err) {
             Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION ERROR: Failed to cancel reservation with reference number ${reservation.referenceNum}; error: ${err}`)
             return res.status(500).send("ERROR: Unable to fulfill request, try again.")
+        }
+
+        // Notify guest of cancellation
+        try {
+            if (reservationCopy.chargeableCancelActive == true) {
+                const host = await Host.findByPk(userID, { attributes: ["userID", "username", "email"] })
+                const guest = await Guest.findByPk(reservationCopy.guestID, { attributes: ["userID", "username", "email"] })
+                if (host && guest) {
+                    const emailText = `
+Dear ${guest.username},
+We are pleased to inform you that your cancellation for the reservation with ${host.username} (Ref: ${reservationCopy.referenceNum}) is successful.
+
+We're sorry to see you go! Cancellations are sometimes necessary, but we continue to urge you to cancel prior to the six hour window to avoid fees and inconveniences.
+We look forward to more reservations! Thank you for being a valued guest on the platform.
+
+Best regards,
+MakanMatch Team
+
+© 2024 The MakanMatch Team. All rights reserved.
+                    `
+
+                    Emailer.sendEmail(
+                        guest.email,
+                        "Reservation Cancelled | MakanMatch",
+                        emailText,
+                        HTMLRenderer.render(
+                            path.join("emails", "ReservationCancellation.html"),
+                            {
+                                guestName: guest.username,
+                                hostName: host.username,
+                                referenceNum: reservationCopy.referenceNum
+                            }
+                        )
+                    )
+                    .catch(err => {
+                        Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION ERROR: Failed to send cancellation email to guest ${guest.userID}. Error: ${err}`)
+                    })
+                }
+            }
+
+            return;
+        } catch (err) {
+            Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION ERROR: Failed to send cancellation email to guest ${guest.userID}. Error: ${err}`)
         }
     }
 

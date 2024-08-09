@@ -83,21 +83,36 @@ app.get("/", (req, res) => {
 if (config["routerRegistration"] != "automated") {
     console.log("MAIN: Route registration mode: MANUAL")
     app.use(require("./routes/misc").at || '/', require("./routes/misc").router);
+
     app.use(require("./routes/cdn/contentDelivery").at || '/', require("./routes/cdn/contentDelivery").router);
     app.use(require("./routes/cdn/coreData").at || '/', require("./routes/cdn/coreData").router);
-    app.use(require("./routes/reviews/submitReview").at || '/', require("./routes/reviews/submitReview").router);
+
+    app.use(require("./routes/chat/manageChat").at || '/', require("./routes/chat/manageChat").router);
+    app.use(require("./routes/chatbot/MakanBot").at || '/', require("./routes/chatbot/MakanBot").router);
+
+    app.use(require("./routes/identity/Admin/HygieneReports").at || '/', require("./routes/identity/Admin/HygieneReports").router);
+    app.use(require("./routes/identity/Admin/superuserAPI").at || '/', require("./routes/identity/Admin/superuserAPI").router);
+    app.use(require("./routes/identity/Admin/UserManagement").at || '/', require("./routes/identity/Admin/UserManagement").router);
+
+    app.use(require('./routes/identity/AccountRecovery').at || '/', require('./routes/identity/AccountRecovery').router);
+    app.use(require('./routes/identity/CreateAccount').at || '/', require('./routes/identity/CreateAccount').router);
+    app.use(require('./routes/identity/emailVerification').at || '/', require('./routes/identity/emailVerification').router);
+    app.use(require('./routes/identity/Favourites').at || '/', require('./routes/identity/Favourites').router);
+    app.use(require('./routes/identity/LoginAccount').at || '/', require('./routes/identity/LoginAccount').router);
+    app.use(require('./routes/identity/MakanHistory').at || '/', require('./routes/identity/MakanHistory').router);
+    app.use(require("./routes/identity/myAccount").at || '/', require("./routes/identity/myAccount").router);
+
+    app.use(require("./routes/listings/getHostListings").at || '/', require("./routes/listings/getHostListings").router);
+    app.use(require("./routes/listings/listingAnalytics").at || '/', require("./routes/listings/listingAnalytics").router);
+    app.use(require("./routes/listings/listings").at || '/', require("./routes/listings/listings").router);
+
+    app.use(require("./routes/orders/confirmReservation").at || '/', require("./routes/orders/confirmReservation").router);
+    app.use(require("./routes/orders/listingDetails").at || '/', require("./routes/orders/listingDetails").router);
+    app.use(require("./routes/orders/manageGuests").at || '/', require("./routes/orders/manageGuests").router);
+
     app.use(require("./routes/reviews/likeReview").at || '/', require("./routes/reviews/likeReview").router);
     app.use(require("./routes/reviews/manageReviews").at || '/', require("./routes/reviews/manageReviews").router);
-    app.use(require('./routes/identity/createAccount').at || '/', require('./routes/identity/createAccount').router);
-    app.use(require('./routes/identity/LoginAccount').at || '/', require('./routes/identity/LoginAccount').router);
-    app.use(require('./routes/identity/AccountRecovery').at || '/', require('./routes/identity/AccountRecovery').router);
-    app.use(require('./routes/identity/emailVerification').at || '/', require('./routes/identity/emailVerification').router);
-    app.use(require("./routes/identity/myAccount").at || '/', require("./routes/identity/myAccount").router);
-    app.use(require("./routes/identity/Admin/UserManagement").at || '/', require("./routes/identity/Admin/UserManagement").router);
-    app.use(require("./routes/identity/Admin/HygieneReports").at || '/', require("./routes/identity/Admin/HygieneReports").router);
-    app.use(require("./routes/listings/listings").at || '/', require("./routes/listings/listings").router);
-    app.use(require("./routes/orders/listingDetails").at || '/', require("./routes/orders/listingDetails").router);
-    app.use(require("./routes/chat/manageChat").at || '/', require("./routes/chat/manageChat").router);
+    app.use(require("./routes/reviews/submitReview").at || '/', require("./routes/reviews/submitReview").router);
 } else {
     console.log("MAIN: Route registration mode: AUTOMATED")
     require('./routes').forEach(({ router, at, name }) => {

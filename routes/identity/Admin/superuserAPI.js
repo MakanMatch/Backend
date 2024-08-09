@@ -36,20 +36,6 @@ router.post("/authenticate", (req, res) => {
     return res.send("SUCCESS: Authentication successful.")
 })
 
-// userID
-// fname
-// lname
-// username
-// email
-// password
-// contactNum
-// address
-// emailVerified
-// role
-// profilePicture
-// resetKey
-// resetKeyExpiration
-
 router.post("/accountInfo", async (req, res) => {
     const { userID, username, email } = req.body;
     if (!userID && !username && !email) {

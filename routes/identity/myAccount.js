@@ -152,7 +152,7 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
             collatedImages.push(user.profilePicture);
         }
 
-        // Collect images from food listings if user is a host
+        // Collect images from food listings and reviews if user is a host
         if (userType === 'Host') {
             const listings = await FoodListing.findAll({ where: { hostID: userID }, attributes: ["listingID", "images"] });
             if (listings) {
@@ -163,6 +163,15 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
 
             if (user.paymentImage) {
                 collatedImages.push(user.paymentImage);
+            }
+
+            const reviews = await Review.findAll({ where: { hostID: userID }, attributes: ["reviewID", "images"] });
+            if (reviews) {
+                for (const review of reviews) {
+                    if (review.images) {
+                        collatedImages = collatedImages.concat(review.images.split("|"));
+                    }
+                }
             }
         }
 

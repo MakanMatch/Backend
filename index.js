@@ -54,6 +54,7 @@ const startWebSocketServer = require('./routes/chat/WebSocketServer');
 startWebSocketServer(app);
 
 // Top-level middleware
+app.use(checkHeaders)
 if (config["routeLogging"] !== false) { app.use(logRoutes) }
 if (Analytics.checkPermission()) {
     console.log("MAIN: Registering analytics middleware.")
@@ -69,7 +70,6 @@ app.get("/", (req, res) => {
 });
 
 // Register routers
-app.use(checkHeaders) // Middleware to check Content-Type and API key headers
 if (config["routerRegistration"] != "automated") {
     console.log("MAIN: Route registration mode: MANUAL")
     app.use(require("./routes/misc").at || '/', require("./routes/misc").router);

@@ -1,4 +1,5 @@
 const { Analytics, Logger } = require('../services');
+const { runProcessors } = require('./requestProcessors');
 require('dotenv').config();
 
 const processBody = (jsonString) => {
@@ -12,10 +13,27 @@ const processBody = (jsonString) => {
     } catch { return jsonString };
 }
 
+const ignoredRoutePaths = [
+    "/cdn",
+    "/admin/super"
+]
+
+const isIgnoredPath = (path) => {
+    for (const ignoredPath of ignoredRoutePaths) {
+        if (ignoredPath == "/cdn" && Analytics.ignoreCDN() && path.startsWith(ignoredPath)) {
+            return true;
+        } else if (ignoredPath != "/cdn" && path.startsWith(ignoredPath)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 const newRequest = async (req, res, next) => {
     // Requests should never fail due to the intervening Analytics code
     try {
-        if (!Analytics.checkPermission() || (Analytics.ignoreCDN() && req.originalUrl.startsWith("/cdn"))) {
+        if (!Analytics.checkPermission() || isIgnoredPath(req.originalUrl)) {
             next();
             return
         }
@@ -46,7 +64,7 @@ const beforeResponse = async (req, res, next) => {
         // Requests should never fail due to intervening Analytics code
         try {
             // Analyse response body
-            if (!Analytics.checkPermission() || (Analytics.ignoreCDN() && req.originalUrl.startsWith("/cdn"))) {
+            if (!Analytics.checkPermission() || isIgnoredPath(req.originalUrl)) {
                 send.call(this, body);
                 next();
                 return
@@ -70,66 +88,7 @@ const beforeResponse = async (req, res, next) => {
                     })
             }
 
-            if (requestURLOnly == "/createAccount" && typeof parsedBody == "string" && parsedBody.startsWith("SUCCESS")) {
-                console.log("Supplementing account creation metric...")
-                Analytics.supplementSystemMetricUpdate({
-                    accountCreations: 1
-                })
-                    .then(result => {
-                        if (result !== true) {
-                            Logger.log(`ANALYTICS BEFORERESPONSE: Failed to supplement account creation. Error: ${result}`)
-                        }
-
-                        Analytics.persistData()
-                            .then(persistResult => {
-                                if (persistResult !== true) {
-                                    Logger.log(`ANALYTICS BEFORERESPONSE: Failed to persist account creation supplement. Error: ${persistResult}`)
-                                }
-                            })
-                            .catch(err => {
-                                Logger.log(`ANALYTICS BEFORERESPONSE: Failed to persist account creation supplement. Error: ${err}`)
-                            })
-                    })
-                    .catch(err => {
-                        Logger.log(`ANALYTICS BEFORERESPONSE: Failed to supplement account creation. Error: ${err}`)
-                    })
-            } else if (requestURLOnly == "/loginAccount" && typeof parsedBody == "object" && parsedBody.message && typeof parsedBody.message === "string" && parsedBody.message.startsWith("SUCCESS")) {
-                console.log("Supplementing account login...")
-                Analytics.supplementSystemMetricUpdate({
-                    logins: 1
-                })
-                    .then(result => {
-                        if (result !== true) {
-                            Logger.log(`ANALYTICS BEFORERESPONSE: Failed to supplement account login. Error: ${result}`)
-                        }
-
-                        Analytics.persistData()
-                            .then(persistResult => {
-                                if (persistResult !== true) {
-                                    Logger.log(`ANALYTICS BEFORERESPONSE: Failed to persist account login supplement. Error: ${persistResult}`)
-                                }
-                            })
-                            .catch(err => {
-                                Logger.log(`ANALYTICS BEFORERESPONSE: Failed to persist account login supplement. Error: ${err}`)
-                            })
-                    })
-                    .catch(err => {
-                        Logger.log(`ANALYTICS BEFORERESPONSE: Failed to supplement account login. Error: ${err}`)
-                    })
-            } else if (requestURLOnly == "/listings/addListing" && typeof parsedBody == "object" && parsedBody.message && typeof parsedBody.message == "string" && parsedBody.message.startsWith("SUCCESS")) {
-                console.log("Supplementing listing creation...")
-                Analytics.supplementSystemMetricUpdate({
-                    listingCreations: 1
-                })
-                    .then(result => {
-                        if (result !== true) {
-                            Logger.log(`ANALYTICS BEFORERESPONSE: Failed to supplement listing creation. Error: ${result}`)
-                        }
-                    })
-                    .catch(err => {
-                        Logger.log(`ANALYTICS BEFORERESPONSE: Failed to supplement listing creation. Error: ${err}`)
-                    })
-            }
+            runProcessors(requestURLOnly, parsedBody);
         } catch {}
 
         send.call(this, body);

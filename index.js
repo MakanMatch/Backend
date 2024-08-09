@@ -117,8 +117,6 @@ async function onDBSynchronise() {
                 if (result !== true) {
                     console.log(`MAIN ANALYTICS SETUP ERROR: Failed to setup Analytics; error: ${result}`)
                     Logger.log(`MAIN ANALYTICS SETUP ERROR: Failed to setup Analytics; error: ${result}`)
-                } else {
-                    console.log(`MAIN ANALYTICS SETUP: Analytics setup successful.`)
                 }
             })
             .catch(err => {
@@ -126,66 +124,68 @@ async function onDBSynchronise() {
             })
     }
 
-    const guests = await Guest.findAll()
-    var guestRecord;
-    if (guests.length > 0) {
-        guestRecord = guests[0]
-        console.log(`Found existing guest, using as dummy. Guest User ID: ${guests[0].userID}`)
-    } else {
-        const newGuest = await Guest.create({
-            userID: "47f4497b-1331-4b8a-97a4-095a79a1fd48",
-            fname: "Susie",
-            lname: "Jones",
-            username: "susiejones",
-            email: "susie_jones@example.com",
-            emailVerificationTime: new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString(),
-            password: await Encryption.hash("SusieJones123"),
-            contactNum: "82228111",
-            address: "Block 321, Hougang Avenue 10, #10-567",
-            emailVerified: false,
-            favCuisine: "",
-            mealsMatched: 0,
-            resetKey: "265c18",
-            resetKeyExpiration: "2024-06-22T14:30:00.000Z"
-        })
-        if (!newGuest) {
-            console.log("WARNING: Failed to create dummy guest.")
+    if (process.env.DEBUG_MODE === "True") {
+        const guests = await Guest.findAll()
+        var guestRecord;
+        if (guests.length > 0) {
+            guestRecord = guests[0]
+            console.log(`Found existing guest, using as dummy. Guest User ID: ${guests[0].userID}`)
         } else {
-            guestRecord = newGuest
-            console.log(`Created dummy guest with User ID: ${newGuest.userID}`)
+            const newGuest = await Guest.create({
+                userID: "47f4497b-1331-4b8a-97a4-095a79a1fd48",
+                fname: "Susie",
+                lname: "Jones",
+                username: "susiejones",
+                email: "susie_jones@example.com",
+                emailVerificationTime: new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString(),
+                password: await Encryption.hash("SusieJones123"),
+                contactNum: "82228111",
+                address: "Block 321, Hougang Avenue 10, #10-567",
+                emailVerified: false,
+                favCuisine: "",
+                mealsMatched: 0,
+                resetKey: "265c18",
+                resetKeyExpiration: "2024-06-22T14:30:00.000Z"
+            })
+            if (!newGuest) {
+                console.log("WARNING: Failed to create dummy guest.")
+            } else {
+                guestRecord = newGuest
+                console.log(`Created dummy guest with User ID: ${newGuest.userID}`)
+            }
         }
-    }
 
-    const sampleHost = await Host.findByPk("272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4")
-    if (!sampleHost) {
-        const newHost = await Host.create({
-            "userID": "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4",
-            "fname": "Jamie",
-            "lname": "Oliver",
-            "username": "jamieoliver",
-            "email": "jamie_oliver@example.com",
-            "emailVerificationTime": new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString(),
-            "password": await Encryption.hash("123456789"),
-            "contactNum": "81118222",
-            "approxAddress": "Anchorvale Lane, Singapore 542310",
-            "address": "Block 310A Anchorvale Lane Singapore 542310 #10-10",
-            "approxCoordinates": "1.3919526, 103.8843019",
-            "coordinates": "1.3914412,103.8839746",
-            "emailVerified": false,
-            "favCuisine": "Mexican",
-            "mealsMatched": "0",
-            // "foodRating": "4",
-            // "hygieneGrade": "5",
-            // "paymentImage": "https://savh.org.sg/wp-content/uploads/2020/05/QRCodeS61SS0119JDBS.png"
-        })
+        const sampleHost = await Host.findByPk("272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4")
+        if (!sampleHost) {
+            const newHost = await Host.create({
+                "userID": "272d3d17-fa63-49c4-b1ef-1a3b7fe63cf4",
+                "fname": "Jamie",
+                "lname": "Oliver",
+                "username": "jamieoliver",
+                "email": "jamie_oliver@example.com",
+                "emailVerificationTime": new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString(),
+                "password": await Encryption.hash("123456789"),
+                "contactNum": "81118222",
+                "approxAddress": "Anchorvale Lane, Singapore 542310",
+                "address": "Block 310A Anchorvale Lane Singapore 542310 #10-10",
+                "approxCoordinates": "1.3919526, 103.8843019",
+                "coordinates": "1.3914412,103.8839746",
+                "emailVerified": false,
+                "favCuisine": "Mexican",
+                "mealsMatched": "0",
+                // "foodRating": "4",
+                // "hygieneGrade": "5",
+                // "paymentImage": "https://savh.org.sg/wp-content/uploads/2020/05/QRCodeS61SS0119JDBS.png"
+            })
 
-        if (!newHost) {
-            console.log("WARNING: Failed to create dummy host.")
+            if (!newHost) {
+                console.log("WARNING: Failed to create dummy host.")
+            } else {
+                console.log("Created dummy host with ID: " + newHost.userID)
+            }
         } else {
-            console.log("Created dummy host with ID: " + newHost.userID)
+            console.log("Found dummy host existing already; ID: " + sampleHost.userID)
         }
-    } else {
-        console.log("Found dummy host existing already; ID: " + sampleHost.userID)
     }
 }
 

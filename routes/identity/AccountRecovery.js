@@ -22,7 +22,6 @@ router.post("/resetKey", async (req, res) => {
         }
 
         const resetKey = Universal.generateUniqueID(6);
-        // console.log(resetKey);
 
         // Save resetKey and expiration to user record
         user.resetKey = resetKey;
@@ -70,9 +69,6 @@ MakanMatch Team
 });
 
 router.post('/resetPassword', async (req, res) => {
-    console.log("received at AccountRecovery ResetPassword");
-    let data = req.body;
-    console.log(data);
     const { resetKey, newPassword } = req.body;
 
     try {

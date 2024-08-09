@@ -3,7 +3,7 @@ const Logger = require("../../services/Logger")
 
 module.exports = (requestURL, parsedBody) => {
     if (requestURL == "/createAccount" && typeof parsedBody == "string" && parsedBody.startsWith("SUCCESS")) {
-        console.log("Supplementing account creation metric...")
+        // console.log("Supplementing account creation metric...")
         Analytics.supplementSystemMetricUpdate({
             accountCreations: 1
         })

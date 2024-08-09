@@ -28,7 +28,7 @@ async function isUniqueContactNum(contactNum, currentUser) {
         const contactNumExists = await Guest.findOne({ where: { contactNum } }) ||
             await Host.findOne({ where: { contactNum } }) ||
             await Admin.findOne({ where: { contactNum } });
-    
+
         return (!contactNumExists) || contactNumExists.userID === currentUser.userID;
     }
 }
@@ -72,7 +72,7 @@ router.put("/editUserDetails", validateAdmin, async (req, res) => {
 
     var user;
     try {
-        
+
         if (userType === 'Guest') {
             user = await Guest.findByPk(userID);
         } else if (userType === 'Host') {
@@ -91,7 +91,7 @@ router.put("/editUserDetails", validateAdmin, async (req, res) => {
         if (!nameRegex.test(fname) || !nameRegex.test(lname)) {
             return res.status(400).send("UERROR: First name and last name cannot contain numbers.");
         }
-        
+
         if (!await isUniqueUsername(username, user)) {
             return res.status(400).send("UERROR: Username already exists.");
         }
@@ -116,14 +116,17 @@ router.put("/editUserDetails", validateAdmin, async (req, res) => {
         user.lname = lname;
         user.username = username;
 
-        user.email = email;
-        user.emailVerified = false;
-        const verificationToken = Universal.generateUniqueID(6);
-        user.emailVerificationToken = verificationToken;
-        user.emailVerificationTokenExpiration = new Date(Date.now() + 86400000).toISOString();
-        user.emailVerificationTime = new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString();
-        const verificationLink = `${req.headers.origin}/auth/verifyToken?userID=${user.userID}&token=${verificationToken}`;
-        dispatchVerificationEmail(user.email, verificationLink)
+        if (user.email !== email) {
+            user.emailVerified = false;
+            const verificationToken = Universal.generateUniqueID(6);
+            user.emailVerificationToken = verificationToken;
+            user.emailVerificationTokenExpiration = new Date(Date.now() + 86400000).toISOString();
+            user.emailVerificationTime = new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString();
+            const verificationLink = `${req.headers.origin}/auth/verifyToken?userID=${user.userID}&token=${verificationToken}`;
+            dispatchVerificationEmail(user.email, verificationLink)
+
+            user.email = email
+        }
 
         user.contactNum = contactNum;
 

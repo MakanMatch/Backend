@@ -2,6 +2,7 @@ const express = require("express");
 const { Admin, Host, Guest } = require('../../../models');
 const Logger = require("../../../services/Logger");
 const Universal = require("../../../services/Universal");
+const Extensions = require("../../../services/Extensions");
 const router = express.Router();
 
 async function isUniqueUsername(username) {
@@ -46,6 +47,38 @@ router.post("/authenticate", (req, res) => {
 // profilePicture
 // resetKey
 // resetKeyExpiration
+
+router.post("/accountInfo", async (req, res) => {
+    const { userID, username, email } = req.body;
+    if (!userID && !username && !email) {
+        return res.status(400).send("ERROR: One or more required payloads were not provided.");
+    }
+
+    try {
+        var account;
+        if (userID) {
+            account = await Guest.findByPk(userID) || await Host.findByPk(userID) || await Admin.findByPk(userID);
+        } else if (username) {
+            account = await Guest.findOne({ where: { username } }) || await Host.findOne({ where: { username } }) || await Admin.findOne({ where: { username } });
+        } else if (email) {
+            account = await Guest.findOne({ where: { email } }) || await Host.findOne({ where: { email } }) || await Admin.findOne({ where: { email } });
+        }
+
+        if (!account) {
+            return res.status(404).send("ERROR: Account not found.");
+        }
+
+        const processedData = account.toJSON();
+        if (processedData.password) {
+            delete processedData.password;
+        }
+
+        return res.status(200).json(processedData);
+    } catch (err) {
+        Logger.log(`SUPERUSERAPI ACCOUNTINFO ERROR: Failed to retrieve account info; error: ${err}`);
+        return res.status(500).send("ERROR: Failed to retrieve account info.")
+    }
+})
 
 router.post("/createAdmin", async (req, res) => {
     const { fname, lname, username, email, password, role } = req.body;

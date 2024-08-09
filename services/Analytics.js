@@ -3,9 +3,35 @@ const Extensions = require('./Extensions');
 const Logger = require('./Logger');
 const Universal = require('./Universal')
 const prompt = require("prompt-sync")({ sigint: true });
-
 require('dotenv').config()
 
+/**
+ * Analytics service for tracking and persisting metrics.
+ * 
+ * Tracks system, listing-specific, and request-specific metrics in the `SystemAnalytics`, `ListingAnalytics`, and `RequestAnalytics` SQL tables respectively.
+ * 
+ * Sequelize synchronisation needs to be done prior to setup and operation.
+ * 
+ * Uses a metric registry to validate and process incoming data. Add new metrics to the registry to track them. Ensure to also make them available in the SQL columns.
+ * 
+ * @class Analytics
+ * @method setup - Set up the analytics service. Must be called before any other method. Set withLastBoot to true to update last boot time in system metrics instance. Set updatePersistenceInterval to change the interval at which data is persisted.
+ * @method createRecordIfNotExist - Create a new record if it doesn't exist. Mode can be "system", "listing", or "request". For "listing" and "request", provide listingID or requestURL and requestMethod respectively.
+ * @method persistData - Persist all cached data to the database.
+ * @method checkForUpdates - Check if there are enough updates to persist data.
+ * @method supplementListingMetricUpdate - Update listing metrics. Provide listingID and data in the form of key-value pairs.
+ * @method supplementRequestMetricUpdate - Update request metrics. Provide requestURL, requestMethod, and data in the form of key-value pairs.
+ * @method supplementSystemMetricUpdate - Update system metrics. Provide data in the form of key-value pairs.
+ * @method reset - Reset metrics. Mode can be "system", "listing", "request", or "all". For "listing" and "request", you can provide listingID or requestURL and requestMethod respectively to reset a specific listing/request's metrics.
+ * @method setListingMetrics - Set listing metrics. Provide listingID and data in the form of key-value pairs. Removes any associated updates from the cache.
+ * @method setRequestMetrics - Set request metrics. Provide requestURL, requestMethod, and data in the form of key-value pairs. Removes any associated updates from the cache.
+ * @method setSystemMetrics - Set system metrics. Provide data in the form of key-value pairs. Removes any associated updates from the cache.
+ * @method getListingMetrics - Get listing metrics. Provide listingID to get a specific listing's metrics, or leave blank to get all listings' metrics.
+ * @method getRequestMetrics - Get request metrics. Provide requestURL and method to get a specific request's metrics, or leave blank to get all requests' metrics.
+ * @method getSystemMetrics - Get system metrics.
+ * @method checkPermission - Check if the analytics service is enabled.
+ * @method ignoreCDN - Check if the analytics service should ignore CDN requests.
+ */
 class Analytics {
     static #setup = false
     static #metadata = {

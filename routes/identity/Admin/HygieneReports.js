@@ -14,9 +14,14 @@ router.post('/issueWarning', validateAdmin, async (req, res) => {
         return res.status(400).send("UERROR: One or more required payloads missing");
     }
 
-    const host = await Host.findByPk(hostID);
-    if (!host) {
-        return res.status(404).send("ERROR: Host not found");
+    var host;
+    try {
+        host = await Host.findByPk(hostID);
+        if (!host) {
+            return res.status(404).send("ERROR: Host not found");
+        }
+    } catch (err) {
+        return res.status(500).send("ERROR: Failed to process request.");
     }
 
     if (host.hygieneGrade > 2.5) {
@@ -28,40 +33,46 @@ router.post('/issueWarning', validateAdmin, async (req, res) => {
     }
 
     // Check if there is a previous warning and remove it
-    const previousWarning = await Warning.findOne({
-        where: {
-            hostID: hostID
-        }
-    })
+    try {
+        const previousWarning = await Warning.findOne({
+            where: {
+                hostID: hostID
+            }
+        })
 
-    if (previousWarning) {
-        const removePreviousWarning = await previousWarning.destroy();
-        if (!removePreviousWarning) {
-            return res.status(500).send("ERROR: Failed to remove previous warning");
+        if (previousWarning) {
+            const removePreviousWarning = await previousWarning.destroy();
+            if (!removePreviousWarning) {
+                return res.status(500).send("ERROR: Failed to remove previous warning");
+            }
         }
+    } catch (err) {
+        Logger.log(`ADMIN HYGIENEREPORTS ISSUEWARNING ERROR: Failed to remove previous warning for host with ID ${hostID}; error: ${err}.`);
+        return res.status(500).send("ERROR: Failed to process request.");
     }
 
     const datetime = new Date().toISOString();
 
-    const issuedWarning = new Warning({
-        reason: reason,
-        issuingAdminID: issuingAdminID,
-        hostID: hostID,
-        datetime: datetime
-    });
+    try {
+        const issuedWarning = await Warning.create({
+            reason: reason,
+            issuingAdminID: issuingAdminID,
+            hostID: hostID,
+            datetime: datetime
+        });
+        if (!issuedWarning) {
+            return res.status(500).send("ERROR: Failed to save warning");
+        }
 
-    const saveWarning = await issuedWarning.save();
+        host.flaggedForHygiene = true;
+        const updateHostFlagged = await host.save();
 
-    if (!saveWarning) {
-        return res.status(500).send("ERROR: Failed to save warning");
-    }
-
-
-    host.flaggedForHygiene = true;
-    const updateHostFlagged = await host.save();
-
-    if (!updateHostFlagged) {
-        return res.status(500).send("ERROR: Failed to update host's flagged status");
+        if (!updateHostFlagged) {
+            return res.status(500).send("ERROR: Failed to update host's flagged status.");
+        }
+    } catch (err) {
+        Logger.log(`ADMIN HYGIENEREPORTS ISSUEWARNING ERROR: Failed to issue warning to host with ID ${hostID}; error: ${err}.`);
+        return res.status(500).send("ERROR: Failed to process request.");
     }
 
     const emailText = `
@@ -70,6 +81,8 @@ router.post('/issueWarning', validateAdmin, async (req, res) => {
         Our system has detected that your hygiene grade has fallen below the acceptable standards.
 
         Your account has been flagged. Please take immediate action to improve your hygiene grade to avoid further action being taken against your account.
+
+        ${reason}
 
         This is a warning to inform you that your hygiene grade is currently at ${host.hygieneGrade}.
 
@@ -99,9 +112,9 @@ router.post('/issueWarning', validateAdmin, async (req, res) => {
             }
         )
     )
-    .catch((err) => {
-        Logger.log(`ADMIN HYGIENEREPORTS ISSUEWARNING ERROR: Failed to send email to host with ID ${hostID}; error: ${err}.`);
-    });
+        .catch((err) => {
+            Logger.log(`ADMIN HYGIENEREPORTS ISSUEWARNING ERROR: Failed to send email to host with ID ${hostID}; error: ${err}.`);
+        });
 
     return res.status(200).send("SUCCESS: Warning issued successfully");
 });
@@ -113,28 +126,38 @@ router.post("/unflagHost", validateAdmin, async (req, res) => {
         return res.status(400).send("UERROR: One or more required payloads missing");
     }
 
-    const host = await Host.findByPk(hostID);
-    if (!host) {
-        return res.status(404).send("ERROR: Host not found");
-    }
+    try {
+        const host = await Host.findByPk(hostID);
+        if (!host) {
+            return res.status(404).send("ERROR: Host not found");
+        }
 
-    host.flaggedForHygiene = false;
-    const updateHostFlagged = await host.save();
+        host.flaggedForHygiene = false;
+        const updateHostFlagged = await host.save();
 
-    if (!updateHostFlagged) {
-        return res.status(500).send("ERROR: Failed to update host's flagged status");
+        if (!updateHostFlagged) {
+            return res.status(500).send("ERROR: Failed to update host's flagged status");
+        }
+    } catch (err) {
+        Logger.log(`ADMIN HYGIENEREPORTS UNFLAGHOST ERROR: Failed to unflag host with ID ${hostID}; error: ${err}.`);
+        return res.status(500).send("ERROR: Failed to process request.");
     }
 
     // Remove the warning associated with the host
-    const warning = await Warning.findOne({
-        where: { hostID: hostID }
-    });
+    try {
+        const warning = await Warning.findOne({
+            where: { hostID: hostID }
+        });
 
-    if (warning) {
-        const removeWarning = await warning.destroy();
-        if (!removeWarning) {
-            return res.status(500).send("ERROR: Failed to remove warning");
+        if (warning) {
+            const removeWarning = await warning.destroy();
+            if (!removeWarning) {
+                return res.status(500).send("ERROR: Failed to remove warning");
+            }
         }
+    } catch (err) {
+        Logger.log(`ADMIN HYGIENEREPORTS UNFLAGHOST ERROR: Failed to remove warning for host with ID ${hostID}; error: ${err}.`);
+        return res.status(500).send("ERROR: Failed to process request.");
     }
 
     return res.status(200).send("SUCCESS: Host unflagged successfully");

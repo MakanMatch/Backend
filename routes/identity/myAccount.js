@@ -79,7 +79,7 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         }
 
         // Update user information
-        user.username = username;        
+        user.username = username;
         if (email !== user.email) {
             user.email = email;
             user.emailVerified = false;
@@ -129,8 +129,6 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
             user = await Guest.findOne({ where: { userID } });
         } else if (userType === 'Host') {
             user = await Host.findOne({ where: { userID } });
-        } else if (userType === 'Admin') {
-            user = await Admin.findOne({ where: { userID } });
         }
 
         if (!user) {
@@ -153,6 +151,10 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
                     collatedImages = collatedImages.concat(listing.images.split("|"));
                 }
             }
+
+            if (user.paymentImage) {
+                collatedImages.push(user.paymentImage);
+            }
         }
 
         // Collect review images if applicable
@@ -165,10 +167,6 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
                     }
                 }
             }
-
-            if (user.paymentImage) {
-                collatedImages.push(user.paymentImage);
-            }
         }
 
         // Collect chat message images if applicable
@@ -178,6 +176,8 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
                 if (message.image) {
                     collatedImages.push(message.image);
                 }
+
+                await message.destroy();
             }
         }
 
@@ -189,7 +189,10 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
             return
         }
 
-        // Delete all collated images
+        Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT: ${userType} account ${userID} deleted.`)
+        res.send(`SUCCESS: User ${userID} deleted successfully.`);
+
+        // Delete all collated images (in the background)
         for (const image of collatedImages) {
             try {
                 await FileManager.deleteFile(image);
@@ -197,9 +200,6 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
                 Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT ERROR: Failed to delete image '${image}' from storage; error: ${err}`);
             }
         }
-
-        Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT: ${userType} account ${userID} deleted.`)
-        res.send(`SUCCESS: User ${userID} deleted successfully.`);
     } catch (err) {
         Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT ERROR: Failed to delete user ${userID}; error: ${err}`)
         res.status(500).send(`ERROR: Failed to delete user ${userID}.`);

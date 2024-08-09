@@ -222,7 +222,7 @@ function startWebSocketServer(app) {
                     clientStore[connectionID]["user"] = null;
                     clientStore[connectionID]["userType"] = null;
                     clientStore[connectionID]["conversations"] = {};
-                    ws.send(JSON.stringify({ event: "error", message: refreshResult}));
+                    ws.send(JSON.stringify({ event: "error", message: refreshResult }));
                     return;
                 }
                 const { payload, token, refreshed } = refreshResult;
@@ -243,9 +243,9 @@ function startWebSocketServer(app) {
                 }
                 const verificationResult = await authenticateConnection(authToken);
                 if (
-                    typeof verificationResult == "string" &&verificationResult.startsWith("ERROR")
+                    typeof verificationResult == "string" && verificationResult.startsWith("ERROR")
                 ) {
-                    ws.send(JSON.stringify({event: "error", message: verificationResult,}));
+                    ws.send(JSON.stringify({ event: "error", message: verificationResult, }));
                     return;
                 }
                 const { payload, token, refreshed } = verificationResult;
@@ -361,7 +361,7 @@ function startWebSocketServer(app) {
                         where: {
                             hostID: user.userID,
                         },
-                        include: [{model: Guest, as: "guests", attributes: ["userID", "username"]}]
+                        include: [{ model: Guest, as: "guests", attributes: ["userID", "username"] }]
                     });
                     const listingsJSON = listings.map((listing) => listing.toJSON());
 
@@ -506,19 +506,14 @@ function startWebSocketServer(app) {
         }
 
         try {
-            await targetMessage.destroy();
             if (targetMessage.image) {
-                try {
-                    await FileManager.deleteFile(targetMessage.image)
-                    .then(result => {
-                        if (result) {
-                            Logger.log(`CHAT WEBSOCKETSERVER HANDLEDELETEMESSAGE: Deleted image ${targetMessage.image} associated with message ${messageId}`);
-                        }
-                    })
-                } catch (error) {
-                    Logger.log(`CHAT WEBSOCKETSERVER HANDLEDELETEMESSAGE ERROR: Failed to delete image ${targetMessage.image} associated with message ${messageId}; error: ${error}`);
+                const fileDeletion = await FileManager.deleteFile(targetMessage.image)
+                if (fileDeletion !== true) {
+                    Logger.log(`CHAT WEBSOCKETSERVER HANDLEDELETEMESSAGE: Deleted image ${targetMessage.image} associated with message ${messageId}`);
                 }
             }
+            
+            await targetMessage.destroy();
 
             const responseMessage = {
                 action: "delete",
@@ -578,7 +573,7 @@ function startWebSocketServer(app) {
                 return;
             }
 
-            if(latestMessageInChat) {
+            if (latestMessageInChat) {
                 const latestMessageSender = latestMessageInChat.senderID;
                 if (latestMessageSender !== clientStore[connectionID].userID) {
                     const latestMessageDatetime = new Date(latestMessageInChat.datetime);
@@ -604,9 +599,9 @@ function startWebSocketServer(app) {
                             text,
                             emailContent
                         )
-                        .catch((error) => {
-                            Logger.log(`CHAT WEBSOCKETSERVER HANDLEMESSAGESEND ERROR: Failed to send email notification for missed messages to user ${recipientID}; error: ${error}`);
-                        });
+                            .catch((error) => {
+                                Logger.log(`CHAT WEBSOCKETSERVER HANDLEMESSAGESEND ERROR: Failed to send email notification for missed messages to user ${recipientID}; error: ${error}`);
+                            });
                     }
                 }
             }

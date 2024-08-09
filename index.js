@@ -1,9 +1,10 @@
 require('./services/BootCheck').check()
 const express = require('express');
 const cors = require('cors');
-const jwt = require('jsonwebtoken')
-const { FoodListing, Guest, Host, Reservation } = require('./models')
-const Encryption = require("./services/Encryption")
+const db = require('./models');
+const { Guest, Host } = db;
+const { Encryption, Analytics } = require('./services');
+const prompt = require("prompt-sync")({ sigint: true });
 require('dotenv').config()
 
 const env = process.env.DB_CONFIG || 'development';
@@ -23,6 +24,10 @@ Emailer.checkContext()
 const Cache = require('./services/Cache')
 Cache.load();
 
+if (Cache.get("usageLock") == undefined) {
+    Cache.set("usageLock", false)
+}
+
 const FileManager = require('./services/FileManager');
 FileManager.setup().catch(err => { Logger.logAndThrow(err) })
 
@@ -38,19 +43,34 @@ if (OpenAIChat.checkPermission()) {
 // Import middleware
 const checkHeaders = require('./middleware/headersCheck');
 const logRoutes = require('./middleware/logRoutes');
+const { newRequest, beforeResponse } = require('./middleware/analytics');
 
 // Configure express app and chat web socket server
 const app = express();
 app.use(cors({ exposedHeaders: ['refreshedtoken'] }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-// app.use(express.static('public'))
 app.set("view engine", "ejs");
 const startWebSocketServer = require('./routes/chat/WebSocketServer');
 startWebSocketServer(app);
 
 // Top-level middleware
+app.use((req, res, next) => {
+    if (!req.originalUrl.startsWith("/admin/super")) {
+        const usageLock = Cache.get("usageLock") === true;
+        if (usageLock) {
+            return res.sendStatus(503)
+        }
+    }
+    next()
+})
+app.use(checkHeaders)
 if (config["routeLogging"] !== false) { app.use(logRoutes) }
+if (Analytics.checkPermission()) {
+    console.log("MAIN: Registering analytics middleware.")
+    app.use(newRequest)
+    app.use(beforeResponse)
+}
 
 // Main routes
 app.get("/", (req, res) => {
@@ -60,7 +80,6 @@ app.get("/", (req, res) => {
 });
 
 // Register routers
-app.use(checkHeaders) // Middleware to check Content-Type and API key headers
 if (config["routerRegistration"] != "automated") {
     console.log("MAIN: Route registration mode: MANUAL")
     app.use(require("./routes/misc").at || '/', require("./routes/misc").router);
@@ -91,6 +110,22 @@ if (config["routerRegistration"] != "automated") {
 }
 
 async function onDBSynchronise() {
+    // SQL-reliant service setup
+    if (Analytics.checkPermission()) {
+        Analytics.setup(true)
+            .then(result => {
+                if (result !== true) {
+                    console.log(`MAIN ANALYTICS SETUP ERROR: Failed to setup Analytics; error: ${result}`)
+                    Logger.log(`MAIN ANALYTICS SETUP ERROR: Failed to setup Analytics; error: ${result}`)
+                } else {
+                    console.log(`MAIN ANALYTICS SETUP: Analytics setup successful.`)
+                }
+            })
+            .catch(err => {
+                Logger.log(`MAIN ANALYTICS SETUP ERROR: Failed to setup Analytics; error: ${err}`)
+            })
+    }
+
     const guests = await Guest.findAll()
     var guestRecord;
     if (guests.length > 0) {
@@ -103,6 +138,7 @@ async function onDBSynchronise() {
             lname: "Jones",
             username: "susiejones",
             email: "susie_jones@example.com",
+            emailVerificationTime: new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString(),
             password: await Encryption.hash("SusieJones123"),
             contactNum: "82228111",
             address: "Block 321, Hougang Avenue 10, #10-567",
@@ -128,6 +164,7 @@ async function onDBSynchronise() {
             "lname": "Oliver",
             "username": "jamieoliver",
             "email": "jamie_oliver@example.com",
+            "emailVerificationTime": new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString(),
             "password": await Encryption.hash("123456789"),
             "contactNum": "81118222",
             "approxAddress": "Anchorvale Lane, Singapore 542310",
@@ -159,7 +196,6 @@ if (!SEQUELIZE_ACTIVE) {
     })
 } else {
     // Server initialisation with sequelize
-    const db = require("./models");
     db.sequelize.sync()
         .then(() => {
             // Create sample FoodListing

@@ -42,7 +42,8 @@ module.exports = (sequelize, DataTypes) => {
     Review.associate = (models) => {
         Review.belongsTo(models.Host, {
             foreignKey: 'hostID',
-            as: 'host'
+            as: 'host',
+            onDelete: 'cascade'
         }),
 
         // Like relationship (reviews can get many likes from guests)
@@ -55,7 +56,8 @@ module.exports = (sequelize, DataTypes) => {
         // Original poster relationship (a review is posted by a guest)
         Review.belongsTo(models.Guest, {
             foreignKey: 'guestID',
-            as: 'reviewPoster'
+            as: 'reviewPoster',
+            onDelete: 'cascade'
         })
     }
 

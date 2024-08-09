@@ -222,4 +222,22 @@ router.post("/toggleMakanBot", (req, res) => {
     }
 })
 
+router.post("/getLogs", async (req, res) => {
+    if (!Logger.checkPermission()) {
+        return res.status(400).send("ERROR: Logging service is not enabled.");
+    }
+
+    try {
+        const logs = Logger.readLogs();
+        if (typeof logs == "string") {
+            Logger.log(`SUPERUSERAPI GETLOGS ERROR: Failed to retrieve logs; error: ${logs}`);
+            return res.status(500).send("ERROR: Failed to retrieve logs.");
+        }
+
+        return res.status(200).json(logs);
+    } catch (err) {
+        return res.status(500).send("ERROR: Failed to retrieve logs.");
+    }
+});
+
 module.exports = { router, at: '/admin/super' };

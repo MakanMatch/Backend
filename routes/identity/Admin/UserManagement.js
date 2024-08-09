@@ -3,8 +3,9 @@ const router = express.Router();
 const { Guest, Host, Admin, UserRecord } = require("../../../models");
 const { validateAdmin } = require("../../../middleware/auth");
 const { Op } = require("sequelize");
-const Logger = require("../../../services/Logger");
+const { Logger, Universal } = require("../../../services");
 const yup = require("yup");
+const { dispatchVerificationEmail } = require("../emailVerification");
 
 async function isUniqueUsername(username, currentUser) {
     const usernameExists = await Guest.findOne({ where: { username } }) ||
@@ -27,7 +28,7 @@ async function isUniqueContactNum(contactNum, currentUser) {
         const contactNumExists = await Guest.findOne({ where: { contactNum } }) ||
             await Host.findOne({ where: { contactNum } }) ||
             await Admin.findOne({ where: { contactNum } });
-    
+
         return (!contactNumExists) || contactNumExists.userID === currentUser.userID;
     }
 }
@@ -71,7 +72,7 @@ router.put("/editUserDetails", validateAdmin, async (req, res) => {
 
     var user;
     try {
-        
+
         if (userType === 'Guest') {
             user = await Guest.findByPk(userID);
         } else if (userType === 'Host') {
@@ -90,7 +91,7 @@ router.put("/editUserDetails", validateAdmin, async (req, res) => {
         if (!nameRegex.test(fname) || !nameRegex.test(lname)) {
             return res.status(400).send("UERROR: First name and last name cannot contain numbers.");
         }
-        
+
         if (!await isUniqueUsername(username, user)) {
             return res.status(400).send("UERROR: Username already exists.");
         }
@@ -114,7 +115,19 @@ router.put("/editUserDetails", validateAdmin, async (req, res) => {
         user.fname = fname;
         user.lname = lname;
         user.username = username;
-        user.email = email;
+
+        if (user.email !== email) {
+            user.emailVerified = false;
+            const verificationToken = Universal.generateUniqueID(6);
+            user.emailVerificationToken = verificationToken;
+            user.emailVerificationTokenExpiration = new Date(Date.now() + 86400000).toISOString();
+            user.emailVerificationTime = new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString();
+            const verificationLink = `${req.headers.origin}/auth/verifyToken?userID=${user.userID}&token=${verificationToken}`;
+            dispatchVerificationEmail(user.email, verificationLink)
+
+            user.email = email
+        }
+
         user.contactNum = contactNum;
 
         const saveUser = await user.save();
@@ -131,5 +144,39 @@ router.put("/editUserDetails", validateAdmin, async (req, res) => {
         res.status(500).send("ERROR: Failed to edit user details");
     }
 });
+
+router.post("/resetEmailVerification", validateAdmin, async (req, res) => {
+    const { userID } = req.body;
+    if (!userID) {
+        return res.status(400).send("ERROR: One or more payloads not provided.");
+    }
+
+    try {
+        var user = await Guest.findByPk(userID) || await Host.findByPk(userID);
+        if (!user) {
+            return res.status(404).send("ERROR: User not found.");
+        }
+
+        user.emailVerified = false;
+        const verificationToken = Universal.generateUniqueID(6);
+        user.emailVerificationToken = verificationToken;
+        user.emailVerificationTokenExpiration = new Date(Date.now() + 86400000).toISOString();
+        user.emailVerificationTime = new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString();
+        const verificationLink = `${req.headers.origin}/auth/verifyToken?userID=${user.userID}&token=${verificationToken}`;
+        dispatchVerificationEmail(user.email, verificationLink)
+
+        const saveUser = await user.save();
+        if (!saveUser) {
+            Logger.log(`IDENTITY USERMANAGEMENT RESETEMAILVERIFICATION ERROR: Failed to reset email verification for user with ID ${userID}`);
+            return res.status(500).send("ERROR: Failed to reset email verification");
+        }
+
+        Logger.log(`IDENTITY USERMANAGEMENT RESETEMAILVERIFICATION: Reset email verification for user with ID ${userID}`);
+        return res.send("SUCCESS: Email verification reset.");
+    } catch (err) {
+        Logger.log(`IDENTITY USERMANAGEMENT RESETEMAILVERIFICATION ERROR: Failed to reset email verification for user with ID ${userID}; error: ${err}`);
+        return res.status(500).send("ERROR: Failed to reset email verification");
+    }
+})
 
 module.exports = { router, at: '/admin/userManagement' };

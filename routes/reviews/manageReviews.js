@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Review, Guest, Host } = require('../../models');
+const { Review, Guest, Host, Warning } = require('../../models');
 const Logger = require('../../services/Logger');
 const { storeImages } = require('../../middleware/storeImages');
 const FileManager = require('../../services/FileManager');
@@ -192,6 +192,24 @@ router.route("/")
                 }
             }
 
+            // Check if hygiene grade is above 2.5, unflag host and remove warning
+            try {
+                if (host.flaggedForHygiene && (host.hygieneGrade > 2.5 || host.hygieneGrade == 0)) {
+                    host.flaggedForHygiene = false;
+                    await host.save();
+
+                    const warning = await Warning.findOne({ where: { hostID: host.userID } });
+                    if (warning) {
+                        const removePreviousWarning = await warning.destroy();
+                        if (!removePreviousWarning) {
+                            Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to remove warning for host with ID ${hostID}.`);
+                        }
+                    }
+                }
+            } catch (err) {
+                Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to check host hygiene grade and update warnings/flagged status; error: ${err}`)
+            }
+
             return res.send(`SUCCESS: Review with ID ${reviewID} updated.`);
         })
     })
@@ -217,6 +235,9 @@ router.route("/")
                 }
             ]
         });
+        if (!review) {
+            return res.status(404).send(`ERROR: Review with ID ${reviewID} not found.`);
+        }
 
         if (guestID !== review.reviewPoster.userID) {
             return res.status(403).send("ERROR: You are not authorized to delete this review.");
@@ -245,30 +266,52 @@ router.route("/")
         }
 
         // Update host ratings
-        if (prevReviewCount == 1) {
-            // If this is the last review, just set ratings to 0
-            host.set({
-                foodRating: 0,
-                hygieneGrade: 0,
-                reviewsCount: 0
-            })
+        try {
+            if (prevReviewCount == 1) {
+                // If this is the last review, just set ratings to 0
+                host.set({
+                    foodRating: 0,
+                    hygieneGrade: 0,
+                    reviewsCount: 0
+                })
 
-            const updateHostRating = await host.save();
-            if (!updateHostRating) {
-                return res.status(500).send("ERROR: Failed to update host rating");
-            }
-        } else {
-            // Otherwise, update ratings based on average
-            host.set({
-                foodRating: ((parseFloat(host.foodRating) * prevReviewCount - review.foodRating) / (prevReviewCount - 1)).toFixed(2),
-                hygieneGrade: ((parseFloat(host.hygieneGrade) * prevReviewCount - review.hygieneRating) / (prevReviewCount - 1)).toFixed(2),
-                reviewsCount: prevReviewCount - 1
-            })
+                const updateHostRating = await host.save();
+                if (!updateHostRating) {
+                    return res.status(500).send("ERROR: Failed to update host rating");
+                }
+            } else {
+                // Otherwise, update ratings based on average
+                host.set({
+                    foodRating: ((parseFloat(host.foodRating) * prevReviewCount - review.foodRating) / (prevReviewCount - 1)).toFixed(2),
+                    hygieneGrade: ((parseFloat(host.hygieneGrade) * prevReviewCount - review.hygieneRating) / (prevReviewCount - 1)).toFixed(2),
+                    reviewsCount: prevReviewCount - 1
+                })
 
-            const updateHostRating = await host.save();
-            if (!updateHostRating) {
-                return res.status(500).send("ERROR: Failed to update host rating");
+                const updateHostRating = await host.save();
+                if (!updateHostRating) {
+                    return res.status(500).send("ERROR: Failed to update host rating");
+                }
             }
+        } catch (err) {
+            Logger.log(`REVIEWS MANAGEREVIEWS DELETE ERROR: Failed to update host ratings; error; ${err}`)
+        }
+
+        // Check if hygiene grade is above 2.5, unflag host and remove warning
+        try {
+            if (host.flaggedForHygiene && (host.hygieneGrade > 2.5 || host.hygieneGrade == 0)) {
+                host.flaggedForHygiene = false;
+                await host.save();
+
+                const warning = await Warning.findOne({ where: { hostID: host.userID } });
+                if (warning) {
+                    const removePreviousWarning = await warning.destroy();
+                    if (!removePreviousWarning) {
+                        Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to remove warning for host with ID ${host.userID}.`);
+                    }
+                }
+            }
+        } catch (err) {
+            Logger.log(`REVIEWS MANAGEREVIEWS PUT ERROR: Failed to check host hygiene grade and update warnings/flagged status; error: ${err}`)
         }
 
         return res.send(`SUCCESS: Review with ID ${reviewID} deleted.`);

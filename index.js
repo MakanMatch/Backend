@@ -58,21 +58,21 @@ startWebSocketServer(app);
 // Rate limiters
 const standardLimiter = rateLimit({
     windowMs: 1 * 60 * 1000,
-    limit: 240,
+    limit: 180,
     standardHeaders: true,
     legacyHeaders: false
 })
 
 const cdnLimiter = rateLimit({
     windowMs: 1 * 60 * 1000,
-    limit: 300,
+    limit: 240,
     standardHeaders: true,
     legacyHeaders: false
 })
 
 const gptLimiter = rateLimit({
     windowMs: 1 * 60 * 1000,
-    limit: 20,
+    limit: 15,
     standardHeaders: true,
     legacyHeaders: false
 })

@@ -8,6 +8,8 @@ const { validateToken } = require('../../middleware/auth');
 const FileManager = require('../../services/FileManager');
 const { storeFile } = require('../../middleware/storeFile');
 const multer = require('multer');
+const { dispatchVerificationEmail } = require('./emailVerification');
+const Universal = require('../../services/Universal');
 
 async function isUniqueUsername(username, currentUser) {
     const usernameExists = await Guest.findOne({ where: { username } }) ||
@@ -83,7 +85,14 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
         if (email !== user.email) {
             user.email = email;
             user.emailVerified = false;
+            const verificationToken = Universal.generateUniqueID(6);
+            user.emailVerificationToken = verificationToken
+            user.emailVerificationTokenExpiration = new Date(Date.now() + 86400000).toISOString();
             user.emailVerificationTime = new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString();
+
+            const verificationLink = `${req.headers.origin}/auth/verifyToken?userID=${user.userID}&token=${verificationToken}`;
+
+            dispatchVerificationEmail(user.email, verificationLink)
         } else {
             user.email = email;
         }

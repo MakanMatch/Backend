@@ -3,8 +3,9 @@ const router = express.Router();
 const { Guest, Host, Admin, UserRecord } = require("../../../models");
 const { validateAdmin } = require("../../../middleware/auth");
 const { Op } = require("sequelize");
-const Logger = require("../../../services/Logger");
+const { Logger, Universal } = require("../../../services");
 const yup = require("yup");
+const { dispatchVerificationEmail } = require("../emailVerification");
 
 async function isUniqueUsername(username, currentUser) {
     const usernameExists = await Guest.findOne({ where: { username } }) ||
@@ -114,7 +115,16 @@ router.put("/editUserDetails", validateAdmin, async (req, res) => {
         user.fname = fname;
         user.lname = lname;
         user.username = username;
+
         user.email = email;
+        user.emailVerified = false;
+        const verificationToken = Universal.generateUniqueID(6);
+        user.emailVerificationToken = verificationToken;
+        user.emailVerificationTokenExpiration = new Date(Date.now() + 86400000).toISOString();
+        user.emailVerificationTime = new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString();
+        const verificationLink = `${req.headers.origin}/auth/verifyToken?userID=${user.userID}&token=${verificationToken}`;
+        dispatchVerificationEmail(user.email, verificationLink)
+
         user.contactNum = contactNum;
 
         const saveUser = await user.save();

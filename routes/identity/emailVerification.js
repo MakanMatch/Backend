@@ -47,6 +47,10 @@ router.post("/send", async (req, res) => {
             res.status(400).send("UERROR: Email doesn't exist.");
             return;
         }
+        if (user.emailVerified === true) {
+            res.status(400).send("UERROR: Email already verified.")
+            return;
+        }
 
         const now = Date.now();
         const thirtySeconds = 30000;

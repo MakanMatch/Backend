@@ -1,8 +1,11 @@
 const FireStorage = require('./FireStorage');
 const FileOps = require('./FileOps')
 const path = require('path');
+const Analytics = require('./Analytics');
 
 /**
+ * ## Introduction to FileManager
+ * 
  * Uses on-demand principle with a local file store for performance efficiency. Cloud remains the source of truth.
  * 
  * Files are stored in `./FileStore` directory. File metadata is stored in `./FileStore/context.json`. Both data stores are maintained by this service.
@@ -13,8 +16,42 @@ const path = require('path');
  * 
  * Example usage:
  * ```js
+ * const FileManager = require('./services/FileManager');
  * 
+ * // Setup FileManager
+ * const setupResult = await FileManager.setup();
+ * if (setupResult !== true) {
+ *     console.log(`ERROR: ${setupResult}`);
+ *     return;
+ * }
+ * 
+ * // Check if file exists
+ * const fileExists = await FileManager.exists('file.txt');
+ * if (fileExists !== true) {
+ *     console.log(`ERROR: ${fileExists}`);
+ *     return;
+ * }
+ * 
+ * // Prepare file
+ * const prepResult = await FileManager.prepFile('file.txt');
+ * if (prepResult.startsWith('ERROR')) {
+ *     console.log(prepResult);
+ *     return;
+ * }
+ * const filePath = prepResult.substring("SUCCESS: File path: ".length);
  * ```
+ * 
+ * ## Permissions and Internals
+ * FileManager requires explicit permission to operate by setting `FILEMANAGER_ENABLED=True` in the environment.
+ * 
+ * FileManager internally uses the low-level FireStorage and FileOps services. It is recommended to understand these services before using FileManager.
+ * 
+ * FireStorage is a service wrapper for Firebase Cloud Storage operations and uses the `firebase-admin` SDK. The wrapper provides several methods to download, update and do other operations on files.
+ * 
+ * FireStorage requires:
+ * - A `serviceAccountKey.json` file in the root directory
+ * - Explicit permission to operate by setting `FIRESTORAGE_ENABLED=True` in the environment
+ * - A `STORAGE_BUCKET_URL` environment variable set to the Firebase Cloud Storage bucket URL
  */
 class FileManager {
     static #initialized = false;
@@ -294,6 +331,14 @@ class FileManager {
         }
         this.persistFileStoreContext();
 
+        if (Analytics.checkPermission()) {
+            Analytics.supplementSystemMetricUpdate({
+                fileUploads: 1
+            })
+                .catch(err => {
+                    console.log(`FILEMANAGER ANALYTICS: Failed to supplement file upload metric. Error: ${err}`)
+                })
+        }
         return true;
     }
 

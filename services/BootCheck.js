@@ -11,7 +11,7 @@ require('dotenv').config()
  */
 class BootCheck {
     static check() {
-        let requiredVariables = ["SERVER_PORT", "DB_MODE", "EMAILING_ENABLED", "JWT_KEY", "WS_PORT", "FILEMANAGER_ENABLED", "FIRESTORAGE_ENABLED", "API_KEY"]
+        let requiredVariables = ["SERVER_PORT", "DB_MODE", "EMAILING_ENABLED", "JWT_KEY", "SUPERUSER_KEY", "WS_PORT", "FILEMANAGER_ENABLED", "FIRESTORAGE_ENABLED", "API_KEY"]
         for (let variable of requiredVariables) {
             if (process.env[variable] === undefined) {
                 throw new Error(`Environment variable ${variable} is not set.`)

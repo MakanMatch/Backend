@@ -1,4 +1,5 @@
 const { default: OpenAI } = require('openai');
+const Cache = require('./Cache');
 require('dotenv').config();
 
 /**
@@ -74,7 +75,7 @@ class OpenAIChat {
     }
 
     static checkPermission() {
-        return process.env.OPENAI_API_KEY !== undefined && process.env.OPENAI_CHAT_ENABLED === 'True';
+        return process.env.OPENAI_CHAT_ENABLED === 'True' && Cache.get("openaiChatEnabled") !== false;
     }
 
     static initialise(configOptions={ model: "gpt-4o-mini", maxTokens: 512, temperature: 0.5 }) {

@@ -83,7 +83,7 @@ router.post("/addListing", validateToken, async (req, res) => {
             };
             const addListingResponse = await FoodListing.create(listingDetails);
             if (addListingResponse) {
-                Logger.log(`LISTINGS ADDLISTING ERROR: Listing with listingID ${listingDetails.listingID} created successfully.`)
+                Logger.log(`LISTINGS ADDLISTING: Listing with listingID ${listingDetails.listingID} created successfully.`)
                 return res.status(200).json({
                     message: "SUCCESS: Food listing created successfully",
                     listingDetails,

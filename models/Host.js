@@ -59,6 +59,10 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: false
         },
+        emailVerificationTime: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
         favCuisine: {
             type: DataTypes.STRING,
             allowNull: true

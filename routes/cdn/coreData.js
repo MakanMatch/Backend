@@ -9,6 +9,7 @@ const { Sequelize } = require('sequelize');
 const Universal = require("../../services/Universal");
 const { validateToken, checkUser } = require("../../middleware/auth");
 const { Op } = require("sequelize");
+const { Analytics } = require("../../services");
 
 router.get('/myAccount', validateToken, (req, res) => {
     const userInfo = req.user;
@@ -102,17 +103,17 @@ router.get("/checkFavouriteListing", async (req, res) => { // GET favourite list
 
 router.get("/getListing", checkUser, async (req, res) => {
     const listingID = req.query.id || req.body.listingID;
-    const includeReservations = req.query.includeReservations;
-    const includeHost = req.query.includeHost;
+    const includeReservations = req.query.includeReservations === 'true';
+    const includeHost = req.query.includeHost === 'true';
 
     var includeClause = []
-    if (includeReservations == 'true') {
+    if (includeReservations) {
         includeClause.push({
             model: Guest,
             as: "guests"
         })
     }
-    if (includeHost == 'true') {
+    if (includeHost) {
         includeClause.push({
             model: Host,
             as: "Host"
@@ -138,9 +139,52 @@ router.get("/getListing", checkUser, async (req, res) => {
         res.status(404).send("ERROR: Listing not found")
         return
     }
+
+    var preppedData = listing.toJSON();
+
+    const guests = listing.guests ? listing.guests.map(guest => guest.userID) : [];
+
+    // User is not the host or a reserved guest, remove sensitive information
+    if (!isHost && (!req.user || !guests.includes(req.user.userID))) {
+        delete preppedData.address;
+        if (preppedData.guests) {
+            delete preppedData.guests;
+        }
+        if (preppedData.Host) {
+            delete preppedData.Host.paymentImage;
+            delete preppedData.Host.address;
+            delete preppedData.Host.coordinates;
+        }
+    }
+
+    // User is a reserved guest, process other guest information
+    if (req.user && guests.includes(req.user.userID)) {
+        preppedData.guests = preppedData.guests.map(guest => {
+            if (guest.userID != req.user.userID) {
+                delete guest.address;
+            }
+            return guest;
+        });
+    }
+
+    // User is the host, include listing metrics
+    if (isHost) {
+        const listingMetrics = await Analytics.getListingMetrics(listingID)
+        if (typeof listingMetrics !== "string") {
+            try {
+                preppedData.impressions = listingMetrics.impressions;
+                if (listingMetrics.impressions > 0 && listingMetrics.clicks > 0 && listingMetrics.impressions >= listingMetrics.clicks) {
+                    const ctr = Math.round((listingMetrics.clicks / listingMetrics.impressions) * 100)
+                    preppedData.ctr = `${ctr}%`
+                }
+            } catch (err) {
+                Logger.log(`COREDATA GETLISTING ERROR: Failed to collate listing metrics; error: ${err}`)
+            }
+        }
+    }
     
     res.json(
-        Extensions.sanitiseData(listing.toJSON(), [
+        Extensions.sanitiseData(preppedData, [
             "listingID",
             "title",
             "images",
@@ -148,6 +192,8 @@ router.get("/getListing", checkUser, async (req, res) => {
             "longDescription",
             "datetime",
             "portionPrice",
+            "address",
+            "coordinates",
             "approxAddress",
             "approxCoordinates",
             "paymentImage",
@@ -168,7 +214,9 @@ router.get("/getListing", checkUser, async (req, res) => {
             "guestID",
             "portions",
             "totalPrice",
-            "flaggedForHygiene"
+            "flaggedForHygiene",
+            "impressions",
+            "ctr"
         ], ["createdAt", "updatedAt"])
     )
     return
@@ -227,6 +275,7 @@ router.get("/accountInfo", checkUser, async (req, res) => { // GET account infor
             lname: user.lname,
             username: user.username,
             email: user.email,
+            emailVerificationTime: user.emailVerificationTime,
             contactNum: user.contactNum,
             approxAddress: user.approxAddress,
             address: user.address,

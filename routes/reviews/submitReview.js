@@ -4,7 +4,7 @@ const multer = require('multer');
 const FileManager = require('../../services/FileManager');
 const { Universal, Emailer, HTMLRenderer, Extensions } = require("../../services")
 const { storeImages } = require("../../middleware/storeImages");
-const { Review, Host, Guest } = require('../../models');
+const { Review, Host, Guest, Warning } = require('../../models');
 const Logger = require('../../services/Logger');
 const { validateToken } = require('../../middleware/auth');
 const path = require('path');
@@ -39,21 +39,23 @@ router.route("/")
                     return res.status(404).send("ERROR: Host or guest not found.");
                 }
 
-                const latestReview = await Review.findAll({
-                    include: [
-                        {
-                            model: Guest,
-                            as: "reviewPoster",
-                            where: {
-                                userID: guestID
+                if (!process.env.DEBUG_MODE && !process.env.DEBUG_MODE == "True") {
+                    const latestReview = await Review.findAll({
+                        include: [
+                            {
+                                model: Guest,
+                                as: "reviewPoster",
+                                where: {
+                                    userID: guestID
+                                }
                             }
+                        ],
+                        order: [["createdAt", "DESC"]]
+                    })
+                    if (latestReview && Array.isArray(latestReview) && latestReview.length > 0) {
+                        if (Extensions.timeDiffInSeconds(latestReview[0].createdAt, new Date()) < 60) {
+                            return res.status(400).send("UERROR: You can only submit a review once per minute.");
                         }
-                    ],
-                    order: [["createdAt", "DESC"]]
-                })
-                if (latestReview && Array.isArray(latestReview) && latestReview.length > 0) {
-                    if (Extensions.timeDiffInSeconds(latestReview[0].createdAt, new Date()) < 60) {
-                        return res.status(400).send("UERROR: You can only submit a review once per minute.");
                     }
                 }
 
@@ -158,6 +160,21 @@ router.route("/")
                 .catch((err) => {
                     Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Failed to send email to host with ID ${hostID}; error: ${err}.`);
                 });
+
+                // Check if hygiene grade is above 2.5, unflag host and remove warning
+                if (host.flaggedForHygiene && host.hygieneGrade > 2.5) {
+                    host.flaggedForHygiene = false;
+                    await host.save();
+
+                    const warning = await Warning.findOne({ where: { hostID: host.userID } });
+                    if (warning) {
+                        const removePreviousWarning = await warning.destroy();
+                        if (!removePreviousWarning) {
+                            Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Failed to remove warning for host with ID ${hostID}.`);
+                        }
+                    }
+                }
+
                 return res.send("SUCCESS: Review submitted successfully");
             } catch (err) {
                 Logger.log(`REVIEWS SUBMITREVIEW POST ERROR: Failed to submit review; error: ${err}.`);

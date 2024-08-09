@@ -186,7 +186,9 @@ class Analytics {
             return "ERROR: Analytics service not yet set up."
         }
 
-        // console.log("Persisting data...")
+        if (process.env.DEBUG_MODE === "True") {
+            console.log("Persisting data...")
+        }
 
         // Process listing metrics
         for (const listingID of Object.keys(cacheCopy.listingUpdates)) {
@@ -283,7 +285,9 @@ class Analytics {
             return "ERROR: Analytics service not yet set up."
         }
 
-        // console.log(`Update ${this.#metadata.updates} queued.`)
+        if (process.env.DEBUG_MODE === "True") {
+            console.log(`Update ${this.#metadata.updates} queued.`)
+        }
 
         if (this.#metadata.updates >= this.#metadata.updatePersistenceInterval || Extensions.timeDiffInSeconds(new Date(this.#metadata.lastPersistence), new Date()) >= 180) {
             return await this.persistData()

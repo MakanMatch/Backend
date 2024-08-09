@@ -29,7 +29,7 @@ router.post("/createReservation", validateToken, async (req, res) => {
             {
                 model: Host,
                 as: "Host",
-                attributes: ["userID", "username", "fname", "lname"]
+                attributes: ["userID", "username", "fname", "lname", "address"]
             }
         ]
     })
@@ -86,6 +86,8 @@ router.post("/createReservation", validateToken, async (req, res) => {
         Logger.log(`ORDERS CONFIRMRESERVATION CREATERESERVATION ERROR: Failed to make reservation for guest ${guestID} for listing ${listingID}. Sequelize create response: ${reservation}`)
         return res.status(500).send("ERROR: Failed to create reservation.")
     }
+
+    console.log(listing.Host)
 
     const emailText = `
 Dear ${guest.username},

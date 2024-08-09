@@ -4,6 +4,7 @@ const Logger = require("../../../services/Logger");
 const Universal = require("../../../services/Universal");
 const Extensions = require("../../../services/Extensions");
 const Cache = require("../../../services/Cache");
+const Analytics = require("../../../services/Analytics");
 const router = express.Router();
 
 async function isUniqueUsername(username) {
@@ -78,6 +79,31 @@ router.post("/accountInfo", async (req, res) => {
     } catch (err) {
         Logger.log(`SUPERUSERAPI ACCOUNTINFO ERROR: Failed to retrieve account info; error: ${err}`);
         return res.status(500).send("ERROR: Failed to retrieve account info.")
+    }
+})
+
+router.post("/getAnalytics", async (req, res) => {
+    if (!Analytics.checkPermission()) {
+        return res.status(400).send("ERROR: Analytics service is not enabled.");
+    }
+
+    try {
+        const persistResult = await Analytics.persistData();
+        if (persistResult !== true) {
+            Logger.log(`SUPERUSERAPI GETANALYTICS ERROR: Failed to persist analytics data; error: ${persistResult}`);
+            return res.status(500).send("ERROR: Failed to persist and retrieve analytics data.");
+        }
+
+        const allData = await Analytics.getAllMetrics();
+        if (typeof allData == "string") {
+            Logger.log(`SUPERUSERAPI GETANALYTICS ERROR: Failed to retrieve analytics data; error: ${allData}`);
+            return res.status(500).send("ERROR: Failed to persist and retrieve analytics data.");
+        }
+
+        return res.status(200).json(allData);
+    } catch (err) {
+        Logger.log(`SUPERUSERAPI GETANALYTICS ERROR: Failed to persist and retrieve analytics data; error: ${err}`);
+        return res.status(500).send("ERROR: Failed to persist and retrieve analytics data.");
     }
 })
 

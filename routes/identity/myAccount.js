@@ -3,11 +3,13 @@ const router = express.Router();
 const yup = require('yup');
 const axios = require('axios');
 const { Logger, Encryption } = require('../../services');
-const { Guest, Host, Admin, FoodListing } = require('../../models');
+const { Guest, Host, Admin, FoodListing, Review, ChatMessage } = require('../../models');
 const { validateToken } = require('../../middleware/auth');
 const FileManager = require('../../services/FileManager');
 const { storeFile } = require('../../middleware/storeFile');
 const multer = require('multer');
+const { dispatchVerificationEmail } = require('./emailVerification');
+const Universal = require('../../services/Universal');
 
 async function isUniqueUsername(username, currentUser) {
     const usernameExists = await Guest.findOne({ where: { username } }) ||
@@ -80,7 +82,20 @@ router.put('/updateAccountDetails', validateToken, async (req, res) => {
 
         // Update user information
         user.username = username;
-        user.email = email;
+        if (email !== user.email) {
+            user.email = email;
+            user.emailVerified = false;
+            const verificationToken = Universal.generateUniqueID(6);
+            user.emailVerificationToken = verificationToken
+            user.emailVerificationTokenExpiration = new Date(Date.now() + 86400000).toISOString();
+            user.emailVerificationTime = new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString();
+
+            const verificationLink = `${req.headers.origin}/auth/verifyToken?userID=${user.userID}&token=${verificationToken}`;
+
+            dispatchVerificationEmail(user.email, verificationLink)
+        } else {
+            user.email = email;
+        }
         if (contactNum === '' || contactNum === null) {
             user.contactNum = null;
         } else {
@@ -123,12 +138,65 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
             user = await Guest.findOne({ where: { userID } });
         } else if (userType === 'Host') {
             user = await Host.findOne({ where: { userID } });
-        } else if (userType === 'Admin') {
-            user = await Admin.findOne({ where: { userID } });
         }
 
         if (!user) {
             return res.status(400).send('UERROR: User not found.');
+        }
+
+        // Collate all images to delete
+        var collatedImages = [];
+        
+        // Collect profile picture
+        if (user.profilePicture) {
+            collatedImages.push(user.profilePicture);
+        }
+
+        // Collect images from food listings and reviews if user is a host
+        if (userType === 'Host') {
+            const listings = await FoodListing.findAll({ where: { hostID: userID }, attributes: ["listingID", "images"] });
+            if (listings) {
+                for (const listing of listings) {
+                    collatedImages = collatedImages.concat(listing.images.split("|"));
+                }
+            }
+
+            if (user.paymentImage) {
+                collatedImages.push(user.paymentImage);
+            }
+
+            const reviews = await Review.findAll({ where: { hostID: userID }, attributes: ["reviewID", "images"] });
+            if (reviews) {
+                for (const review of reviews) {
+                    if (review.images) {
+                        collatedImages = collatedImages.concat(review.images.split("|"));
+                    }
+                }
+            }
+        }
+
+        // Collect review images if applicable
+        if (userType === 'Guest') {
+            const reviews = await Review.findAll({ where: { guestID: userID }, attributes: ["reviewID", "images"] });
+            if (reviews) {
+                for (const review of reviews) {
+                    if (review.images) {
+                        collatedImages = collatedImages.concat(review.images.split("|"));
+                    }
+                }
+            }
+        }
+
+        // Collect chat message images if applicable
+        const chatMessages = await ChatMessage.findAll({ where: { senderID: userID }, attributes: ["messageID", "image"] });
+        if (chatMessages) {
+            for (const message of chatMessages) {
+                if (message.image) {
+                    collatedImages.push(message.image);
+                }
+
+                await message.destroy();
+            }
         }
 
         const deleteUser = await user.destroy();
@@ -141,6 +209,15 @@ router.delete('/deleteAccount', validateToken, async (req, res) => {
 
         Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT: ${userType} account ${userID} deleted.`)
         res.send(`SUCCESS: User ${userID} deleted successfully.`);
+
+        // Delete all collated images (in the background)
+        for (const image of collatedImages) {
+            try {
+                await FileManager.deleteFile(image);
+            } catch (err) {
+                Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT ERROR: Failed to delete image '${image}' from storage; error: ${err}`);
+            }
+        }
     } catch (err) {
         Logger.log(`IDENTITY MYACCOUNT DELETEACCOUNT ERROR: Failed to delete user ${userID}; error: ${err}`)
         res.status(500).send(`ERROR: Failed to delete user ${userID}.`);

@@ -58,6 +58,7 @@ router.post("/", async (req, res) => {
 
         const userID = Universal.generateUniqueID();
         const hashedPassword = await Encryption.hash(password);
+        const emailVerificationTime = new Date(Date.now() + (1000 * 60 * 60 * 24 * 7)).toISOString();
         const emailVeriToken = Universal.generateUniqueID(6);
         const emailVeriTokenExpiration = new Date(Date.now() + 86400000).toISOString();
         const accountData = {
@@ -66,6 +67,7 @@ router.post("/", async (req, res) => {
             lname,
             username,
             email,
+            emailVerificationTime: emailVerificationTime,
             password: hashedPassword,
             emailVerificationToken: emailVeriToken,
             emailVerificationTokenExpiration: emailVeriTokenExpiration
@@ -162,7 +164,7 @@ router.post("/", async (req, res) => {
     Best regards,
     MakanMatch Team
     `
-        var emailSent = await Emailer.sendEmail(
+        Emailer.sendEmail(
             email,
             "Welcome to MakanMatch!",
             emailText,
@@ -174,15 +176,11 @@ router.post("/", async (req, res) => {
                 }
             )
         )
-
-        if (!emailSent) {
+        .catch (err => {
             user.emailVerificationToken = null;
             user.emailVerificationTokenExpiration = null;
-            await user.save();
-
-            Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created. Verification email couldn't be auto-dispatched.`);
-            return res.send('SUCCESS RESENDVERIFICATION: Account created. Verification email could not be dispatched, retry.');
-        }
+            Logger.log(`IDENTITY CREATEACCOUNT ERROR: Failed to send verification email to ${user.email}. Error: ${err}`)
+        })
 
         Logger.log(`IDENTITY CREATEACCOUNT: ${isHostAccount ? 'Host' : 'Guest'} account with userID ${userID} created. Verification email auto-dispatched.`);
         res.send("SUCCESS: Account created. Please verify your email.");

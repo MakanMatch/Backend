@@ -13,7 +13,9 @@ router.route("/")
         }
 
         try {
-            const review = await Review.findByPk(reviewID)
+            const review = await Review.findByPk(reviewID,{
+                attributes: ['reviewID', 'likeCount']
+            })
             if (!review) {
                 return res.status(404).send("ERROR: Review not found");
             }

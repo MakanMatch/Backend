@@ -275,6 +275,7 @@ router.get("/accountInfo", checkUser, async (req, res) => { // GET account infor
             lname: user.lname,
             username: user.username,
             email: user.email,
+            emailVerificationTime: user.emailVerificationTime,
             contactNum: user.contactNum,
             approxAddress: user.approxAddress,
             address: user.address,

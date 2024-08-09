@@ -1,5 +1,5 @@
 const { Analytics, Logger } = require('../services');
-const { runProcessors } = require('./requestProcessors');
+const { runProcessors } = require('./responseProcessors');
 require('dotenv').config();
 
 const processBody = (jsonString) => {

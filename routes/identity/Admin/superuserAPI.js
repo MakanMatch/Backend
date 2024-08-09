@@ -197,4 +197,29 @@ router.post("/toggleUsageLock", (req, res) => {
     }
 })
 
+router.post("/toggleMakanBot", (req, res) => {
+    const { newStatus } = req.body;
+    if (newStatus && typeof newStatus !== "boolean") {
+        return res.status(400).send("ERROR: Invalid payload provided.");
+    }
+
+    if (newStatus == undefined || newStatus == null) {
+        const saveResult = Cache.set("openaiChatEnabled", !(Cache.get("openaiChatEnabled") === true));
+        if (saveResult !== true) {
+            Logger.log(`SUPERUSERAPI TOGGLEMAKANBOT ERROR: Failed to toggle MakanBot; error: ${saveResult}`);
+            return res.status(500).send(`ERROR: Failed to toggle MakanBot.`);
+        }
+
+        return res.status(200).send(`SUCCESS: MakanBot toggled to ${Cache.get("openaiChatEnabled")}`);
+    } else {
+        const saveResult = Cache.set("openaiChatEnabled", newStatus);
+        if (saveResult !== true) {
+            Logger.log(`SUPERUSERAPI TOGGLEMAKANBOT ERROR: Failed to toggle MakanBot; error: ${saveResult}`);
+            return res.status(500).send(`ERROR: Failed to toggle MakanBot.`);
+        }
+
+        return res.status(200).send(`SUCCESS: OpenAIChat toggled to ${newStatus}`);
+    }
+})
+
 module.exports = { router, at: '/admin/super' };

@@ -51,7 +51,7 @@ app.use(cors({ exposedHeaders: ['refreshedtoken'] }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.set("view engine", "ejs");
-app.set("trust proxy", true);
+app.set("trust proxy", 1);
 const startWebSocketServer = require('./routes/chat/WebSocketServer');
 const { default: rateLimit } = require('express-rate-limit');
 startWebSocketServer(app);
@@ -116,6 +116,8 @@ app.get("/", (req, res) => {
         currentTime: new Date().toString()
     });
 });
+
+app.get('/ip', (request, response) => response.send(request.ip))
 
 // Register routers
 if (config["routerRegistration"] != "automated") {
@@ -245,7 +247,7 @@ async function onDBSynchronise() {
 // Start server
 if (!SEQUELIZE_ACTIVE) {
     app.listen(process.env.SERVER_PORT, () => {
-        console.log(`Server is running on port ${process.env.SERVER_PORT}`)
+        console.log(`MAIN: Server is running on port ${process.env.SERVER_PORT}`)
     })
 } else {
     // Server initialisation with sequelize
@@ -253,10 +255,10 @@ if (!SEQUELIZE_ACTIVE) {
         .then(() => {
             // Create sample FoodListing
             onDBSynchronise()
-            console.log("SEQUELIZE: Database synchronised.")
+            console.log("MAIN SEQUELIZE: Database synchronised.")
             console.log()
             app.listen(process.env.SERVER_PORT, () => {
-                console.log(`Server is running on port ${process.env.SERVER_PORT}`)
+                console.log(`MAIN: Server is running on port ${process.env.SERVER_PORT}`)
                 Universal.booted = true;
             })
         })

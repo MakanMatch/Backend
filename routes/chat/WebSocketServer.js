@@ -670,11 +670,7 @@ function startWebSocketServer(app) {
     }
 
     server.listen(PORT, () => {
-        console.log(`WebSocket server is running on port ${PORT}`);
-
-        setInterval(() => {
-            console.log(`(Listening: ${server.listening}@${PORT}) Active connections: ${Object.keys(clientStore).length}`);
-        }, 5000);
+        console.log(`WSS: WebSocket server is running on port ${PORT}`);
     });
 }
 

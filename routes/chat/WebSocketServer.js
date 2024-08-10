@@ -586,6 +586,14 @@ function startWebSocketServer(app) {
                 return;
             }
 
+            // Broadcast the response message
+            const responseMessage = {
+                action: "send",
+                message: broadcastJSON,
+            };
+
+            broadcastMessage(responseMessage, chatID);
+
             if (latestMessageInChat) {
                 const latestMessageSender = latestMessageInChat.senderID;
                 if (latestMessageSender !== clientStore[connectionID].userID) {
@@ -618,14 +626,6 @@ function startWebSocketServer(app) {
                     }
                 }
             }
-
-            // Broadcast the response message
-            const responseMessage = {
-                action: "send",
-                message: broadcastJSON,
-            };
-
-            broadcastMessage(responseMessage, chatID);
         } catch (error) {
             Logger.log(`CHAT WEBSOCKETSERVER HANDLEMESSAGESEND ERROR: Failed to create message sent by user ${clientStore[connectionID].userID} for chat ${chatID}; error: ${error}`);
             ws.send(ChatEvent.error("Failed to create message. Please try again."));

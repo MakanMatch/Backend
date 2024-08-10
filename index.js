@@ -51,7 +51,7 @@ app.use(cors({ exposedHeaders: ['refreshedtoken'] }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.set("view engine", "ejs");
-app.set("trust proxy", 2);
+app.set("trust proxy", 3);
 const startWebSocketServer = require('./routes/chat/WebSocketServer');
 const { default: rateLimit } = require('express-rate-limit');
 startWebSocketServer(app);

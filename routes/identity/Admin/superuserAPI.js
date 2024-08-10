@@ -5,6 +5,7 @@ const Universal = require("../../../services/Universal");
 const Extensions = require("../../../services/Extensions");
 const Cache = require("../../../services/Cache");
 const Analytics = require("../../../services/Analytics");
+const Encryption = require("../../../services/Encryption");
 const router = express.Router();
 
 async function isUniqueUsername(username) {
@@ -127,7 +128,7 @@ router.post("/createAdmin", validateSuperuser, async (req, res) => {
             lname,
             username,
             email,
-            password,
+            password: await Encryption.hash(password),
             role
         });
         return res.status(200).send(`SUCCESS: Admin created successfully. ID: ${admin.userID}`)

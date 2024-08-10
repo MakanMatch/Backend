@@ -259,6 +259,7 @@ def retrieveAnalytics():
     print()
     print("Retrieving analytics...")
     analyticsResponse = None
+    responseJSON = None
     while True:
         try:
             analyticsResponse = requests.post(
@@ -291,6 +292,18 @@ def retrieveAnalytics():
                 print("Retrieve analytics aborted.")
                 break
             print("Retrieving analytics...")
+    
+    print()
+    saveAnalyticsToFile = input("Save analytics data to file? (y/n) ").strip().lower()
+    while saveAnalyticsToFile not in ["y", "n"]:
+        saveAnalyticsToFile = input("Invalid choice. Save analytics data to file? (y/n) ").strip().lower()
+    
+    if saveAnalyticsToFile == "y":
+        print()
+        print("Saving analytics data to file...")
+        with open("MakanMatchAnalytics.json", "w") as f:
+            json.dump(responseJSON, f)
+        print("Analytics data saved to MakanMatchAnalytics.json.")
 
 def accessMakanMatchLogs():
     print()

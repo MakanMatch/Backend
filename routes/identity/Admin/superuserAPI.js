@@ -25,18 +25,25 @@ router.get("/", (req, res) => {
     return res.send("SUCCESS: Superuser API is healthy!");
 })
 
-router.use((req, res, next) => {
+const validateSuperuser = (req, res, next) => {
     if (req.headers["AccessKey"] !== process.env.SUPERUSER_KEY && req.headers["accesskey"] !== process.env.SUPERUSER_KEY) {
         return res.status(403).send("ERROR: Access Unauthorised.")
     }
     next();
-})
+}
 
-router.post("/authenticate", (req, res) => {
+// router.use((req, res, next) => {
+//     if (req.headers["AccessKey"] !== process.env.SUPERUSER_KEY && req.headers["accesskey"] !== process.env.SUPERUSER_KEY) {
+//         return res.status(403).send("ERROR: Access Unauthorised.")
+//     }
+//     next();
+// })
+
+router.post("/authenticate", validateSuperuser, (req, res) => {
     return res.send("SUCCESS: Authentication successful.")
 })
 
-router.post("/accountInfo", async (req, res) => {
+router.post("/accountInfo", validateSuperuser, async (req, res) => {
     const { userID, username, email } = req.body;
     if (!userID && !username && !email) {
         return res.status(400).send("ERROR: One or more required payloads were not provided.");
@@ -68,7 +75,7 @@ router.post("/accountInfo", async (req, res) => {
     }
 })
 
-router.post("/getAnalytics", async (req, res) => {
+router.post("/getAnalytics", validateSuperuser, async (req, res) => {
     if (!Analytics.checkPermission()) {
         return res.status(400).send("ERROR: Analytics service is not enabled.");
     }
@@ -93,7 +100,7 @@ router.post("/getAnalytics", async (req, res) => {
     }
 })
 
-router.post("/createAdmin", async (req, res) => {
+router.post("/createAdmin", validateSuperuser, async (req, res) => {
     const { fname, lname, username, email, password, role } = req.body;
     if (!fname || !lname || !username || !email || !password || !role) {
         return res.status(400).send("ERROR: One or more required payloads were not provided.");
@@ -130,7 +137,7 @@ router.post("/createAdmin", async (req, res) => {
     }
 })
 
-router.post("/deleteAdmin", async (req, res) => {
+router.post("/deleteAdmin", validateSuperuser, async (req, res) => {
     const { username, email, userID } = req.body;
     if (!username && !email && !userID) {
         return res.status(400).send("ERROR: One or more required payloads were not provided.");
@@ -158,7 +165,7 @@ router.post("/deleteAdmin", async (req, res) => {
     }
 })
 
-router.post("/toggleUsageLock", (req, res) => {
+router.post("/toggleUsageLock", validateSuperuser, (req, res) => {
     const { newStatus } = req.body;
     if (newStatus && typeof newStatus !== "boolean") {
         return res.status(400).send("ERROR: Invalid payload provided.");
@@ -183,7 +190,7 @@ router.post("/toggleUsageLock", (req, res) => {
     }
 })
 
-router.post("/toggleMakanBot", (req, res) => {
+router.post("/toggleMakanBot", validateSuperuser, (req, res) => {
     const { newStatus } = req.body;
     if (newStatus && typeof newStatus !== "boolean") {
         return res.status(400).send("ERROR: Invalid payload provided.");
@@ -208,7 +215,7 @@ router.post("/toggleMakanBot", (req, res) => {
     }
 })
 
-router.post("/getLogs", async (req, res) => {
+router.post("/getLogs", validateSuperuser, async (req, res) => {
     if (!Logger.checkPermission()) {
         return res.status(400).send("ERROR: Logging service is not enabled.");
     }

@@ -161,6 +161,9 @@ if (config["routerRegistration"] != "automated") {
     console.log("MAIN: Route registration mode: AUTOMATED")
     require('./routes').forEach(({ router, at, name }) => {
         try {
+            if (at == "/admin/super") {
+                console.log("MAIN: Registering superuser API.")
+            }
             app.use(at, router)
         } catch (err) {
             Logger.logAndThrow(`MAIN: Failed to register router auto-loaded from ${name} at '${at}'. Error: ${err}`)

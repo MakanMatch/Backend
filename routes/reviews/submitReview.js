@@ -123,6 +123,9 @@ router.route("/")
                     return res.status(500).send("ERROR: Failed to update host food rating and hygiene rating.");
                 }
 
+                const origin = req.headers.origin
+                const reviewsPageLink = `${origin}/reviews?hostID=${hostID}`
+
                 // Send Email to host about new review received
                 const emailText = `
                     Dear ${host.firstName} ${host.lastName},
@@ -136,7 +139,7 @@ router.route("/")
                         2. Click on your profile picture located in the top right corner of the page to access your account.
                         3.Navigate to the "Makan Reviews" tab in the sidebar to view all the reviews you have received.
 
-                    Alternatively, you can directly access your reviews by clicking or copy this link to your browser this link: "http://localhost:8500/reviews?hostID=${hostID}"
+                    Alternatively, you can directly access your reviews by clicking or copy this link to your browser this link: ${reviewsPageLink}
 
                     We hope you have a pleasant experience! Thank you for using MakanMatch.
 
@@ -153,7 +156,7 @@ router.route("/")
                         {
                             hostName: `${host.fname} ${host.lname}`,
                             guestName: `${guest.fname} ${guest.lname}`,
-                            hostID: hostID
+                            reviewsPageLink: reviewsPageLink
                         }
                     )
                 )

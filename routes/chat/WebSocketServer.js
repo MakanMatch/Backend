@@ -207,6 +207,14 @@ function startWebSocketServer(app) {
                 return;
             }
 
+            if (parsedMessage.action == "ping") {
+                ws.send(JSON.stringify({
+                    event: "pong",
+                    message: `Pong!${clientStore[connectionID].authToken ? "": " Authorise this connection to proceed with other actions."}`
+                }));
+                return;
+            }
+
             // Check connection authorisation
             if (parsedMessage.action != "connect" && clientStore[connectionID].authToken == null) {
                 ws.send(ChatEvent.error("Connect and authenticate this connection before proceeding with other actions."));
@@ -280,6 +288,11 @@ function startWebSocketServer(app) {
                 clientStore[connectionID].userID = userID;
                 clientStore[connectionID].user = user;
                 clientStore[connectionID].userType = userType;
+
+                ws.send(JSON.stringify({
+                    event: "connected",
+                    message: `Connection established. Welcome ${user.fname} ${user.lname}.`
+                }))
 
                 // Identify whether host or guest
                 if (userType == "Guest") {

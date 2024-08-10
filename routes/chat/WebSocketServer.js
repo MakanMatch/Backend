@@ -55,7 +55,7 @@ async function authenticateConnection(authToken) {
 }
 
 function startWebSocketServer(app) {
-    const PORT = 8080;
+    const PORT = parseInt(process.env.WS_PORT) || 8080;
     const server = http.createServer(app);
     const wss = new WebSocket.Server({ server });
     let clientStore = {};
@@ -671,6 +671,10 @@ function startWebSocketServer(app) {
 
     server.listen(PORT, () => {
         console.log(`WebSocket server is running on port ${PORT}`);
+
+        setInterval(() => {
+            console.log(`(Listening: ${server.listening}@${PORT}) Active connections: ${Object.keys(clientStore).length}`);
+        }, 5000);
     });
 }
 

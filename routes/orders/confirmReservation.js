@@ -87,8 +87,6 @@ router.post("/createReservation", validateToken, async (req, res) => {
         return res.status(500).send("ERROR: Failed to create reservation.")
     }
 
-    console.log(listing.Host)
-
     const emailText = `
 Dear ${guest.username},
 Thank you for reserving with ${listing.Host.username}! Here are your upcoming reservation's details:

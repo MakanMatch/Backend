@@ -51,7 +51,11 @@ app.use(cors({ exposedHeaders: ['refreshedtoken'] }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.set("view engine", "ejs");
-app.set("trust proxy", 4);
+if (process.env.PROD_TRUST_PROXY !== undefined && (process.env.PROD_TRUST_PROXY === "True" || parseInt(process.env.PROD_TRUST_PROXY) !== NaN)) {
+    const trustProxy = parseInt(process.env.PROD_TRUST_PROXY) || true
+    console.log("MAIN: Setting trust proxy to " + trustProxy)
+    app.set('trust proxy', trustProxy)
+}
 const startWebSocketServer = require('./routes/chat/WebSocketServer');
 const { default: rateLimit } = require('express-rate-limit');
 startWebSocketServer(app);

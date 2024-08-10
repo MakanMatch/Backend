@@ -43,7 +43,7 @@ class BootCheck {
             }
         }
 
-        let optionalVariables = ["LOGGING_ENABLED", "DEBUG_MODE", "OPENAI_API_KEY"]
+        let optionalVariables = ["LOGGING_ENABLED", "DEBUG_MODE", "OPENAI_API_KEY", "PROD_TRUST_PROXY"]
         for (let variable of optionalVariables) {
             if (process.env[variable] !== undefined) {
                 optionalVariables = optionalVariables.filter(v => v !== variable)

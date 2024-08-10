@@ -108,7 +108,7 @@ app.use((req, res, next) => {
 })
 app.use(checkHeaders)
 if (config["routeLogging"] !== false) { app.use(logRoutes) }
-if (Analytics.checkPermission()) {
+if (Analytics.checkProcessPermission()) {
     console.log("MAIN: Registering analytics middleware.")
     app.use(newRequest)
     app.use(beforeResponse)
@@ -173,7 +173,7 @@ if (config["routerRegistration"] != "automated") {
 
 async function onDBSynchronise() {
     // SQL-reliant service setup
-    if (Analytics.checkPermission()) {
+    if (Analytics.checkProcessPermission()) {
         Analytics.setup(true)
             .then(result => {
                 if (result !== true) {

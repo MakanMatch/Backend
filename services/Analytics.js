@@ -61,6 +61,10 @@ class Analytics {
         systemMetrics: ["lastBoot"]
     }
 
+    static checkProcessPermission() {
+        return process.env.ANALYTICS_ENABLED === "True"
+    }
+
     static checkPermission() {
         return process.env.ANALYTICS_ENABLED === "True" && Cache.get("analyticsEnabled") !== false
     }
@@ -70,7 +74,7 @@ class Analytics {
     }
 
     static async setup(withLastBoot = false, updatePersistenceInterval = null) {
-        if (!this.checkPermission()) {
+        if (!this.checkProcessPermission()) {
             return "ERROR: Analytics service operation permission denied."
         }
 
@@ -183,7 +187,7 @@ class Analytics {
     static async persistData() {
         const cacheCopy = structuredClone(this.cacheData)
 
-        if (!this.#setup) {
+        if (!this.#setup || !Analytics.checkPermission()) {
             return "ERROR: Analytics service not yet set up."
         }
 

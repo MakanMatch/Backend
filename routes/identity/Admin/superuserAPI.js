@@ -114,6 +114,8 @@ router.post("/toggleAnalytics", validateSuperuser, (req, res) => {
             return res.status(500).send(`ERROR: Failed to toggle analytics.`);
         }
 
+        Logger.log(`SUPERUSERAPI TOGGLEANALYTICS: Analytics service toggled to ${Cache.get("analyticsEnabled")}.`);
+
         return res.status(200).send(`SUCCESS: Analytics service toggled to ${Cache.get("analyticsEnabled")}`);
     } else {
         const saveResult = Cache.set("analyticsEnabled", newStatus);
@@ -204,6 +206,8 @@ router.post("/toggleUsageLock", validateSuperuser, (req, res) => {
             return res.status(500).send(`ERROR: Failed to toggle usage lock.`);
         }
 
+        Logger.log(`SUPERUSERAPI TOGGLEUSAGELOCK: Usage lock toggled to ${Cache.get("usageLock")}.`);
+
         return res.status(200).send(`SUCCESS: Usage lock toggled to ${Cache.get("usageLock")}`);
     } else {
         const saveResult = Cache.set("usageLock", newStatus);
@@ -211,6 +215,8 @@ router.post("/toggleUsageLock", validateSuperuser, (req, res) => {
             Logger.log(`SUPERUSERAPI TOGGLEUSAGELOCK ERROR: Failed to toggle usage lock; error: ${saveResult}`);
             return res.status(500).send(`ERROR: Failed to toggle usage lock.`);
         }
+
+        Logger.log(`SUPERUSERAPI TOGGLEUSAGELOCK: Usage lock toggled to ${newStatus}.`);
 
         return res.status(200).send(`SUCCESS: Usage lock toggled to ${newStatus}`);
     }
@@ -229,6 +235,8 @@ router.post("/toggleMakanBot", validateSuperuser, (req, res) => {
             return res.status(500).send(`ERROR: Failed to toggle MakanBot.`);
         }
 
+        Logger.log(`SUPERUSERAPI TOGGLEMAKANBOT: MakanBot toggled to ${Cache.get("openaiChatEnabled")}.`);
+
         return res.status(200).send(`SUCCESS: MakanBot toggled to ${Cache.get("openaiChatEnabled")}`);
     } else {
         const saveResult = Cache.set("openaiChatEnabled", newStatus);
@@ -236,6 +244,8 @@ router.post("/toggleMakanBot", validateSuperuser, (req, res) => {
             Logger.log(`SUPERUSERAPI TOGGLEMAKANBOT ERROR: Failed to toggle MakanBot; error: ${saveResult}`);
             return res.status(500).send(`ERROR: Failed to toggle MakanBot.`);
         }
+
+        Logger.log(`SUPERUSERAPI TOGGLEMAKANBOT: MakanBot toggled to ${newStatus}.`);
 
         return res.status(200).send(`SUCCESS: OpenAIChat toggled to ${newStatus}`);
     }

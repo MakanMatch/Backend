@@ -101,6 +101,31 @@ router.post("/getAnalytics", validateSuperuser, async (req, res) => {
     }
 })
 
+router.post("/toggleAnalytics", validateSuperuser, (req, res) => {
+    const { newStatus } = req.body;
+    if (newStatus && typeof newStatus !== "boolean") {
+        return res.status(400).send("ERROR: Invalid payload provided.");
+    }
+
+    if (newStatus == undefined || newStatus == null) {
+        const saveResult = Cache.set("analyticsEnabled", !(Cache.get("analyticsEnabled") === true));
+        if (saveResult !== true) {
+            Logger.log(`SUPERUSERAPI TOGGLEANALYTICS ERROR: Failed to toggle analytics service; error: ${saveResult}`);
+            return res.status(500).send(`ERROR: Failed to toggle analytics.`);
+        }
+
+        return res.status(200).send(`SUCCESS: Analytics service toggled to ${Cache.get("analyticsEnabled")}`);
+    } else {
+        const saveResult = Cache.set("analyticsEnabled", newStatus);
+        if (saveResult !== true) {
+            Logger.log(`SUPERUSERAPI TOGGLEANALYTICS ERROR: Failed to toggle analytics service; error: ${saveResult}`);
+            return res.status(500).send(`ERROR: Failed to toggle analytics.`);
+        }
+
+        return res.status(200).send(`SUCCESS: Analytics service toggled to ${newStatus}`);
+    }
+})
+
 router.post("/createAdmin", validateSuperuser, async (req, res) => {
     const { fname, lname, username, email, password, role } = req.body;
     if (!fname || !lname || !username || !email || !password || !role) {

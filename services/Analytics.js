@@ -1,4 +1,5 @@
 const { SystemAnalytics, ListingAnalytics, RequestAnalytics } = require('../models');
+const Cache = require('./Cache');
 const Extensions = require('./Extensions');
 const Logger = require('./Logger');
 const Universal = require('./Universal')
@@ -61,7 +62,7 @@ class Analytics {
     }
 
     static checkPermission() {
-        return process.env.ANALYTICS_ENABLED === "True"
+        return process.env.ANALYTICS_ENABLED === "True" && Cache.get("analyticsEnabled") !== false
     }
 
     static ignoreCDN() {

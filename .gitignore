@@ -10,3 +10,4 @@ sqlQueries.txt
 cache.json
 package-lock.json
 test.js
+superuserScript.py

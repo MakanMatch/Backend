@@ -10,6 +10,10 @@ router.post("/updateImpression", async (req, res) => {
         return
     }
 
+    if (!Analytics.checkPermission()) {
+        return res.send("SUCCESS: Update received but will not be registered.")
+    }
+
     try {
         const listing = await FoodListing.findByPk(listingID, { attributes: ["listingID"] });
         if (!listing) {
@@ -41,6 +45,10 @@ router.post("/updateClick", async (req, res) => {
     if (!listingID) {
         res.status(400).send("ERROR: Listing ID not provided.")
         return
+    }
+
+    if (!Analytics.checkPermission()) {
+        return res.send("SUCCESS: Update received but will not be registered.")
     }
 
     try {

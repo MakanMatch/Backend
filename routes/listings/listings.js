@@ -26,6 +26,12 @@ router.post("/addListing", validateToken, async (req, res) => {
         if (req.files.length === 0) {
             return res.status(400).send("UERROR: No image was uploaded");
         } else if (req.files.length > 6) {
+            // Delete all images if more than 6 images are uploaded
+            for (let i = 0; i < req.files.length; i++) {
+                await FileManager.deleteFile(req.files[i].filename);
+            }
+            Logger.log(`LISTINGS ADDLISTING ERROR: More than six images uploaded. ${req.files.length} image(s) deleted successfully.`)
+
             return res.status(400).send("UERROR: Maximum of 6 images can be uploaded");
         }
 

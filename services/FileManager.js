@@ -444,26 +444,18 @@ class FileManager {
         if (file == "mode") { return "ERROR: Cannot delete mode." }
 
         // Check if file exists first
-        if (this.#mode == "cloud") {
-            const fileExists = await FireStorage.fileExistsAt(file)
-            if (typeof fileExists === 'string') {
-                return `ERROR: ${fileExists}`
-            }
-            if (!fileExists) {
-                return "ERROR: File does not exist."
-            }
-        } else {
-            if (!FileOps.exists(path.join(this.fileStorePath, file))) {
-                return "ERROR: File does not exist."
-            }
+        if (!FileOps.exists(path.join(this.fileStorePath, file))) {
+            return "ERROR: File does not exist."
         }
 
         // Process file deletion and synchronize file store
         if (this.#mode == "cloud") {
             // Delete file from cloud storage
-            const fileDelete = await FireStorage.deleteFile(file)
-            if (fileDelete !== true) {
-                return `ERROR: ${fileDelete}`
+            if (await FireStorage.fileExistsAt(file) === true) {
+                const fileDelete = await FireStorage.deleteFile(file)
+                if (fileDelete !== true) {
+                    return `ERROR: ${fileDelete}`
+                }
             }
         }
 

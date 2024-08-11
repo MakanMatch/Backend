@@ -29,7 +29,9 @@ if (Cache.get("usageLock") == undefined) {
 }
 
 const FileManager = require('./services/FileManager');
-FileManager.setup().catch(err => { Logger.logAndThrow(err) })
+FileManager.setup()
+    .then(res => { if (res !== true) { throw new Error(res) } })
+    .catch(err => { Logger.logAndThrow(err) })
 
 const OpenAIChat = require('./services/OpenAIChat');
 if (OpenAIChat.checkPermission()) {

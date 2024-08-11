@@ -148,7 +148,17 @@ router.get("/getListing", checkUser, async (req, res) => {
     if (!isHost && (!req.user || !guests.includes(req.user.userID))) {
         delete preppedData.address;
         if (preppedData.guests) {
-            delete preppedData.guests;
+            preppedData.guests = preppedData.guests.map(guest => {
+                const { userID, Reservation } = guest;
+                const { portions } = Reservation;
+
+                return {
+                    userID,
+                    Reservation: {
+                        portions
+                    }
+                }
+            })
         }
         if (preppedData.Host) {
             delete preppedData.Host.paymentImage;

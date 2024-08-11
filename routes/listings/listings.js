@@ -25,6 +25,8 @@ router.post("/addListing", validateToken, async (req, res) => {
 
         if (req.files.length === 0) {
             return res.status(400).send("UERROR: No image was uploaded");
+        } else if (req.files.length > 6) {
+            return res.status(400).send("UERROR: Maximum of 6 images can be uploaded");
         }
 
         var validatedData;

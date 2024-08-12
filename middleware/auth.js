@@ -3,6 +3,7 @@ const Logger = require('../services/Logger');
 const TokenManager = require('../services/TokenManager');
 const { UserRecord } = require('../models');
 const { Op } = require('sequelize');
+const Cache = require('../services/Cache');
 require('dotenv').config();
 
 const validateToken = async (req, res, next) => {
@@ -202,4 +203,21 @@ const validateAdmin = async (req, res, next) => {
     next();
 };
 
-module.exports = { validateToken, checkUser, validateAdmin };
+const validateSuperuser = (req, res, next) => {
+    if (req.headers["AccessKey"] !== process.env.SUPERUSER_KEY && req.headers["accesskey"] !== process.env.SUPERUSER_KEY) {
+        return res.status(403).send("ERROR: Access Unauthorised.")
+    }
+    next();
+}
+
+const validateSuperuserSensitive = (req, res, next) => {
+    if (!process.env.SUPERUSER_SENSITIVE_ACTIONS_ENABLED || process.env.SUPERUSER_SENSITIVE_ACTIONS_ENABLED !== "True") {
+        return res.status(403).send("ERROR: Access Unauthorised.")
+    } else if (Cache.get("superuserSensitiveActive") !== true) {
+        return res.status(403).send("ERROR: Access Unauthorised.")
+    }
+
+    next();
+}
+
+module.exports = { validateToken, checkUser, validateAdmin, validateSuperuser, validateSuperuserSensitive };

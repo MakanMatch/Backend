@@ -271,7 +271,10 @@ async function presentationTransform() {
         address: "10 Jalan Arnap, Singapore 249316",
         approxCoordinates: "1.3016989, 103.8284868",
         coordinates: "1.3016989, 103.8284868",
-        emailVerified: true
+        emailVerified: true,
+        foodRating: 3.5,
+        hygieneGrade: 3,
+        reviewsCount: 2,
     })
 
     console.log("")
@@ -405,7 +408,7 @@ async function presentationTransform() {
     const samanthasActiveReservation = await Reservation.create({
         guestID: samantha.userID,
         listingID: jamiesListing.listingID,
-        referenceNum: Universal.generateUniqueID(6).toUpperCase(),
+        referenceNum: Universal.generateUniqueID(6, [susiePastReservation.referenceNum]).toUpperCase(),
         datetime: new Date(Date.now() - 604850000).toISOString(),
         portions: 1,
         totalPrice: 3.0,

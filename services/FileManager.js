@@ -175,6 +175,11 @@ class FileManager {
         })
     }
 
+    static getContext() {
+        if (!this.#initialized) { return 'ERROR: FileManager must be setup first.' }
+        return this.#fileStoreContext;
+    }
+
     static async setup(mode = "cloud") {
         if (!this.checkPermission()) { return "ERROR: FileManager operation permission denied." }
         if (this.#initialized) { return true; }

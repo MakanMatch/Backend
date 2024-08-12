@@ -1,7 +1,7 @@
 const { v4: uuidv4 } = require('uuid')
 const prompt = require("prompt-sync")({ sigint: true });
 const jwt = require('jsonwebtoken');
-const { Admin, ChatHistory, ChatMessage, FoodListing, Guest, Host, Reservation, Review, Warning, sequelize } = require('./models');
+const { Admin, ChatHistory, ChatMessage, FavouriteListing, FoodListing, Guest, Host, ListingAnalytics, RequestAnalytics, Reservation, Review, ReviewLike, SystemAnalytics, UserRecord, Warning, sequelize } = require('./models');
 const Encryption = require('./services/Encryption');
 const Universal = require('./services/Universal');
 require('dotenv').config()
@@ -210,33 +210,244 @@ async function signJWT() {
     }
 }
 
-async function createWarning() {
-    var creating = true;
-    while (creating) {
-        console.log("")
-        console.log("Creating a new warning...")
+// New tools: softreset, entityreset, rmimagerefs, presentationtransform
 
-        try {
-            const warning = await Warning.create({
-                reason: prompt("Reason: "),
-                hostID: prompt("Host ID: "),
-                issuingAdminID: prompt("Issuing admin ID: "),
-                datetime: new Date().toISOString()
-            })
-        } catch (err) {
-            console.log("Failed to create warning; error: " + err)
-            creating = prompt("Try again? (y/n) ") == "y"
-            console.log("")
-            continue
-        }
-
-        console.log("Warning created!")
-        console.log("")
-        if (prompt("Create another warning? (y/n): ").toLowerCase() !== 'y') {
-            creating = false;
-            console.log("")
-        }
+async function softReset() {
+    console.log("")
+    const choice = prompt("This will destroy all records in the tables. Confirm soft reset? (y/n): ")
+    if (choice !== 'y') {
+        return
     }
+
+    console.log("")
+    console.log("Soft resetting...")
+    try {
+        await Admin.destroy({ where: {} });
+        await ChatHistory.destroy({ where: {} });
+        await ChatMessage.destroy({ where: {} });
+        await FavouriteListing.destroy({ where: {} });
+        await FoodListing.destroy({ where: {} });
+        await Guest.destroy({ where: {} });
+        await Host.destroy({ where: {} });
+        await ListingAnalytics.destroy({ where: {} });
+        await RequestAnalytics.destroy({ where: {} });
+        await Reservation.destroy({ where: {} });
+        await Review.destroy({ where: {} });
+        await ReviewLike.destroy({ where: {} });
+        await SystemAnalytics.destroy({ where: {} });
+        await UserRecord.destroy({ where: {} });
+        await Warning.destroy({ where: {} });
+
+        console.log("Tables soft resetted successfully!")
+    } catch (err) {
+        console.log(`Failed to soft reset tables; error: ${err}`)
+    }
+}
+
+async function presentationTransform() {
+    console.log("")
+    const choice = prompt("You will need to soft-reset the database first. Still continue? (y/n): ")
+    if (choice.toLowerCase() !== 'y') {
+        return
+    }
+
+    console.log("")
+    await softReset()
+
+    console.log("")
+    console.log("Beginning presentation transform...")
+    console.log("")
+
+    // Create Jamie Oliver
+    const jamie = await Host.create({
+        userID: Universal.generateUniqueID(),
+        fname: "Jamie",
+        lname: "Oliver",
+        email: "jamieoliver@example.com",
+        username: "jamieoliver",
+        password: await Encryption.hash(prompt("Enter Jamie Oliver's password: ").trim()),
+        contactNum: "12345678",
+        approxAddress: "Jalan Arnap Road, Singapore",
+        address: "10 Jalan Arnap, Singapore 249316",
+        approxCoordinates: "1.3016989, 103.8284868",
+        coordinates: "1.3016989, 103.8284868",
+        emailVerified: true
+    })
+
+    console.log("")
+    console.log(`Created host ${jamie.username} with user ID: ${jamie.userID}`);
+    console.log("")
+
+    // Create William Atkins
+    // const william = await Host.create({
+    //     userID: Universal.generateUniqueID(),
+    //     fname: "William",
+    //     lname: "Atkins",
+    //     username: "williamatkins",
+    //     email: "williamatkins@example.com",
+    //     password: await Encryption.hash(prompt("Enter William Atkins' password: ").trim()),
+    //     contactNum: "12345679",
+    //     approxAddress: "Yio Chu Kang, Singapore 568059",
+    //     address: "9, Yio Chu Kang Gardens, 568059",
+    //     approxCoordinates: "1.381102, 103.836716",
+    //     coordinates: "1.3811342, 103.8367492",
+    //     emailVerified: true
+    // })
+
+    // console.log("")
+    // console.log(`Created host ${william.username} with user ID: ${william.userID}`);
+    // console.log("")
+
+    // Create Susie Jones
+    const susie = await Guest.create({
+        userID: Universal.generateUniqueID(),
+        fname: "Susie",
+        lname: "Jones",
+        username: "susiejones",
+        email: "susiejones@example.com",
+        password: await Encryption.hash(prompt("Enter password for Susie Jones: ").trim()),
+        address: "Block 310A Anchorvale Lane Singapore 542310",
+        mealsMatched: 1,
+        emailVerified: true
+    });
+
+    console.log("")
+    console.log(`Created guest ${susie.username} with user ID: ${susie.userID}`);
+    console.log("")
+
+    // Create Samantha Hopkins
+    const samantha = await Guest.create({
+        userID: Universal.generateUniqueID(),
+        fname: "Samantha",
+        lname: "Hopkins",
+        username: "sammyhops",
+        email: "samanthahopkins@example.com",
+        password: await Encryption.hash(prompt("Enter password for Samantha Hopkins: ").trim()),
+        contactNum: "12344567",
+        address: "86 Edgedale Plains Singapore 828738",
+        mealsMatched: 0,
+        emailVerified: true
+    })
+
+    console.log("")
+    console.log(`Created guest ${samantha.username} with user ID: ${samantha.userID}`)
+    console.log("")
+
+    // Create 1 Listing for Jamie, 1 Listing (7 days ago datetime) for Jamie
+    const jamiesListing = await FoodListing.create({
+        listingID: Universal.generateUniqueID(),
+        title: "Pani Puri",
+        shortDescription: "Indian street food!",
+        longDescription: "Burst of flavours every time! Join me for a tantalising meal mixed with spicy and tangy flavours!",
+        images: "panipuri.png",
+        portionPrice: 5.0,
+        approxAddress: "Jalan Arnap Road, Singapore",
+        address: "10 Jalan Arnap, Singapore 249316",
+        totalSlots: 5,
+        datetime: new Date(Date.now() + 21600000).toISOString(),
+        published: true,
+        approxCoordinates: "1.3016989, 103.8284868",
+        hostID: jamie.userID
+    })
+
+    console.log(`Created a listing by host ${jamie.username} (Datetime: ${new Date(jamiesListing.datetime).toString()}) with listing ID: ${jamiesListing.listingID}`);
+
+    const jamiesPastListing = await FoodListing.create({
+        listingID: Universal.generateUniqueID(),
+        title: "Chips and Avocado",
+        shortDescription: "Delicious burst of green flavour!",
+        longDescription: "Just bought some fresh avocados from the market! Can't wait for a fresh meal with you all!",
+        images: "avocado.png",
+        portionPrice: 3.0,
+        approxAddress: "Jalan Arnap Road, Singapore",
+        address: "10 Jalan Arnap, Singapore 249316",
+        totalSlots: 6,
+        datetime: new Date(Date.now() - 604800000).toISOString(),
+        published: true,
+        approxCoordinates: "1.3016989, 103.8284868",
+        hostID: jamie.userID
+    })
+
+    console.log(`Created listing by host ${jamie.username} (Datetime: ${new Date(jamiesPastListing.datetime).toString()}) with listing ID: ${jamiesPastListing.listingID}`);
+
+    // Create Susie's past reservation for Jamie
+    const susiePastReservation = await Reservation.create({
+        guestID: susie.userID,
+        listingID: jamiesPastListing.listingID,
+        referenceNum: Universal.generateUniqueID(6).toUpperCase(),
+        datetime: new Date(Date.now() - 604850000).toISOString(),
+        portions: 1,
+        totalPrice: 3.0,
+        markedPaid: true,
+        paidAndPresent: true,
+        chargeableCancelActive: false
+    })
+
+    console.log(`Created Susie's past reservation (Datetime: ${new Date(susiePastReservation.datetime).toString()}) with reference num: ${susiePastReservation.referenceNum}`);
+
+    // Create Samantha's reservation with William
+    const samanthasActiveReservation = await Reservation.create({
+        guestID: samantha.userID,
+        listingID: jamiesListing.listingID,
+        referenceNum: Universal.generateUniqueID(6).toUpperCase(),
+        datetime: new Date(Date.now() - 604850000).toISOString(),
+        portions: 1,
+        totalPrice: 3.0,
+        markedPaid: true,
+        paidAndPresent: true,
+        chargeableCancelActive: false
+    })
+
+    console.log(`Created Samantha's active reservation (Datetime: ${new Date(samanthasActiveReservation.datetime).toString()}) with reference num: ${samanthasActiveReservation.referenceNum}`);
+
+    // Create Reviews
+    const review1 = await Review.create({
+        reviewID: Universal.generateUniqueID(),
+        foodRating: 4,
+        hygieneRating: 3,
+        comments: "Nice and tasty food, but cleanliness of the kitchen can be improved, saw some ants in the bowl.",
+        dateCreated: new Date().toISOString(),
+        guestID: samantha.userID,
+        hostID: jamie.userID
+    })
+
+    console.log(`Created Review1 with review ID for Jamie by Samantha: ${review1.reviewID}`);
+
+    const review2 = await Review.create({
+        reviewID: Universal.generateUniqueID(),
+        foodRating: 3,
+        hygieneRating: 3,
+        comments: "Food is okay. But the bowl and utensils is oily, should improve on that!",
+        dateCreated: new Date().toISOString(),
+        guestID: samantha.userID,
+        hostID: jamie.userID
+    })
+
+    console.log(`Created Review2 with review ID for Jamie by Samantha: ${review2.reviewID}`);
+
+    // Create Chat History between Samantha and Jamie
+    const chatHistory = await ChatHistory.create({
+        chatID: Universal.generateUniqueID(),
+        user1ID: jamie.userID,
+        user2ID: samantha.userID,
+        datetime: new Date(Date.now() - 36000000).toISOString(),
+    })
+
+    console.log(`Chat History with ID ${chatHistory.chatID} for ${chatHistory.user1ID} (Jamie) and ${chatHistory.user2ID} (Samantha)`)
+
+    // Create > 6 hour prior Chat Message in Chat History by Samantha to Jamie
+    const chatMessage = await ChatMessage.create({
+        messageID: Universal.generateUniqueID(),
+        message: "Hi Jamie, how are you?",
+        senderID: samantha.userID,
+        datetime: new Date(Date.now() - 25200000).toISOString(),
+        chatID: chatHistory.chatID
+    })
+
+    console.log(`Chat Message with ID ${chatMessage.messageID} (Datetime: ${new Date(chatMessage.datetime).toString()}) created for ${chatMessage.senderID}`)
+    console.log("")
+
+    console.log("Presentation transform successful.");
 }
 
 sequelize.sync({ alter: true })
@@ -273,8 +484,12 @@ sequelize.sync({ alter: true })
             await signJWT()
         }
 
-        if (tools.includes("createwarning")) {
-            await createWarning()
+        if (tools.includes("softreset")) {
+            await softReset();
+        }
+
+        if (tools.includes("presentationtransform")) {
+            await presentationTransform();
         }
     })
     .catch(err => {

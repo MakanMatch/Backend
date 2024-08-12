@@ -263,7 +263,7 @@ async function presentationTransform() {
         userID: Universal.generateUniqueID(),
         fname: "Jamie",
         lname: "Oliver",
-        email: "jamieoliver@example.com",
+        email: prompt("Enter Jamie Oliver's email: ").trim(),
         username: "jamieoliver",
         password: await Encryption.hash(prompt("Enter Jamie Oliver's password: ").trim()),
         contactNum: "12345678",
@@ -276,6 +276,22 @@ async function presentationTransform() {
 
     console.log("")
     console.log(`Created host ${jamie.username} with user ID: ${jamie.userID}`);
+    console.log("")
+
+    // Create John Appleseed
+    const john = await Admin.create({
+        userID: Universal.generateUniqueID(),
+        fname: "John",
+        lname: "Appleseed",
+        username: "johnappleseed",
+        email: prompt("Enter John Appleseed's email: ").trim(),
+        password: await Encryption.hash(prompt("Enter John Appleseed's password: ").trim()),
+        emailVerified: true,
+        role: "Manager"
+    })
+
+    console.log("")
+    console.log(`Created admin ${john.username} with user ID: ${john.userID}`);
     console.log("")
 
     // Create William Atkins
@@ -304,7 +320,7 @@ async function presentationTransform() {
         fname: "Susie",
         lname: "Jones",
         username: "susiejones",
-        email: "susiejones@example.com",
+        email: prompt("Enter Susie Jones' email: ").trim(),
         password: await Encryption.hash(prompt("Enter password for Susie Jones: ").trim()),
         address: "Block 310A Anchorvale Lane Singapore 542310",
         mealsMatched: 1,
@@ -321,7 +337,7 @@ async function presentationTransform() {
         fname: "Samantha",
         lname: "Hopkins",
         username: "sammyhops",
-        email: "samanthahopkins@example.com",
+        email: prompt("Enter Samantha Hopkins' email: ").trim(),
         password: await Encryption.hash(prompt("Enter password for Samantha Hopkins: ").trim()),
         contactNum: "12344567",
         address: "86 Edgedale Plains Singapore 828738",

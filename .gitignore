@@ -12,3 +12,4 @@ package-lock.json
 test.js
 MakanMatchLogs.txt
 MakanMatchAnalytics.json
+MakanMatchFileManagerContext.json

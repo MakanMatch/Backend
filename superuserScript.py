@@ -304,6 +304,51 @@ def retrieveAnalytics():
         with open("MakanMatchAnalytics.json", "w") as f:
             json.dump(responseJSON, f)
         print("Analytics data saved to MakanMatchAnalytics.json.")
+        
+def retrieveFileManagerContext():
+    print()
+    print("Retrieving file manager context...")
+    contextResponse = None
+    while True:
+        try:
+            contextResponse = requests.get(
+                url=serverPath("/admin/super/getFileManagerContext"),
+                headers=headers
+            )
+
+            contextResponse.raise_for_status()
+            if contextResponse.text.startswith("ERROR"):
+                raise Exception(contextResponse.text[len("ERROR: "):])
+            
+            print("File manager context retrieved successfully!")
+            print()
+            
+            responseJSON = json.loads(contextResponse.text)
+            print("Retrieved file manager context:")
+            print()
+            pprint(responseJSON)
+            print()
+            break
+        except Exception as e:
+            print("Error occurred in retrieving file manager context. Error: " + str(e))
+            try:
+                print("Server response: " + contextResponse.text)
+            except:
+                print("Server response: <No response>")
+            retry = input("Retry? (y/n): ").lower()
+            print()
+            if retry != "y":
+                print("Retrieve file manager context aborted.")
+                return
+            print("Retrieving file manager context...")
+            
+    saveToFile = input("Save file manager context to file? (y/n) ").strip().lower()
+    if saveToFile == "y":
+        print()
+        print("Saving file manager context to file...")
+        with open("MakanMatchFileManagerContext.json", "w") as f:
+            json.dump(responseJSON, f)
+        print("File manager context saved to MakanMatchFileManagerContext.json.")
 
 def accessMakanMatchLogs():
     print()
@@ -589,15 +634,16 @@ What would you like to do?
     3. Delete an existing admin account
     4. Retrieve collected analytics
     5. Retrieve system logs
-    6. Toggle analytics
-    7. Toggle MakanBot (OpenAIChat)
-    8. Toggle usage lock
-    9. Activate Logs Console
+    6. Retrieve FileManager context
+    7. Toggle analytics
+    8. Toggle MakanBot (OpenAIChat)
+    9. Toggle usage lock
+    10. Activate Logs Console
     0. Exit
 """)
     
     choice = input("Enter your choice: ")
-    while (not choice.isdigit()) or (int(choice) not in range(0, 10)):
+    while (not choice.isdigit()) or (int(choice) not in range(0, 11)):
         choice = input("Invalid choice. Please enter your choice: ")
     
     choice = int(choice)
@@ -615,6 +661,9 @@ What would you like to do?
         print()
     elif choice == 5:
         accessMakanMatchLogs()
+        print()
+    elif choice == 6:
+        retrieveFileManagerContext()
         print()
     elif choice == 6:
         toggleAnalytics()

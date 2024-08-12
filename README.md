@@ -13,13 +13,37 @@
 ![Google SMTP](https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white)
 ![OpenAI API](https://img.shields.io/badge/ChatGPT-74aa9c?style=for-the-badge&logo=openai&logoColor=white)
 
-# Backend
+# MakanMatch Backend
+
+**MakanMatch is a food-sharing platform deployed by theoretically by the People's Association in Singapore to help reduce food wastage and to foster a sense of community among residents.**
+
+Hosts can invite fellow guests in their neighbourhood for a meal at their place through this platform, resulting in numerous overall benefits:
+- Reducing food wastage
+- Fostering a sense of community
+- Guests get to have homemade food
+- Guests can have food at cheaper prices with fellow neighbours rather than eating out
+
+The increasing food wastage in Singapore and worldwide has raised several environmental concerns; we want to combat the pressing issue effectively through this communal, comprehensive and easy-to-use solution.
+
+MakanMatch is an ambitious project envisioned and developed by the MakanMatch Team for the Full Stack Development Project module in Year 2 Semester 1 of the Diploma in Information Technology course at Nanyang Polytechnic.
+
+The system (hopefully 😓) should be live at https://makanmatch.com
 
 Developed with ❤️ by the MakanMatch team, consisting of:
-- Prakhar Trivedi ([@Prakhar896](https://github.com/Prakhar896))
-- Joshua Long Yu Xuan ([@Sadliquid](https://github.com/Sadliquid))
-- Joon Jun Han ([@JunHammy](https://github.com/JunHammy))
-- Lincoln Lim Ken Yang ([@lincoln0623](https://github.com/lincoln0623))
-- Nicholas Chew Xun Cheng ([@nicholascheww](https://github.com/nicholascheww))
+- Prakhar Trivedi ([@Prakhar896](https://github.com/Prakhar896)) - Reservations Management and Overall Lead
+- Joshua Long Yu Xuan ([@Sadliquid](https://github.com/Sadliquid)) - Head of Listings Experience
+- Joon Jun Han ([@JunHammy](https://github.com/JunHammy)) - Head of Identity Experience
+- Lincoln Lim Ken Yang ([@lincoln0623](https://github.com/lincoln0623)) - Head of Platform Quality
+- Nicholas Chew Xun Cheng ([@nicholascheww](https://github.com/nicholascheww)) - Head of Platform Communications
+
+# Table of Contents
+- [About MakanMatch](#about-makanmatch)
+- [Feature Highlights](#feature-highlights)
+- [Integrations](#integrations)
+- [Backend Technologies](#backend-technologies)
+
+# About MakanMatch
+
+
 
 ©️ 2024 The MakanMatch Team. All rights reserved.

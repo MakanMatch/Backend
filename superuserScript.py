@@ -532,6 +532,161 @@ def toggleUsageLock():
                 print("Toggle usage lock aborted.")
                 break
             print("Toggling usage lock...")
+            
+def toggleSuperuserSensitive():
+    print()
+    print("Toggling superuser sensitive mode...")
+    toggleResponse = None
+    while True:
+        try:
+            toggleResponse = requests.post(
+                url=serverPath("/admin/super/toggleSuperuserSensitive"),
+                headers=headers
+            )
+
+            toggleResponse.raise_for_status()
+            if toggleResponse.text.startswith("ERROR"):
+                raise Exception(toggleResponse.text[len("ERROR: "):])
+            elif toggleResponse.text.startswith("UERROR"):
+                raise Exception(toggleResponse.text[len("UERROR: "):])
+            if not toggleResponse.text.startswith("SUCCESS"):
+                raise Exception("Unknown response received: " + toggleResponse.text)
+            
+            print("Superuser sensitive mode toggled successfully! Server: {}".format(toggleResponse.text))
+            break
+        except Exception as e:
+            print("Error occurred in toggling superuser sensitive mode. Error: " + str(e))
+            try:
+                print("Server response: " + toggleResponse.text)
+            except:
+                print("Server response: <No response>")
+            retry = input("Retry? (y/n): ").lower()
+            print()
+            if retry != "y":
+                print("Toggle superuser sensitive mode aborted.")
+                break
+            print("Toggling superuser sensitive mode...")
+            
+def clearFM():
+    print()
+    if input("This is a sensitive action and could cripple system operation? Continue? (y/n) ").lower() != "y":
+        print("Clear FileManager aborted.")
+        return
+    
+    print("Clearing file manager...")
+    clearResponse = None
+    while True:
+        try:
+            clearResponse = requests.post(
+                url=serverPath("/admin/super/clearFM"),
+                headers=headers
+            )
+
+            clearResponse.raise_for_status()
+            if clearResponse.text.startswith("ERROR"):
+                raise Exception(clearResponse.text[len("ERROR: "):])
+            elif clearResponse.text.startswith("UERROR"):
+                raise Exception(clearResponse.text[len("UERROR: "):])
+            if not clearResponse.text.startswith("SUCCESS"):
+                raise Exception("Unknown response received: " + clearResponse.text)
+            
+            print("File manager cleared successfully! Server: {}".format(clearResponse.text))
+            break
+        except Exception as e:
+            print("Error occurred in clearing file manager. Error: " + str(e))
+            try:
+                print("Server response: " + clearResponse.text)
+            except:
+                print("Server response: <No response>")
+            retry = input("Retry? (y/n): ").lower()
+            print()
+            if retry != "y":
+                print("Clear file manager aborted.")
+                break
+            print("Clearing file manager...")
+            
+def softReset():
+    print()
+    if input("This is a sensitive action and could cripple system operation? Continue? (y/n) ").lower() != "y":
+        print("Soft reset aborted.")
+        return
+    
+    print("Soft resetting system database...")
+    while True:
+        try:
+            resetResponse = requests.post(
+                url=serverPath("/admin/super/softReset"),
+                headers=headers
+            )
+
+            resetResponse.raise_for_status()
+            if resetResponse.text.startswith("ERROR"):
+                raise Exception(resetResponse.text[len("ERROR: "):])
+            elif resetResponse.text.startswith("UERROR"):
+                raise Exception(resetResponse.text[len("UERROR: "):])
+            if not resetResponse.text.startswith("SUCCESS"):
+                raise Exception("Unknown response received: " + resetResponse.text)
+            
+            print("System database soft reset successfully! Server: {}".format(resetResponse.text))
+            break
+        except Exception as e:
+            print("Error occurred in soft resetting system database. Error: " + str(e))
+            try:
+                print("Server response: " + resetResponse.text)
+            except:
+                print("Server response: <No response>")
+            retry = input("Retry? (y/n): ").lower()
+            print()
+            if retry != "y":
+                print("Soft reset aborted.")
+                break
+            print("Soft resetting system database...")
+            
+def presentationTransform():
+    print()
+    if input("This is a sensitive action and could cripple system operation? Continue? (y/n) ").lower() != "y":
+        print("Presentation transform aborted.")
+        return
+    
+    print("Transforming system database for presentation...")
+    while True:
+        try:
+            transformResponse = requests.post(
+                url=serverPath("/admin/super/presentationTransform"),
+                headers=headers
+            )
+
+            transformResponse.raise_for_status()
+            if transformResponse.text.startswith("ERROR"):
+                raise Exception(transformResponse.text[len("ERROR: "):])
+            elif transformResponse.text.startswith("UERROR"):
+                raise Exception(transformResponse.text[len("UERROR: "):])
+            
+            
+            responseJSON = json.loads(transformResponse.text)
+            print("Transformation messages:")
+            print()
+            if responseJSON["messages"]:
+                for message in responseJSON["messages"]:
+                    print(message)
+            else:
+                print("Could not parse messages.")
+            print()
+            
+            print("System database transformation for presentation successfully!")
+            break
+        except Exception as e:
+            print("Error occurred in transforming system database for presentation. Error: " + str(e))
+            try:
+                print("Server response: " + transformResponse.text)
+            except:
+                print("Server response: <No response>")
+            retry = input("Retry? (y/n): ").lower()
+            print()
+            if retry != "y":
+                print("Transformation aborted.")
+                break
+            print("Transforming system database for presentation...")
 
 class Logger:
     @staticmethod
@@ -638,12 +793,16 @@ What would you like to do?
     7. Toggle analytics
     8. Toggle MakanBot (OpenAIChat)
     9. Toggle usage lock
-    10. Activate Logs Console
+    10. Toggle superuser sensitive mode
+    11. Clear FileManager
+    12. Soft reset system
+    13. Transform system database for presentation
+    14. Activate Logs Console
     0. Exit
 """)
     
     choice = input("Enter your choice: ")
-    while (not choice.isdigit()) or (int(choice) not in range(0, 11)):
+    while (not choice.isdigit()) or (int(choice) not in range(0, 15)):
         choice = input("Invalid choice. Please enter your choice: ")
     
     choice = int(choice)
@@ -665,16 +824,28 @@ What would you like to do?
     elif choice == 6:
         retrieveFileManagerContext()
         print()
-    elif choice == 6:
+    elif choice == 7:
         toggleAnalytics()
         print()
-    elif choice == 7:
+    elif choice == 8:
         toggleOpenAIChat()
         print()
-    elif choice == 8:
+    elif choice == 9:
         toggleUsageLock()
         print()
-    elif choice == 9:
+    elif choice == 10:
+        toggleSuperuserSensitive()
+        print()
+    elif choice == 11:
+        clearFM()
+        print()
+    elif choice == 12:
+        softReset()
+        print()
+    elif choice == 13:
+        presentationTransform()
+        print()
+    elif choice == 14:
         Logger.manageLogs()
         print()
     else:

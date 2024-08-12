@@ -317,6 +317,8 @@ router.post("/softReset", validateSuperuser, validateSuperuserSensitive, async (
         await UserRecord.destroy({ where: {} });
         await Warning.destroy({ where: {} });
 
+        await Analytics.createRecordIfNotExist("system");
+
         Logger.log(`SUPERUSERAPI SOFTRESET: Database soft reset successful.`);
         console.log("SUPERUSERAPI PRESENTATIONTRANSFORM: Database soft reset successful.");
         return res.status(200).send("SUCCESS: Database soft reset successful.");
@@ -521,6 +523,30 @@ router.post("/presentationTransform", validateSuperuser, validateSuperuserSensit
             datetime: new Date(Date.now() - 25200000).toISOString(),
             chatID: chatHistory.chatID
         })
+
+        // Create system metrics
+        const systemMetricsInstance = await Analytics.createRecordIfNotExist("system")
+        if (typeof systemMetricsInstance !== "string") {
+            systemMetricsInstance.set({
+                lastBoot: new Date().toISOString(),
+                accountCreations: 7,
+                listingCreations: 4,
+                emailDispatches: 8,
+                fileUploads: 4,
+                logins: 6
+            })
+            await systemMetricsInstance.save();
+        }
+
+        // Create listing analytics record
+        const listingAnalyticsInstance = await Analytics.createRecordIfNotExist("listing", jamiesListing.listingID)
+        if (typeof listingAnalyticsInstance !== "string") {
+            listingAnalyticsInstance.set({
+                impressions: 10,
+                clicks: 6
+            })
+            await listingAnalyticsInstance.save();
+        }
 
         const messages = [
             `Created host ${jamie.username} with user ID: ${jamie.userID}`,

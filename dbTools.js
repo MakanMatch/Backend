@@ -238,6 +238,8 @@ async function softReset() {
         await UserRecord.destroy({ where: {} });
         await Warning.destroy({ where: {} });
 
+        await SystemAnalytics.create({ instanceID: Universal.generateUniqueID() })
+
         console.log("Tables soft resetted successfully!")
     } catch (err) {
         console.log(`Failed to soft reset tables; error: ${err}`)
@@ -476,6 +478,24 @@ async function presentationTransform() {
         senderID: samantha.userID,
         datetime: new Date(Date.now() - 25200000).toISOString(),
         chatID: chatHistory.chatID
+    })
+
+    // Create system metrics
+    const systemMetrics = await SystemAnalytics.create({
+        instanceID: Universal.generateUniqueID(),
+        lastBoot: new Date().toISOString(),
+        accountCreations: 7,
+        listingCreations: 4,
+        emailDispatches: 8,
+        fileUploads: 4,
+        logins: 6
+    })
+
+    // Create listing analytics
+    const listingAnalytics = await ListingAnalytics.create({
+        listingID: jamiesListing.listingID,
+        impressions: 10,
+        clicks: 6
     })
 
     console.log(`Chat Message with ID ${chatMessage.messageID} (Datetime: ${new Date(chatMessage.datetime).toString()}) created for ${chatMessage.senderID}`)

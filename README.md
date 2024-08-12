@@ -15,7 +15,14 @@
 
 # MakanMatch Backend
 
+![Screenshot 2024-08-13 at 12 04 58 AM](https://github.com/user-attachments/assets/b0af8b22-8c62-4df2-80e6-3282552df823)
+
+
 **MakanMatch is a food-sharing platform deployed by theoretically by the People's Association in Singapore to help reduce food wastage and to foster a sense of community among residents.**
+
+MakanMatch is an ambitious project envisioned and developed by the MakanMatch Team for the Full Stack Development Project module in Year 2 Semester 1 of the Diploma in Information Technology course at Nanyang Polytechnic.
+
+The system (hopefully 😓) should be live at https://makanmatch.com
 
 Hosts can invite fellow guests in their neighbourhood for a meal at their place through this platform, resulting in numerous overall benefits:
 - Reducing food wastage
@@ -25,10 +32,6 @@ Hosts can invite fellow guests in their neighbourhood for a meal at their place 
 
 The increasing food wastage in Singapore and worldwide has raised several environmental concerns; we want to combat the pressing issue effectively through this communal, comprehensive and easy-to-use solution.
 
-MakanMatch is an ambitious project envisioned and developed by the MakanMatch Team for the Full Stack Development Project module in Year 2 Semester 1 of the Diploma in Information Technology course at Nanyang Polytechnic.
-
-The system (hopefully 😓) should be live at https://makanmatch.com
-
 Developed with ❤️ by the MakanMatch team, consisting of:
 - Prakhar Trivedi ([@Prakhar896](https://github.com/Prakhar896)) - Reservations Management and Overall Lead
 - Joshua Long Yu Xuan ([@Sadliquid](https://github.com/Sadliquid)) - Head of Listings Experience
@@ -37,13 +40,64 @@ Developed with ❤️ by the MakanMatch team, consisting of:
 - Nicholas Chew Xun Cheng ([@nicholascheww](https://github.com/nicholascheww)) - Head of Platform Communications
 
 # Table of Contents
-- [About MakanMatch](#about-makanmatch)
-- [Feature Highlights](#feature-highlights)
+- [MakanMatch in Images](#makanmatch-in-images)
 - [Integrations](#integrations)
 - [Backend Technologies](#backend-technologies)
+- [Frontend Repository](https://github.com/MakanMatch/Frontend)
 
-# About MakanMatch
+# MakanMatch in Images
 
+In MakanMatch, we really emphasised on doing everything customer-first. All designs, features and implementations were curated with the user and their needs in mind.
+
+To enhance the user experience, we tapped on lots of amazing technologies and features to make for a robust, warm and welcoming system.
+
+![Screenshot 2024-08-13 at 12 05 58 AM](https://github.com/user-attachments/assets/6251d63a-1601-4d4b-a134-ff4c35488f3a)
+
+View food listings by hosts in spectacular and beautiful detail. To protect host privacy, the Google Maps Geocoding API is used to approximate the host's location based on their real provided address. After making a reservation, the exact address is revealed to guests.
+
+---
+
+![Screenshot 2024-08-13 at 12 08 10 AM](https://github.com/user-attachments/assets/5038824f-3185-45d8-ad3f-50252bc8bed6)
+
+Through our comprehensive reviews feature, guests can submit reviews for hosts after having had a meal with them. They can provide both a food rating and hygiene rating, helping other guests on the platform be more informed about the host's service standards.
+
+---
+
+![Screenshot 2024-08-13 at 12 10 21 AM](https://github.com/user-attachments/assets/f577cbf9-0987-418e-8f9f-46a733933816)
+
+In the six hour window prior to a listing's time, guests are able to make their payment via the host's PayNoq QR code. Cancellations now are chargeable at rates twice that of the initial reservation cost, but this can be avoided if guests cancel prior to the six hour window.
+
+---
+
+![Screenshot 2024-08-13 at 12 12 25 AM](https://github.com/user-attachments/assets/f90708d3-5d5f-445e-94cf-5eb30b1b3b55)
+
+The My Account page provides a well-rounded set of tools for users to customise their profiles! From uploading a custom profile picture to changing their visible name, creativity flourishes in this page!
+
+---
+
+![Screenshot 2024-08-13 at 12 13 32 AM](https://github.com/user-attachments/assets/62f79c79-b366-4d3e-b636-bb52bad30389)
+
+Hosts are also able to view all of their upcoming listings in a neat calendar UI in the Schedule pane. This helps hosts quickly see when all of their listings are and keep on top of them all.
+
+---
+
+![Screenshot 2024-08-13 at 12 15 39 AM](https://github.com/user-attachments/assets/fa27d37c-4ac4-456d-81be-c50b07e66750)
+
+Real-time messaging features enable hosts and guests to frictionlessly communicate and exchange on the platform, promoting further cultural bonding. Our chat page includes amazing features like activity status visibility (online/offline), message replies and email notifications as well.
+
+---
+
+![Screenshot 2024-08-13 at 12 18 15 AM](https://github.com/user-attachments/assets/13cf1fea-3c39-4859-ab73-34b7954e00ad)
+
+MakanBot, a customer service chatbot fine-tuned for all things MakanMatch, is ready at your service! This intelligent, conversational chatbot can answer any of your urgent queries! The chatbot was built with an integration with the OpenAI APIs.
+
+---
+
+![Screenshot 2024-08-13 at 12 19 46 AM](https://github.com/user-attachments/assets/c0b66383-e779-4726-a474-7d9783569d0c)
+
+Finally, the almighty admin portal! Admins/staff on MakanMatch are able to carry our various comprehensive actions to moderate the site's content and usage. Admins are able to issue warnings to hosts who have poor hygeiene grades, ban users, help users unlock their account and also delete accounts.
+
+Admins can also view a dashboard of essential analytics that are intelligently tracked by the system as it is used.
 
 
 ©️ 2024 The MakanMatch Team. All rights reserved.

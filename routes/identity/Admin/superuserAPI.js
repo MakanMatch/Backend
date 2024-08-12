@@ -445,11 +445,24 @@ router.post("/presentationTransform", validateSuperuser, validateSuperuserSensit
             hostID: jamie.userID
         })
 
+        // Create Susie's active reservation for Jamie
+        const susieActiveReservation = await Reservation.create({
+            guestID: susie.userID,
+            listingID: jamiesListing.listingID,
+            referenceNum: Universal.generateUniqueID(6).toUpperCase(),
+            datetime: new Date(Date.now() - 604850000).toISOString(),
+            portions: 2,
+            totalPrice: 10.0,
+            markedPaid: true,
+            paidAndPresent: true,
+            chargeableCancelActive: false
+        })
+
         // Create Susie's past reservation for Jamie
         const susiePastReservation = await Reservation.create({
             guestID: susie.userID,
             listingID: jamiesPastListing.listingID,
-            referenceNum: Universal.generateUniqueID(6).toUpperCase(),
+            referenceNum: Universal.generateUniqueID(6, [susieActiveReservation.referenceNum]).toUpperCase(),
             datetime: new Date(Date.now() - 604850000).toISOString(),
             portions: 1,
             totalPrice: 3.0,
@@ -458,14 +471,14 @@ router.post("/presentationTransform", validateSuperuser, validateSuperuserSensit
             chargeableCancelActive: false
         })
 
-        // Create Samantha's reservation with William
+        // Create Samantha's reservation with Jamie
         const samanthasActiveReservation = await Reservation.create({
             guestID: samantha.userID,
             listingID: jamiesListing.listingID,
-            referenceNum: Universal.generateUniqueID(6, [susiePastReservation.referenceNum]).toUpperCase(),
+            referenceNum: Universal.generateUniqueID(6, [susieActiveReservation.referenceNum, susiePastReservation.referenceNum]).toUpperCase(),
             datetime: new Date(Date.now() - 604850000).toISOString(),
             portions: 1,
-            totalPrice: 3.0,
+            totalPrice: 5.0,
             markedPaid: true,
             paidAndPresent: true,
             chargeableCancelActive: false
@@ -516,6 +529,7 @@ router.post("/presentationTransform", validateSuperuser, validateSuperuserSensit
             `Created guest ${samantha.username} with user ID: ${samantha.userID}`,
             `Created a listing by host ${jamie.username} (Datetime: ${new Date(jamiesListing.datetime).toString()}) with listing ID: ${jamiesListing.listingID}`,
             `Created listing by host ${jamie.username} (Datetime: ${new Date(jamiesPastListing.datetime).toString()}) with listing ID: ${jamiesPastListing.listingID}`,
+            `Created Susie's active reservation (Datetime: ${new Date(susieActiveReservation.datetime).toString()}) with reference num: ${susieActiveReservation.referenceNum}`,
             `Created Susie's past reservation (Datetime: ${new Date(susiePastReservation.datetime).toString()}) with reference num: ${susiePastReservation.referenceNum}`,
             `Created Samantha's active reservation (Datetime: ${new Date(samanthasActiveReservation.datetime).toString()}) with reference num: ${samanthasActiveReservation.referenceNum}`,
             `Created Review1 with review ID for Jamie by Samantha: ${review1.reviewID}`,

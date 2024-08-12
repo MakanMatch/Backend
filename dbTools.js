@@ -389,11 +389,26 @@ async function presentationTransform() {
 
     console.log(`Created listing by host ${jamie.username} (Datetime: ${new Date(jamiesPastListing.datetime).toString()}) with listing ID: ${jamiesPastListing.listingID}`);
 
+    // Create Susie's active reservation for Jamie
+    const susieActiveReservation = await Reservation.create({
+        guestID: susie.userID,
+        listingID: jamiesListing.listingID,
+        referenceNum: Universal.generateUniqueID(6).toUpperCase(),
+        datetime: new Date(Date.now() - 604850000).toISOString(),
+        portions: 2,
+        totalPrice: 10.0,
+        markedPaid: true,
+        paidAndPresent: true,
+        chargeableCancelActive: false
+    })
+
+    console.log(`Created Susie's active reservation (Datetime: ${new Date(susieActiveReservation.datetime).toString()}) with reference num: ${susieActiveReservation.referenceNum}`);
+
     // Create Susie's past reservation for Jamie
     const susiePastReservation = await Reservation.create({
         guestID: susie.userID,
         listingID: jamiesPastListing.listingID,
-        referenceNum: Universal.generateUniqueID(6).toUpperCase(),
+        referenceNum: Universal.generateUniqueID(6, [susieActiveReservation.referenceNum]).toUpperCase(),
         datetime: new Date(Date.now() - 604850000).toISOString(),
         portions: 1,
         totalPrice: 3.0,
@@ -404,14 +419,14 @@ async function presentationTransform() {
 
     console.log(`Created Susie's past reservation (Datetime: ${new Date(susiePastReservation.datetime).toString()}) with reference num: ${susiePastReservation.referenceNum}`);
 
-    // Create Samantha's reservation with William
+    // Create Samantha's reservation with Jamie
     const samanthasActiveReservation = await Reservation.create({
         guestID: samantha.userID,
         listingID: jamiesListing.listingID,
-        referenceNum: Universal.generateUniqueID(6, [susiePastReservation.referenceNum]).toUpperCase(),
+        referenceNum: Universal.generateUniqueID(6, [susieActiveReservation.referenceNum, susiePastReservation.referenceNum]).toUpperCase(),
         datetime: new Date(Date.now() - 604850000).toISOString(),
         portions: 1,
-        totalPrice: 3.0,
+        totalPrice: 5.0,
         markedPaid: true,
         paidAndPresent: true,
         chargeableCancelActive: false

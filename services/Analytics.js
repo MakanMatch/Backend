@@ -3,7 +3,6 @@ const Cache = require('./Cache');
 const Extensions = require('./Extensions');
 const Logger = require('./Logger');
 const Universal = require('./Universal')
-const prompt = require("prompt-sync")({ sigint: true });
 require('dotenv').config()
 
 /**
@@ -43,7 +42,7 @@ class Analytics {
         lastPersistence: null,
         updates: 0
     }
-    static cacheData = {
+    static #cacheData = {
         listingUpdates: {},
         requestUpdates: {},
         systemUpdates: {}
@@ -185,7 +184,7 @@ class Analytics {
     }
 
     static async persistData() {
-        const cacheCopy = structuredClone(this.cacheData)
+        const cacheCopy = structuredClone(this.#cacheData)
 
         if (!this.#setup || !Analytics.checkPermission()) {
             return "ERROR: Analytics service not yet set up."
@@ -215,8 +214,8 @@ class Analytics {
                 listingMetricsRecord.set(newData);
                 await listingMetricsRecord.save();
                 // console.log("ListingAnalytics record updated:", listingMetricsRecord.toJSON())
-                if (this.cacheData.listingUpdates[listingID] !== undefined) {
-                    delete this.cacheData.listingUpdates[listingID]
+                if (this.#cacheData.listingUpdates[listingID] !== undefined) {
+                    delete this.#cacheData.listingUpdates[listingID]
                 }
             } catch (err) {
                 return `ERROR: Failed to persist ListingAnalytics updates for ID ${listingID}; error: ${err}`
@@ -246,8 +245,8 @@ class Analytics {
                 requestMetricsRecord.set(newData);
                 await requestMetricsRecord.save();
                 // console.log("RequestAnalytics record updated:", requestMetricsRecord.toJSON())
-                if (this.cacheData.requestUpdates[requestIdentifier] !== undefined) {
-                    delete this.cacheData.requestUpdates[requestIdentifier]
+                if (this.#cacheData.requestUpdates[requestIdentifier] !== undefined) {
+                    delete this.#cacheData.requestUpdates[requestIdentifier]
                 }
             } catch (err) {
                 return `ERROR: Failed to persist RequestAnalytics updates for identifier ${requestIdentifier}; error: ${err}`
@@ -274,7 +273,7 @@ class Analytics {
                 systemAnalyticsRecord.set(newData);
                 await systemAnalyticsRecord.save();
                 // console.log("SystemAnalytics record updated:", systemAnalyticsRecord.toJSON())
-                this.cacheData.systemUpdates = {}
+                this.#cacheData.systemUpdates = {}
             } catch (err) {
                 return `ERROR: Failed to persist SystemAnalytics updates; error: ${err}`
             }
@@ -329,20 +328,20 @@ class Analytics {
             }
         }
 
-        if (this.cacheData.listingUpdates[listingID] == undefined) {
-            this.cacheData.listingUpdates[listingID] = {}
+        if (this.#cacheData.listingUpdates[listingID] == undefined) {
+            this.#cacheData.listingUpdates[listingID] = {}
         }
         for (const metric of Object.keys(processedData)) {
             // If metric doesn't exist, create and set to incoming value
-            if (this.cacheData.listingUpdates[listingID][metric] === undefined) {
-                this.cacheData.listingUpdates[listingID][metric] = processedData[metric]
+            if (this.#cacheData.listingUpdates[listingID][metric] === undefined) {
+                this.#cacheData.listingUpdates[listingID][metric] = processedData[metric]
             } else {
                 if (!this.nonNumericalMetricRegistry.listingMetrics.includes(metric)) {
                     // If metric exists, and is not one of the non-integer metrics, add the incoming value to the existing value
-                    this.cacheData.listingUpdates[listingID][metric] += processedData[metric]
+                    this.#cacheData.listingUpdates[listingID][metric] += processedData[metric]
                 } else {
                     // If metric is a non-integer metric, replace the existing with the incoming value
-                    this.cacheData.listingUpdates[listingID][metric] = processedData[metric]
+                    this.#cacheData.listingUpdates[listingID][metric] = processedData[metric]
                 }
             }
         }
@@ -382,20 +381,20 @@ class Analytics {
         }
 
         const requestIdentifier = `${requestMethod}_${requestURL}`
-        if (this.cacheData.requestUpdates[requestIdentifier] == undefined) {
-            this.cacheData.requestUpdates[requestIdentifier] = {}
+        if (this.#cacheData.requestUpdates[requestIdentifier] == undefined) {
+            this.#cacheData.requestUpdates[requestIdentifier] = {}
         }
         for (const metric of Object.keys(processedData)) {
             // If metric doesn't exist, create and set to incoming value
-            if (this.cacheData.requestUpdates[requestIdentifier][metric] === undefined) {
-                this.cacheData.requestUpdates[requestIdentifier][metric] = processedData[metric]
+            if (this.#cacheData.requestUpdates[requestIdentifier][metric] === undefined) {
+                this.#cacheData.requestUpdates[requestIdentifier][metric] = processedData[metric]
             } else {
                 if (!this.nonNumericalMetricRegistry.requestMetrics.includes(metric)) {
                     // If metric exists, and is not one of the non-integer metrics, add the incoming value to the existing value
-                    this.cacheData.requestUpdates[requestIdentifier][metric] += processedData[metric]
+                    this.#cacheData.requestUpdates[requestIdentifier][metric] += processedData[metric]
                 } else {
                     // If metric is a non-integer metric, replace the existing with the incoming value
-                    this.cacheData.requestUpdates[requestIdentifier][metric] = processedData[metric]
+                    this.#cacheData.requestUpdates[requestIdentifier][metric] = processedData[metric]
                 }
             }
         }
@@ -432,15 +431,15 @@ class Analytics {
 
         for (const metric of Object.keys(processedData)) {
             // If metric doesn't exist, create and set to incoming value
-            if (this.cacheData.systemUpdates[metric] === undefined) {
-                this.cacheData.systemUpdates[metric] = processedData[metric]
+            if (this.#cacheData.systemUpdates[metric] === undefined) {
+                this.#cacheData.systemUpdates[metric] = processedData[metric]
             } else {
                 if (!this.nonNumericalMetricRegistry.systemMetrics.includes(metric)) {
                     // If metric exists, and is not one of the non-integer metrics, add the incoming value to the existing value
-                    this.cacheData.systemUpdates[metric] = this.cacheData.systemUpdates[metric] + processedData[metric]
+                    this.#cacheData.systemUpdates[metric] = this.#cacheData.systemUpdates[metric] + processedData[metric]
                 } else {
                     // If metric is a non-integer metric, replace the existing with the incoming value
-                    this.cacheData.systemUpdates[metric] = processedData[metric]
+                    this.#cacheData.systemUpdates[metric] = processedData[metric]
                 }
             }
         }
@@ -603,8 +602,8 @@ class Analytics {
             listingMetricsRecord.set(newData);
             await listingMetricsRecord.save();
 
-            if (this.cacheData.listingUpdates[listingID] !== undefined) {
-                delete this.cacheData.listingUpdates[listingID];
+            if (this.#cacheData.listingUpdates[listingID] !== undefined) {
+                delete this.#cacheData.listingUpdates[listingID];
             }
             // console.log("ListingAnalytics record updated:", listingMetricsRecord.toJSON())
             return true;
@@ -660,8 +659,8 @@ class Analytics {
             await requestMetricsRecord.save();
 
             const requestIdentifier = `${requestMethod}_${requestURL}`
-            if (this.cacheData.requestUpdates[requestIdentifier] !== undefined) {
-                delete this.cacheData.requestUpdates[requestIdentifier];
+            if (this.#cacheData.requestUpdates[requestIdentifier] !== undefined) {
+                delete this.#cacheData.requestUpdates[requestIdentifier];
             }
             // console.log("RequestAnalytics record updated:", requestMetricsRecord.toJSON())
             return true;
@@ -712,7 +711,7 @@ class Analytics {
             systemMetricsRecord.set(newData);
             await systemMetricsRecord.save();
 
-            this.cacheData.systemUpdates = {}
+            this.#cacheData.systemUpdates = {}
             // console.log("SystemAnalytics record updated:", systemMetricsRecord.toJSON())
             return true;
         } catch (err) {

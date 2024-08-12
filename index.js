@@ -138,6 +138,7 @@ if (config["routerRegistration"] != "automated") {
 
     app.use(require("./routes/identity/Admin/HygieneReports").at || '/', require("./routes/identity/Admin/HygieneReports").router);
     app.use(require("./routes/identity/Admin/superuserAPI").at || '/', require("./routes/identity/Admin/superuserAPI").router);
+    app.use(require("./routes/identity/Admin/SystemMetrics").at || '/', require("./routes/identity/Admin/SystemMetrics").router);
     app.use(require("./routes/identity/Admin/UserManagement").at || '/', require("./routes/identity/Admin/UserManagement").router);
 
     app.use(require('./routes/identity/AccountRecovery').at || '/', require('./routes/identity/AccountRecovery').router);
@@ -205,11 +206,9 @@ async function onDBSynchronise() {
                 password: await Encryption.hash("SusieJones123"),
                 contactNum: "82228111",
                 address: "Block 321, Hougang Avenue 10, #10-567",
-                emailVerified: false,
+                emailVerified: true,
                 favCuisine: "",
-                mealsMatched: 0,
-                resetKey: "265c18",
-                resetKeyExpiration: "2024-06-22T14:30:00.000Z"
+                mealsMatched: 0
             })
             if (!newGuest) {
                 console.log("WARNING: Failed to create dummy guest.")
@@ -234,12 +233,9 @@ async function onDBSynchronise() {
                 "address": "Block 310A Anchorvale Lane Singapore 542310 #10-10",
                 "approxCoordinates": "1.3919526, 103.8843019",
                 "coordinates": "1.3914412,103.8839746",
-                "emailVerified": false,
+                "emailVerified": true,
                 "favCuisine": "Mexican",
-                "mealsMatched": "0",
-                // "foodRating": "4",
-                // "hygieneGrade": "5",
-                // "paymentImage": "https://savh.org.sg/wp-content/uploads/2020/05/QRCodeS61SS0119JDBS.png"
+                "mealsMatched": 0
             })
 
             if (!newHost) {

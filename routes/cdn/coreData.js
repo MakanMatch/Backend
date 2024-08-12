@@ -7,7 +7,7 @@ const { FoodListing, Host, Guest, Admin, Review, Reservation, ReviewLike, UserRe
 const Logger = require("../../services/Logger");
 const { Sequelize } = require('sequelize');
 const Universal = require("../../services/Universal");
-const { validateToken, checkUser } = require("../../middleware/auth");
+const { validateToken, checkUser, validateAdmin } = require("../../middleware/auth");
 const { Op } = require("sequelize");
 const { Analytics } = require("../../services");
 
@@ -192,7 +192,7 @@ router.get("/getListing", checkUser, async (req, res) => {
             }
         }
     }
-    
+
     res.json(
         Extensions.sanitiseData(preppedData, [
             "listingID",
@@ -368,7 +368,7 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
                 })
 
                 var reviewsJSON = reviews.map(review => review.toJSON());
-                
+
                 if (!checkGuest) {
                     const likedReviews = await ReviewLike.findAll({
                         where: {
@@ -378,13 +378,13 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
                     });
                     if (likedReviews.length > 0) {
                         const likedReviewIDs = likedReviews.map(likedReview => likedReview.reviewID);
-                        reviewsJSON.forEach(review => { 
-                            review.isLiked = likedReviewIDs.includes(review.reviewID); 
+                        reviewsJSON.forEach(review => {
+                            review.isLiked = likedReviewIDs.includes(review.reviewID);
                         });
                     }
                 } else {
-                    reviewsJSON.forEach(review => { 
-                        review.isLiked = false; 
+                    reviewsJSON.forEach(review => {
+                        review.isLiked = false;
                     });
                 }
 
@@ -417,53 +417,65 @@ router.get("/getReviews", checkUser, async (req, res) => { // GET full reviews l
     }
 })
 
-router.get("/fetchAllUsers", validateToken, async (req, res) => { // GET all users
+router.get("/fetchAllUsers", validateAdmin, async (req, res) => { // GET all users
     const fetchHostsOnly = req.query.fetchHostsOnly || "false";
 
-    const currentUserType = req.user.userType;
-    if (currentUserType !== "Admin") {
-        return res.status(403).send("ERROR: Unauthorized access.");
-    }
+    try {
+        const userRecords = await UserRecord.findAll();
 
-    const userRecords = await UserRecord.findAll();
-
-    const hosts = await Host.findAll();
-    const hostsWithUserType = (hosts.map(host => {
-        const hostObj = host.toJSON(); // Convert Sequelize instance to plain object
-        hostObj.userType = "Host";
-        hostObj.banned = userRecords.find(record => record.hID === hostObj.userID).banned;
-        return hostObj;
-    }));
-
-    let responseArray = [];
-
-    if (fetchHostsOnly === "false") {
-        const guests = await Guest.findAll();
-        const guestsWithUserType = (guests.map(guest => {
-            const guestObj = guest.toJSON(); // Convert Sequelize instance to plain object
-            guestObj.userType = "Guest";
-            guestObj.banned = userRecords.find(record => record.gID === guestObj.userID).banned;
-            return guestObj;
+        const hosts = await Host.findAll();
+        const hostsWithUserType = (hosts.map(host => {
+            var hostObj = structuredClone(host.toJSON()); // Convert Sequelize instance to plain object
+            hostObj.userType = "Host";
+            const matchingUserRecord = userRecords.find(record => record.hID === hostObj.userID)
+            if (matchingUserRecord) {
+                hostObj.banned = matchingUserRecord.banned;
+            } else {
+                hostObj.banned = false;
+            }
+            return hostObj;
         }));
-        const allUsers = hostsWithUserType.concat(guestsWithUserType);
-        if (!allUsers || !Array.isArray(allUsers) || allUsers.length === 0) {
-            return res.status(200).send([]);
+
+        let responseArray = [];
+
+        if (fetchHostsOnly === "false") {
+            const guests = await Guest.findAll();
+            const guestsWithUserType = (guests.map(guest => {
+                var guestObj = structuredClone(guest.toJSON()); // Convert Sequelize instance to plain object
+                guestObj.userType = "Guest";
+                const matchingUserRecord = userRecords.find(record => record.gID === guestObj.userID)
+                if (matchingUserRecord) {
+                    guestObj.banned = matchingUserRecord.banned;
+                } else {
+                    guestObj.banned = false;
+                }
+                return guestObj;
+            }));
+
+            const allUsers = hostsWithUserType.concat(guestsWithUserType);
+
+            if (!allUsers || !Array.isArray(allUsers) || allUsers.length === 0) {
+                return res.status(200).send([]);
+            } else {
+                allUsers.forEach(user => {
+                    responseArray.push(Extensions.sanitiseData(user, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned", "flaggedForHygiene"], ["password"], []));
+                });
+                return res.status(200).json(responseArray);
+            }
         } else {
-            allUsers.forEach(user => {
-                responseArray.push(Extensions.sanitiseData(user, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned", "flaggedForHygiene"], ["password"], []));
-            });
-            return res.status(200).json(responseArray);
+            if (!hostsWithUserType || !Array.isArray(hostsWithUserType) || hostsWithUserType.length === 0) {
+                return res.status(200).send([]);
+            } else {
+                warningHosts = hostsWithUserType.filter(host => host.hygieneGrade <= 2.5 && host.hygieneGrade > 0);
+                warningHosts.forEach(host => {
+                    responseArray.push(Extensions.sanitiseData(host, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned", "flaggedForHygiene"], ["password"], []));
+                });
+                return res.status(200).json(responseArray);
+            }
         }
-    } else {
-        if (!hostsWithUserType || !Array.isArray(hostsWithUserType) || hostsWithUserType.length === 0) {
-            return res.status(200).send([]);
-        } else {
-            warningHosts = hostsWithUserType.filter(host => host.hygieneGrade <= 2.5 && host.hygieneGrade > 0);
-            warningHosts.forEach(host => {
-                responseArray.push(Extensions.sanitiseData(host, ["userID", "fname", "lname", "username", "email", "userType", "contactNum", "hygieneGrade", "banned", "flaggedForHygiene"], ["password"], []));
-            });
-            return res.status(200).json(responseArray);
-        }
+    } catch (err) {
+        Logger.log(`CDN COREDATA FETCHALLUSERS ERROR: Failed to fetch all users; error: ${err}.`);
+        return res.status(500).send("ERROR: An error occured while fetching users.");
     }
 });
 
@@ -499,7 +511,7 @@ router.get("/consolidateReviewsStatistics", async (req, res) => { // GET full re
                 return res.status(200).json(consolidatedData);
             } else {
                 return res.status(200).json(
-                    { 
+                    {
                         message: "No reviews found.",
                         consolidatedData: {
                             oneStar: 0,

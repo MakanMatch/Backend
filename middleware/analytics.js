@@ -1,4 +1,5 @@
-const { Analytics, Logger } = require('../services');
+const Analytics = require('../services/Analytics');
+const Logger = require('../services/Logger');
 const { runProcessors } = require('./responseProcessors');
 require('dotenv').config();
 
@@ -46,11 +47,11 @@ const newRequest = async (req, res, next) => {
         })
             .then(result => {
                 if (result !== true) {
-                    Logger.log(`ANALYTICS NEWREQUEST: Failed to update request metrics. Error: ${result}`)
+                    Logger.log(`ANALYTICS NEWREQUEST ERROR: Failed to update request metrics. Error: ${result}`)
                 }
             })
             .catch(err => {
-                Logger.log(`ANALYTICS NEWREQUEST: Failed to update request metrics. Error: ${err}`)
+                Logger.log(`ANALYTICS NEWREQUEST ERROR: Failed to update request metrics. Error: ${err}`)
             })
     } catch {}
 
@@ -80,11 +81,11 @@ const beforeResponse = async (req, res, next) => {
                 })
                     .then(result => {
                         if (result !== true) {
-                            Logger.log(`ANALYTICS BEFORERESPONSE: Failed to update request success status. Error: ${result}`)
+                            Logger.log(`ANALYTICS BEFORERESPONSE ERROR: Failed to update request success status. Error: ${result}`)
                         }
                     })
                     .catch(err => {
-                        Logger.log(`ANALYTICS BEFORERESPONSE: Failed to update request success status. Error: ${err}`)
+                        Logger.log(`ANALYTICS BEFORERESPONSE ERROR: Failed to update request success status. Error: ${err}`)
                     })
             }
 

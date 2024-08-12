@@ -13,6 +13,11 @@ router.get("/getMetrics", validateAdmin, async (req, res) => {
     var allData = {};
     try {
         var systemMetrics = await Analytics.getSystemMetrics();
+        if (typeof systemMetrics == "string") {
+            Logger.log(`IDENTITY ADMIN SYSTEMMETRICS ERROR: Failed to retrieve system metrics; error: ${systemMetrics}`)
+            return res.status(500).send("ERROR: Failed to process request.")
+        }
+
         if (systemMetrics.instanceID) {
             delete systemMetrics.instanceID;
         }
@@ -24,6 +29,11 @@ router.get("/getMetrics", validateAdmin, async (req, res) => {
         }
 
         var requestMetrics = await Analytics.getRequestMetrics();
+        if (!Array.isArray(requestMetrics)) {
+            Logger.log(`IDENTITY ADMIN SYSTEMMETRICS ERROR: Failed to retrieve system metrics; error: ${systemMetrics}`)
+            return res.status(500).send("ERROR: Failed to process request.")
+        }
+
         requestMetrics = requestMetrics.map(request => {
             if (request.createdAt) {
                 delete request.createdAt

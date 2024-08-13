@@ -18,7 +18,7 @@
 ![Screenshot 2024-08-13 at 12 04 58 AM](https://github.com/user-attachments/assets/b0af8b22-8c62-4df2-80e6-3282552df823)
 
 
-**MakanMatch is a food-sharing platform deployed by theoretically by the People's Association in Singapore to help reduce food wastage and to foster a sense of community among residents.**
+**MakanMatch is a food-sharing platform deployed by, theoretically, the People's Association in Singapore to help reduce food wastage and to foster a sense of community among residents.**
 
 MakanMatch is an ambitious project envisioned and developed by the MakanMatch Team for the Full Stack Development Project module in Year 2 Semester 1 of the Diploma in Information Technology course at Nanyang Polytechnic.
 

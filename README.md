@@ -102,7 +102,7 @@ Admins can also view a dashboard of essential analytics that are intelligently t
 # Integrations
 
 MakanMatch tactfully inter-operates with various third-party and internal services to deliver a seamless user experience. The project boasts:
-- Google Maps & Geocoding APIs with Google Cloud
+- Google Maps SDK & Geocoding APIs with Google Cloud
   - Rendering interactive Google Map embeds to navigate listings in different locations
   - Address validation and coordinate geocoding
   - Approximate address computation and approximate coordinate geo-coding
@@ -110,6 +110,7 @@ MakanMatch tactfully inter-operates with various third-party and internal servic
 - AWS Relational Database Service for MySQL
   - Provides a robust and cloud-backed database implementation for MakanMatch
 - OpenAI GPT 4.0 API, fine-tuned with runtime prompts
+- Google SMTP Servers for Emailing
 
 The integrations come together across the system's backend and frontend to deliver a fast, amazing and high-quality user experience.
 

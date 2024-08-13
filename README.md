@@ -99,5 +99,37 @@ Finally, the almighty admin portal! Admins/staff on MakanMatch are able to carry
 
 Admins can also view a dashboard of essential analytics that are intelligently tracked by the system as it is used.
 
+# Integrations
+
+MakanMatch tactfully inter-operates with various third-party and internal services to deliver a seamless user experience. The project boasts:
+- Google Maps & Geocoding APIs with Google Cloud
+  - Rendering interactive Google Map embeds to navigate listings in different locations
+  - Address validation and coordinate geocoding
+  - Approximate address computation and approximate coordinate geo-coding
+- Firebase Cloud Storage for efficient image uploads and backups
+- AWS Relational Database Service for MySQL
+  - Provides a robust and cloud-backed database implementation for MakanMatch
+- OpenAI GPT 4.0 API, fine-tuned with runtime prompts
+
+The integrations come together across the system's backend and frontend to deliver a fast, amazing and high-quality user experience.
+
+# Backend Technologies
+
+MakanMatch's backend is stock full of customised layers, services and configurations to empower a robust, error-prone, and powerful foundational architecture for the system.
+
+Some internal services and technologies:
+- Sequelize ORM: The backend's runtime is highly configurable, especially the database. With customised code dynamically initialising database operations in coordination with Sequelize, the system's database is guranteed to have high integrity, efficiency and effectiveness.
+- `FileManager`: This service works in close co-ordination with Firebase Cloud Storage to simplify file uploads and establishes guranteed consistency with cloud storage. It supports both a local and cloud mode, allowing the system to run entirely independently as well.
+- `Analytics`: This extremely powerful service, which layers on top of Sequelize models, is an effective solution to track and analyse different parts of how the system is used. The service intelligently handles periodical persistence to ensure efficiency.
+- Authentication System: Through well-placed middleware and JWT management with the `TokenManager` service, the backend ensures the highest standards of security and simplifies the authorisation of requests.
+- Middleware: A series of middleware placed intermediately as a request goes through the system ensure data consistency, security and coherent flow.
+
+# Frontend Repository
+
+Haven't seen our beautiful frontend yet? [Check out the dreamy visualisation of this backend server's features right here.](https://github.com/MakanMatch/Frontend)
+
+---
+
+Thank you for checking out MakanMatch! We hope you are motivated to reduce food wastage and say hi to your fellow neighbour! 🥘👋
 
 ©️ 2024 The MakanMatch Team. All rights reserved.

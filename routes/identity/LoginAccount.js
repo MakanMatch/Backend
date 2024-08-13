@@ -88,6 +88,9 @@ router.post("/", async (req, res) => {
             username: user.username,
             userType: userType
         }
+        if (userType == "Admin" && user.role && typeof user.role == "string") {
+            userInfo["role"] = user.role;
+        }
 
         // Generate jwt
         const accessToken = TokenManager.sign(userInfo);

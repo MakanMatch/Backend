@@ -432,7 +432,7 @@ MakanMatch Team
 
             return;
         } catch (err) {
-            Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION ERROR: Failed to send cancellation email to guest ${guest.userID}. Error: ${err}`)
+            Logger.log(`ORDERS CONFIRMRESERVATION CANCELRESERVATION ERROR: Failed to send cancellation email to guest ${reservationCopy.guestID}. Error: ${err}`)
         }
     }
 

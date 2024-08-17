@@ -45,10 +45,14 @@ router.get("/listings", async (req, res) => { // GET all food listings
 
         var whereClause = { published: true };
         if (hostID) {
+            delete whereClause.published;
             whereClause.hostID = hostID;
         } else {
             whereClause.hostID = {
                 [Op.notIn]: bannedHostIDs
+            }
+            whereClause.datetime = {
+                [Op.gte]: new Date().toISOString()
             }
         }
 

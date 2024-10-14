@@ -9,7 +9,7 @@ print()
 # Define the base URL of the Key Server
 baseURL = input("Enter MakanMatch system location (e.g. http://localhost:5000): ")
 if baseURL == "":
-    baseURL = "https://makanmatchbackend.replit.app"
+    baseURL = "https://makanmatchb.prakhar.app"
 
 serverPath = lambda path: baseURL + path
 

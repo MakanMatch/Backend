@@ -101,7 +101,7 @@ router.post("/", async (req, res) => {
                     if (component.types.includes('route')) {
                         street = component.long_name;
                     }
-                    if (component.types.includes('locality')) {
+                    if (component.types.includes('locality') || component.types.includes('neighborhood')) {
                         city = component.long_name;
                     }
                     if (component.types.includes('administrative_area_level_1')) {

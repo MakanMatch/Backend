@@ -144,6 +144,7 @@ router.post("/createAdmin", validateSuperuser, async (req, res) => {
             username,
             email,
             password: await Encryption.hash(password),
+            emailVerified: true,
             role
         });
         return res.status(200).send(`SUCCESS: Admin created successfully. ID: ${admin.userID}`)
